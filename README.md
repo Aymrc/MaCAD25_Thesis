@@ -1,1 +1,1 @@
-# MaCAD25_Thesis
+# MaCAD25_Master Thesis
