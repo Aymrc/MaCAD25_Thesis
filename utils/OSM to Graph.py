@@ -27,9 +27,9 @@ def calculate_distance(point1, point2):
 # 2. Get buildings
 coordinates = [
     (2.1685, 41.3872),  # NW
-    (2.1690, 41.3872),  # NE
-    (2.1690, 41.3868),  # SE
-    (2.1685, 41.3868)   # SW
+    (2.1710, 41.3872),  # NE
+    (2.1710, 41.3888),  # SE
+    (2.1685, 41.3888)   # SW
 ]
 polygon = Polygon(coordinates)
 buildings = ox.features_from_polygon(polygon, tags={'building': True})
@@ -53,6 +53,14 @@ fig, ax = ox.plot_footprints(buildings, show=False, close=False, bgcolor='white'
 pos = {node: data['pos'] for node, data in G.nodes(data=True)}
 nx.draw(G, pos, ax=ax, node_size=50, node_color='red', 
         edge_color='gray', width=1.5, alpha=0.6)
+
+nx.draw_networkx_labels(G, pos, font_size=8, ax=ax)
+
+edge_labels = {(u, v): f"{round(d['weight'], 1)} m" for u, v, d in G.edges(data=True)}
+nx.draw_networkx_edge_labels(
+    G, pos, edge_labels=edge_labels,
+    font_size=5, font_color="darkgreen", ax=ax, label_pos=0.5, rotate=True
+)
 
 plt.title(f"Relationship graph between {len(G.nodes)} buildings")
 plt.show()
