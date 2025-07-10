@@ -1,7 +1,9 @@
 import osmnx as ox
 import networkx as nx
 import matplotlib.pyplot as plt
-from shapely.geometry import Polygon
+import numpy as np
+from shapely.geometry import Polygon #Method 1 Get buildinggs by polygon coordinates
+from shapely.geometry import Point #Method 2 Get buildinggs by 1point
 from itertools import combinations
 
 # 1. Universal function to calculate distances
@@ -24,15 +26,63 @@ def calculate_distance(point1, point2):
             # Manual fallback (haversine formula)
             return ox.distance.great_circle(point1, point2)
 
-# 2. Get buildings
-coordinates = [
-    (2.1685, 41.3872),  # NW
-    (2.1710, 41.3872),  # NE
-    (2.1710, 41.3888),  # SE
-    (2.1685, 41.3888)   # SW
-]
-polygon = Polygon(coordinates)
-buildings = ox.features_from_polygon(polygon, tags={'building': True})
+# # 2.Method 1 Get buildings by polygon coordinates
+# coordinates = [
+#     (2.1685, 41.3872),  # NW
+#     (2.1710, 41.3872),  # NE
+#     (2.1710, 41.3888),  # SE
+#     (2.1685, 41.3888)   # SW
+# ]
+# polygon = Polygon(coordinates)
+# buildings = ox.features_from_polygon(polygon, tags={'building': True})
+
+
+# 2. Method 2 Get buildings by location
+def safe_buffer(point, radius_meters):
+    """Create a valid buffer polygon"""
+    try:
+        # Convert meters to approximate degrees (1° ≈ 111,320m at equator)
+        radius_degrees = radius_meters / 111320
+        buffer = point.buffer(radius_degrees)
+        
+        # Validate the geometry
+        if not buffer.is_valid or np.isnan(buffer.area):
+            # Fallback: create a simple bbox if buffer fails
+            minx, miny = point.x - radius_degrees, point.y - radius_degrees
+            maxx, maxy = point.x + radius_degrees, point.y + radius_degrees
+            buffer = box(minx, miny, maxx, maxy)
+            
+        return buffer
+    except Exception as e:
+        print(f"Buffer creation failed: {e}")
+        return None
+
+# Define center point (longitude, latitude)
+center_point = Point(-3.639875651680664, 40.46311651609316)  # Example: Plaza Catalunya
+radius = 200  # meters
+
+# Create validated buffer
+buffer = safe_buffer(center_point, radius)
+if buffer is None:
+    raise ValueError("Could not create valid search area")
+
+# Get buildings with error handling
+try:
+    buildings = ox.features_from_polygon(buffer, tags={'building': True})
+    print(f"Found {len(buildings)} buildings")
+    
+    # Basic validation
+    if len(buildings) == 0:
+        print("Warning: No buildings found. Try increasing radius.")
+        
+except Exception as e:
+    print(f"Error fetching buildings: {e}")
+    buildings = ox.features_from_point(
+        (center_point.y, center_point.x),  # (lat, lon)
+        dist=radius,
+        tags={'building': True}
+    )
+
 
 # 3. Create and connect graph
 G = nx.Graph()
