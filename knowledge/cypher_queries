@@ -10,3 +10,7 @@ FOREACH (_ IN CASE WHEN sanitized_use = "commercial" THEN [1] ELSE [] END | SET 
 FOREACH (_ IN CASE WHEN sanitized_use = "office" THEN [1] ELSE [] END | SET n:UrbanNode_office)
 FOREACH (_ IN CASE WHEN sanitized_use = "yes" THEN [1] ELSE [] END | SET n:UrbanNode_yes)
 FOREACH (_ IN CASE WHEN sanitized_use = "unknown" THEN [1] ELSE [] END | SET n:UrbanNode_unknown)
+
+
+//SEE GRAPH
+MATCH (n) RETURN n
