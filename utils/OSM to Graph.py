@@ -58,8 +58,8 @@ def safe_buffer(point, radius_meters):
         return None
 
 # Define center point (longitude, latitude)
-center_point = Point(-3.639875651680664, 40.46311651609316)  # Example: Plaza Catalunya
-radius = 200  # meters
+center_point = Point(-73.9855, 40.7580)  # Example: Plaza Catalunya
+radius = 50  # meters
 
 # Create validated buffer
 buffer = safe_buffer(center_point, radius)
@@ -82,6 +82,11 @@ except Exception as e:
         dist=radius,
         tags={'building': True}
     )
+
+
+# print(buildings.columns)
+# print(buildings.notnull().sum())
+print(buildings['building'])
 
 
 # 3. Create and connect graph

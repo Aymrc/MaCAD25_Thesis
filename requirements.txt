@@ -6,3 +6,4 @@ networkx>=3.4.2
 matplotlib>=3.10.3
 shapely>=2.1.1
 numpy>=2.2.6
+neo4j>=5.28.1
