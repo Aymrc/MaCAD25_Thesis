@@ -1,6 +1,4 @@
 //TO ASSIGN OSMs NODES COLORS BY USE
-
-// Add static labels for each 'use'
 MATCH (n:UrbanNode)
 WITH n, replace(n.use, " ", "_") AS sanitized_use
 FOREACH (_ IN CASE WHEN sanitized_use = "residential" THEN [1] ELSE [] END | SET n:UrbanNode_residential)

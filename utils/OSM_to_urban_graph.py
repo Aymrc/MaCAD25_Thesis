@@ -3,7 +3,7 @@ import osmnx as ox
 import networkx as nx
 
 # Step 1: Load urban data from OpenStreetMap
-place_name = "Plaça de Catalunya, Barcelona, Spain"
+place_name = "Plaça Reial, Barcelona, Spain"
 
 # "Sagrada Familia, Barcelona, Catalonia, Spain"
 # "Plaça de Catalunya, Barcelona, Spain"
@@ -121,5 +121,6 @@ output_path = os.path.join(output_dir, "urban_graph.graphml")
 if G_urban.number_of_nodes() > 0:
     nx.write_graphml(G_urban, output_path)
     print(f"Graph exported to {output_path}")
+    print("GraphML saved at:", os.path.abspath(output_path))
 else:
     print("Graph not exported because it has no nodes.")
