@@ -1,66 +1,46 @@
 import os
 import osmnx as ox
 import networkx as nx
+from shapely.geometry import Point
+from scipy.spatial import cKDTree
 
-# Step 1: Load urban data from OpenStreetMap
-place_name = "Plaça Reial, Barcelona, Spain"
+# ----------------------------------------
+# Step 1: Define area of interest
+# ----------------------------------------
+place_name = "Jernbanebyen, Copenhagen, Denmark"
+buffer_dist = 500  # meters (to include surrounding context)
+neighbor_radius = 300  # max walking distance to connect nodes (meters)
+max_neighbors = 3  # max number of neighbors per node
 
-# "Sagrada Familia, Barcelona, Catalonia, Spain"
-# "Plaça de Catalunya, Barcelona, Spain"
-# "Plaça Reial, Barcelona, Spain"
-
-# -------------------------------
-# Download street network with explicit buffer
-# -------------------------------
+# ----------------------------------------
+# Step 2: Download street network
+# ----------------------------------------
 print("Downloading street network...")
-try:
-    G_streets = ox.graph_from_address(place_name, dist=300, network_type='all', simplify=True)
-    if len(G_streets.nodes) == 0:
-        print("No street nodes found in this area.")
-        G_streets = None
-except Exception as e:
-    print(f"Error downloading street network: {e}")
-    G_streets = None
+G_streets = ox.graph_from_address(place_name, dist=buffer_dist, network_type="walk", simplify=True)
 
-# -------------------------------
-# Download building footprints
-# -------------------------------
+# ----------------------------------------
+# Step 3: Download buildings and public spaces
+# ----------------------------------------
 print("Downloading buildings...")
-try:
-    buildings = ox.features_from_address(place_name, dist=300, tags={'building': True})
-    if buildings.empty:
-        print("No building footprints found.")
-        buildings = None
-    else:
-        buildings = buildings.to_crs(epsg=3857)
-except Exception as e:
-    print(f"Error downloading buildings: {e}")
+buildings = ox.features_from_address(place_name, dist=buffer_dist, tags={"building": True})
+if not buildings.empty:
+    buildings = buildings.to_crs(epsg=3857)  # Project for metric units
+else:
     buildings = None
 
-# -------------------------------
-# Download public spaces (parks, plazas, etc.)
-# -------------------------------
-print("Downloading public spaces...")
-try:
-    parks = ox.features_from_address(place_name, dist=300, tags={'leisure': 'park'})
-    if parks.empty:
-        print("No parks found in this area.")
-        parks = None
-    else:
-        parks = parks.to_crs(epsg=3857)
-except ox._errors.InsufficientResponseError:
-    print("No matching public spaces found.")
-    parks = None
-except Exception as e:
-    print(f"Error downloading public spaces: {e}")
-    parks = None
+print("Downloading parks and plazas...")
+public_spaces = ox.features_from_address(place_name, dist=buffer_dist, tags={"leisure": ["park", "garden"], "place": "square"})
+if not public_spaces.empty:
+    public_spaces = public_spaces.to_crs(epsg=3857)
+else:
+    public_spaces = None
 
-# -------------------------------
-# Build the Urban Graph
-# -------------------------------
+# ----------------------------------------
+# Step 4: Build urban graph
+# ----------------------------------------
 G_urban = nx.Graph()
 
-# Add nodes for buildings
+# Add building nodes
 if buildings is not None:
     print("Adding building nodes...")
     for idx, row in buildings.iterrows():
@@ -68,59 +48,62 @@ if buildings is not None:
         G_urban.add_node(
             f"building_{idx}",
             type="building",
-            use=row.get('building', 'unknown'),
+            use=row.get("building", "unknown"),
             area=row.geometry.area,
             x=centroid.x,
-            y=centroid.y
+            y=centroid.y,
+            geometry_wkt=row.geometry.wkt
         )
-else:
-    print("No building nodes to add.")
 
-# Add nodes for parks
-if parks is not None:
-    print("Adding park nodes...")
-    for idx, row in parks.iterrows():
+# Add public space nodes
+if public_spaces is not None:
+    print("Adding public space nodes...")
+    for idx, row in public_spaces.iterrows():
         centroid = row.geometry.centroid
         G_urban.add_node(
-            f"park_{idx}",
-            type="park",
+            f"public_space_{idx}",
+            type=row.get("leisure", row.get("place", "unknown")),
             use="public_space",
             area=row.geometry.area,
             x=centroid.x,
             y=centroid.y
         )
-else:
-    print("No park nodes to add.")
 
-# Add proximity edges
+# ----------------------------------------
+# Step 5: Connect nodes by walking distance
+# ----------------------------------------
 if G_urban.number_of_nodes() > 0:
-    print("Creating proximity edges...")
-    for u, u_data in G_urban.nodes(data=True):
-        for v, v_data in G_urban.nodes(data=True):
-            if u != v:
-                point_u = (u_data['x'], u_data['y'])
-                point_v = (v_data['x'], v_data['y'])
-                # Calculate Euclidean distance
-                distance = ((point_u[0] - point_v[0])**2 + (point_u[1] - point_v[1])**2)**0.5
-                # Connect nodes if they are within 50 meters
-                if distance < 50:
-                    G_urban.add_edge(u, v, type="proximity", distance=distance)
-else:
-    print("No nodes found to create proximity edges.")
+    print("Connecting nodes by accessibility...")
+    # Build KDTree for efficient nearest-neighbor search
+    coords = [(data["x"], data["y"]) for node, data in G_urban.nodes(data=True)]
+    tree = cKDTree(coords)
 
-# -------------------------------
-# Export the Urban Graph
-# -------------------------------
-print(f"Urban graph created: {G_urban.number_of_nodes()} nodes and {G_urban.number_of_edges()} edges")
+    node_list = list(G_urban.nodes)
+    for i, node in enumerate(node_list):
+        # Find nearest neighbors within radius
+        idxs = tree.query_ball_point(coords[i], neighbor_radius)
+        idxs = [j for j in idxs if j != i]  # exclude self
+        # Limit to k neighbors
+        idxs = sorted(idxs, key=lambda j: ((coords[i][0] - coords[j][0])**2 + (coords[i][1] - coords[j][1])**2)**0.5)[:max_neighbors]
+        for j in idxs:
+            u, v = node, node_list[j]
+            # Compute walking distance on street network
+            u_point = ox.distance.nearest_nodes(G_streets, coords[i][0], coords[i][1])
+            v_point = ox.distance.nearest_nodes(G_streets, coords[j][0], coords[j][1])
+            try:
+                walk_dist = nx.shortest_path_length(G_streets, u_point, v_point, weight="length")
+                if walk_dist <= neighbor_radius:
+                    G_urban.add_edge(u, v, type="accessibility", distance=walk_dist)
+            except nx.NetworkXNoPath:
+                pass  # skip if no path exists
 
-base_dir = os.path.dirname(os.path.abspath(__file__))
-output_dir = os.path.join(base_dir, "..", "knowledge")
+# ----------------------------------------
+# Step 6: Export GraphML
+# ----------------------------------------
+output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "knowledge")
 os.makedirs(output_dir, exist_ok=True)
 output_path = os.path.join(output_dir, "urban_graph.graphml")
 
-if G_urban.number_of_nodes() > 0:
-    nx.write_graphml(G_urban, output_path)
-    print(f"Graph exported to {output_path}")
-    print("GraphML saved at:", os.path.abspath(output_path))
-else:
-    print("Graph not exported because it has no nodes.")
+print(f"Urban graph created: {G_urban.number_of_nodes()} nodes and {G_urban.number_of_edges()} edges")
+nx.write_graphml(G_urban, output_path)
+print(f"Graph exported to {output_path}")
