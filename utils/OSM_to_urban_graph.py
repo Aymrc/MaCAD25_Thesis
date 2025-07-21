@@ -71,6 +71,54 @@ if public_spaces is not None:
         )
 
 # ----------------------------------------
+# Step 4.5: Connect buildings and public spaces to nearest street node
+# ----------------------------------------
+print("Connecting buildings and public spaces to the street network...")
+
+# Build list of street node coordinates
+street_node_positions = {
+    node: (data["x"], data["y"])
+    for node, data in G_streets.nodes(data=True)
+    if "x" in data and "y" in data
+}
+street_kdtree = cKDTree(list(street_node_positions.values()))
+street_nodes_list = list(street_node_positions.keys())
+street_coords = list(street_node_positions.values())
+
+urban_nodes_data = list(G_urban.nodes(data=True))
+for node_id, data in urban_nodes_data:
+    x, y = data["x"], data["y"]
+
+    # Find nearest street node
+    dist, idx = street_kdtree.query([x, y], k=1)
+    nearest_street_node = street_nodes_list[idx]
+
+    try:
+        walk_dist = nx.shortest_path_length(
+            G_streets,
+            source=nearest_street_node,
+            target=nearest_street_node,
+            weight="length"
+        )
+    except nx.NetworkXNoPath:
+        walk_dist = dist  # fallback to Euclidean
+
+    # Before adding the edge, make sure the street node exists in G_urban with attributes
+    if not G_urban.has_node(nearest_street_node):
+        street_data = G_streets.nodes[nearest_street_node]
+        G_urban.add_node(
+            nearest_street_node,
+            type="street_node",
+            x=street_data["x"],
+            y=street_data["y"]
+        )
+
+    # Now safely add the edge
+    G_urban.add_edge(node_id, nearest_street_node, type="building_to_street", distance=dist)
+
+
+
+# ----------------------------------------
 # Step 5: Connect nodes by walking distance
 # ----------------------------------------
 if G_urban.number_of_nodes() > 0:
