@@ -25,7 +25,7 @@
 <key id="d2" for="graph" attr.name="simplified" attr.type="boolean"/>
 <key id="d1" for="graph" attr.name="created_with" attr.type="string"/>
 <key id="d0" for="graph" attr.name="created_date" attr.type="string"/>
-<graph edgedefault="directed"><data key="d0">2025-07-21 16:16:49</data>
+<graph edgedefault="directed"><data key="d0">2025-07-23 13:39:16</data>
 <data key="d1">OSMnx 2.0.5</data>
 <data key="d2">True</data>
 <node id="118738">
@@ -11317,7 +11317,7 @@
 </edge>
 <edge source="1420336522" target="8995226542" id="0">
   <data key="d15">503714826,971885861</data>
-  <data key="d10">residential,service</data>
+  <data key="d10">service,residential</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">33.75273042039946</data>
@@ -11800,7 +11800,7 @@
   <data key="d13">75.46605141166495</data>
   <data key="d19">50</data>
   <data key="d20">Alsgade</data>
-  <data key="d24">5,6.8</data>
+  <data key="d24">6.8,5</data>
   <data key="d14">LINESTRING (345306.6253055363 6171535.305436069, 345294.43959159113 6171537.553361228, 345236.003878694 6171561.905236153)</data>
 </edge>
 <edge source="8087159" target="8087154" id="0">
@@ -12124,7 +12124,7 @@
   <data key="d12">True</data>
   <data key="d13">120.33828499198563</data>
   <data key="d19">50</data>
-  <data key="d20">H.V. Rolsteds Vej,Edvard Storms Vej</data>
+  <data key="d20">Edvard Storms Vej,H.V. Rolsteds Vej</data>
   <data key="d24">6,5.2</data>
   <data key="d14">LINESTRING (345050.6003430509 6170650.165960604, 344995.07803097146 6170669.092362872, 344991.136574826 6170668.586310184, 344987.935279599 6170665.692408422, 344970.7933045344 6170614.837402174)</data>
 </edge>
@@ -12268,11 +12268,11 @@
 </edge>
 <edge source="18164858" target="12531227243" id="0">
   <data key="d15">422789536,1354127970,1354127968</data>
-  <data key="d10">primary,primary_link</data>
+  <data key="d10">primary_link,primary</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">201.3484144229472</data>
-  <data key="d18">1,2</data>
+  <data key="d18">2,1</data>
   <data key="d19">50</data>
   <data key="d20">P. Knudsens Gade</data>
   <data key="d21">O2</data>
@@ -13859,7 +13859,7 @@
   <data key="d13">8.115602711804065</data>
   <data key="d19">50</data>
   <data key="d20">Enghave Plads,Haderslevgade</data>
-  <data key="d24">5,9.5</data>
+  <data key="d24">9.5,5</data>
   <data key="d14">LINESTRING (345654.7852012452 6171735.465348264, 345651.8680083811 6171737.8967099795, 345650.25318631076 6171739.056654125, 345648.2103726703 6171740.220606561)</data>
 </edge>
 <edge source="7663305" target="7663307" id="0">
@@ -13943,7 +13943,7 @@
 </edge>
 <edge source="7434184311" target="7663307" id="0">
   <data key="d15">1170969512,712394970,712394973</data>
-  <data key="d10">residential,path</data>
+  <data key="d10">path,residential</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">51.831926523500286</data>
@@ -14389,7 +14389,7 @@
   <data key="d25">False,True</data>
   <data key="d13">52.60037496906907</data>
   <data key="d19">50</data>
-  <data key="d20">Sønder Boulevard,Dannevirkegade</data>
+  <data key="d20">Dannevirkegade,Sønder Boulevard</data>
   <data key="d24">5.3</data>
   <data key="d14">LINESTRING (345335.77175679104 6171426.10840776, 345330.0569511476 6171405.58066346, 345329.8121740513 6171400.275858591, 345331.3539940348 6171384.447823596, 345330.572541888 6171380.877513587, 345328.3446769343 6171377.358493091, 345326.4877312953 6171375.953942346)</data>
 </edge>
@@ -14419,7 +14419,7 @@
   <data key="d25">False,True</data>
   <data key="d13">52.600374969069065</data>
   <data key="d19">50</data>
-  <data key="d20">Sønder Boulevard,Dannevirkegade</data>
+  <data key="d20">Dannevirkegade,Sønder Boulevard</data>
   <data key="d24">5.3</data>
   <data key="d14">LINESTRING (345326.4877312953 6171375.953942346, 345328.3446769343 6171377.358493091, 345330.572541888 6171380.877513587, 345331.3539940348 6171384.447823596, 345329.8121740513 6171400.275858591, 345330.0569511476 6171405.58066346, 345335.77175679104 6171426.10840776)</data>
 </edge>
@@ -14800,7 +14800,7 @@
   <data key="d12">False</data>
   <data key="d13">120.33828499198566</data>
   <data key="d19">50</data>
-  <data key="d20">H.V. Rolsteds Vej,Edvard Storms Vej</data>
+  <data key="d20">Edvard Storms Vej,H.V. Rolsteds Vej</data>
   <data key="d24">6,5.2</data>
   <data key="d14">LINESTRING (344970.7933045344 6170614.837402174, 344987.935279599 6170665.692408422, 344991.136574826 6170668.586310184, 344995.07803097146 6170669.092362872, 345050.6003430509 6170650.165960604)</data>
 </edge>
@@ -14872,7 +14872,7 @@
 </edge>
 <edge source="10018841936" target="8087197" id="0">
   <data key="d15">1088351409,1881252</data>
-  <data key="d10">residential,path</data>
+  <data key="d10">path,residential</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">223.66300540812227</data>
@@ -16197,7 +16197,7 @@
   <data key="d13">70.52797560055838</data>
   <data key="d19">50</data>
   <data key="d20">Sønder Boulevard</data>
-  <data key="d24">7,6.2</data>
+  <data key="d24">6.2,7</data>
   <data key="d14">LINESTRING (345481.07677971676 6171425.013220165, 345426.42703972233 6171412.702303429, 345424.5032730653 6171410.832227886, 345423.9225069685 6171408.658353672, 345425.75462157343 6171399.058127781)</data>
 </edge>
 <edge source="1307005059" target="8087229" id="0">
@@ -17193,7 +17193,7 @@
   <data key="d12">True</data>
   <data key="d13">42.58156267402134</data>
   <data key="d17">yes</data>
-  <data key="d18">2,3</data>
+  <data key="d18">3,2</data>
   <data key="d19">50</data>
   <data key="d20">Vesterfælledvej</data>
   <data key="d14">LINESTRING (345091.30273664556 6171326.542177085, 345096.3093752973 6171341.101815797, 345105.1644215704 6171366.864716206)</data>
@@ -17247,7 +17247,7 @@
   <data key="d12">False</data>
   <data key="d13">42.58156267402134</data>
   <data key="d17">yes</data>
-  <data key="d18">2,3</data>
+  <data key="d18">3,2</data>
   <data key="d19">50</data>
   <data key="d20">Vesterfælledvej</data>
   <data key="d14">LINESTRING (345105.1644215704 6171366.864716206, 345096.3093752973 6171341.101815797, 345091.30273664556 6171326.542177085)</data>
@@ -17478,11 +17478,11 @@
 </edge>
 <edge source="12531227243" target="18164858" id="0">
   <data key="d15">1354127968,1354127970,422789536</data>
-  <data key="d10">primary,primary_link</data>
+  <data key="d10">primary_link,primary</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">201.34841442294717</data>
-  <data key="d18">1,2</data>
+  <data key="d18">2,1</data>
   <data key="d19">50</data>
   <data key="d20">P. Knudsens Gade</data>
   <data key="d21">O2</data>
@@ -17523,7 +17523,7 @@
   <data key="d12">False</data>
   <data key="d13">116.51662314309394</data>
   <data key="d18">2</data>
-  <data key="d19">50,40</data>
+  <data key="d19">40,50</data>
   <data key="d20">Borgbjergsvej</data>
   <data key="d14">LINESTRING (345059.9567364616 6170061.250361126, 345112.0734527286 6170132.118118393, 345130.16894618707 6170154.47868462)</data>
 </edge>
@@ -17682,7 +17682,7 @@
 </edge>
 <edge source="18164880" target="7206382091" id="0">
   <data key="d15">3663840,956688177</data>
-  <data key="d10">residential,footway</data>
+  <data key="d10">footway,residential</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">53.90383249195948</data>
@@ -17744,7 +17744,7 @@
 </edge>
 <edge source="7206382091" target="18164880" id="0">
   <data key="d15">3663840,956688177</data>
-  <data key="d10">residential,footway</data>
+  <data key="d10">footway,residential</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">53.90383249195948</data>
@@ -17842,7 +17842,7 @@
 </edge>
 <edge source="9055748441" target="1524382459" id="0">
   <data key="d15">137986863,978688175</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">68.75305877062242</data>
@@ -17916,7 +17916,7 @@
   <data key="d25">False,True</data>
   <data key="d13">36.76142805618253</data>
   <data key="d18">2</data>
-  <data key="d19">50,40</data>
+  <data key="d19">40,50</data>
   <data key="d20">Sydhavnsgade,Peter Sabroes Gade</data>
   <data key="d14">LINESTRING (345184.47139008343 6170067.057104821, 345193.24835488974 6170069.27436835, 345186.3421482249 6170096.175890154)</data>
 </edge>
@@ -19778,7 +19778,7 @@
 </edge>
 <edge source="3527202785" target="3527203305" id="0">
   <data key="d15">346102491,346102493</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">87.26645028189876</data>
@@ -20459,7 +20459,7 @@
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">229.80745251460232</data>
-  <data key="d16">driveway,parking_aisle</data>
+  <data key="d16">parking_aisle,driveway</data>
   <data key="d14">LINESTRING (346154.2620842492 6170707.553040862, 346171.0918812591 6170731.2097689565, 346177.6417546576 6170741.583402021, 346290.73600805365 6170892.923012255)</data>
 </edge>
 <edge source="279969708" target="1052472824" id="0">
@@ -21193,7 +21193,7 @@
 </edge>
 <edge source="5930852215" target="5930852214" id="0">
   <data key="d15">628222728,628222727</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">18.295602310864503</data>
@@ -21305,7 +21305,7 @@
 </edge>
 <edge source="5930852208" target="5930852210" id="0">
   <data key="d15">628222723,628222724</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">19.71429459125524</data>
@@ -21328,7 +21328,7 @@
 </edge>
 <edge source="4726329541" target="1270979200" id="0">
   <data key="d15">28336640,111585326</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">71.21722725764162</data>
@@ -21359,7 +21359,7 @@
   <data key="d13">103.84676825431308</data>
   <data key="d19">50</data>
   <data key="d20">Vestre Teglgade</data>
-  <data key="d24">5,7</data>
+  <data key="d24">7,5</data>
   <data key="d14">LINESTRING (345727.68920031923 6170299.767839681, 345733.48663000553 6170307.8727931725, 345736.3751150801 6170311.903355482, 345747.6658578367 6170372.781507797, 345747.8575072825 6170385.506957175, 345741.5070109678 6170398.452550838)</data>
 </edge>
 <edge source="8995088050" target="311361418" id="0">
@@ -21436,7 +21436,7 @@
   <data key="d13">103.84676825431306</data>
   <data key="d19">50</data>
   <data key="d20">Vestre Teglgade</data>
-  <data key="d24">5,7</data>
+  <data key="d24">7,5</data>
   <data key="d14">LINESTRING (345741.5070109678 6170398.452550838, 345747.8575072825 6170385.506957175, 345747.6658578367 6170372.781507797, 345736.3751150801 6170311.903355482, 345733.48663000553 6170307.8727931725, 345727.68920031923 6170299.767839681)</data>
 </edge>
 <edge source="311361705" target="4726329692" id="0">
@@ -22545,7 +22545,7 @@
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">35.91133316315146</data>
-  <data key="d19">50,40</data>
+  <data key="d19">40,50</data>
   <data key="d20">Kedelpladsen,Lagergade</data>
   <data key="d14">LINESTRING (344977.24683212733 6171635.435824893, 344984.3928461814 6171635.426904276, 345012.4075178043 6171628.404871947)</data>
 </edge>
@@ -23992,7 +23992,7 @@
   <data key="d13">23.460631907748308</data>
   <data key="d18">2</data>
   <data key="d19">50</data>
-  <data key="d20">Borgbjergsvej,Sydhavnsgade</data>
+  <data key="d20">Sydhavnsgade,Borgbjergsvej</data>
   <data key="d14">LINESTRING (345147.2782039377 6170168.753708314, 345151.92687735264 6170171.25105487, 345157.3578303321 6170173.0745631615, 345159.84552462754 6170160.822088903)</data>
 </edge>
 <edge source="4928591923" target="1050213838" id="0">
@@ -24030,9 +24030,9 @@
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">61.84821397886264</data>
-  <data key="d18">1,3</data>
+  <data key="d18">3,1</data>
   <data key="d19">50</data>
-  <data key="d20">Borgbjergsvej,Sydhavnsgade</data>
+  <data key="d20">Sydhavnsgade,Borgbjergsvej</data>
   <data key="d14">LINESTRING (345145.4881576735 6170176.7039124565, 345149.4224731936 6170179.304582491, 345156.1379634404 6170181.828843451, 345154.35901145503 6170195.771635514, 345146.59982662316 6170230.924380728)</data>
 </edge>
 <edge source="1050213843" target="2472107027" id="0">
@@ -24134,7 +24134,7 @@
   <data key="d13">23.460631907748308</data>
   <data key="d18">2</data>
   <data key="d19">50</data>
-  <data key="d20">Borgbjergsvej,Sydhavnsgade</data>
+  <data key="d20">Sydhavnsgade,Borgbjergsvej</data>
   <data key="d14">LINESTRING (345159.84552462754 6170160.822088903, 345157.3578303321 6170173.0745631615, 345151.92687735264 6170171.25105487, 345147.2782039377 6170168.753708314)</data>
 </edge>
 <edge source="1050213953" target="1050213869" id="0">
@@ -24283,7 +24283,7 @@
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">26.155534385427295</data>
-  <data key="d18">1,2</data>
+  <data key="d18">2,1</data>
   <data key="d19">50</data>
   <data key="d20">Sydhavns Plads,Scandiagade</data>
   <data key="d14">LINESTRING (345358.5081751341 6170299.390884752, 345362.03770445427 6170305.860296335, 345364.8574245697 6170310.605986621, 345352.51479250676 6170315.63282656)</data>
@@ -24301,9 +24301,9 @@
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">29.5053183104903</data>
-  <data key="d18">1,4</data>
+  <data key="d18">4,1</data>
   <data key="d19">50</data>
-  <data key="d20">Teglholmsgade,Scandiagade</data>
+  <data key="d20">Scandiagade,Teglholmsgade</data>
   <data key="d14">LINESTRING (345368.8802392277 6170292.60704281, 345372.1431638379 6170298.662614464, 345375.481905019 6170304.19195197, 345387.8311435368 6170293.662107124)</data>
 </edge>
 <edge source="12531227224" target="1370757178" id="0">
@@ -24358,18 +24358,18 @@
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">26.1555343854273</data>
-  <data key="d18">1,2</data>
+  <data key="d18">2,1</data>
   <data key="d19">50</data>
-  <data key="d20">Sydhavns Plads,Scandiagade</data>
+  <data key="d20">Scandiagade,Sydhavns Plads</data>
   <data key="d14">LINESTRING (345352.51479250676 6170315.63282656, 345364.8574245697 6170310.605986621, 345362.03770445427 6170305.860296335, 345358.5081751341 6170299.390884752)</data>
 </edge>
 <edge source="1064956118" target="1524382451" id="0">
   <data key="d15">2038978,630489175</data>
-  <data key="d10">primary,tertiary_link</data>
+  <data key="d10">tertiary_link,primary</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">103.44025752281415</data>
-  <data key="d18">1,2</data>
+  <data key="d18">2,1</data>
   <data key="d19">50</data>
   <data key="d20">Sydhavns Plads</data>
   <data key="d21">O2</data>
@@ -24604,7 +24604,7 @@
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">26.307994009244204</data>
-  <data key="d18">5,2</data>
+  <data key="d18">2,5</data>
   <data key="d19">50</data>
   <data key="d20">Ingerslevsgade</data>
   <data key="d14">LINESTRING (346420.63904008875 6171524.721241878, 346412.62221384887 6171519.489608153, 346408.0735280864 6171517.26598622, 346397.4984176014 6171512.157884873)</data>
@@ -24771,7 +24771,7 @@
 </edge>
 <edge source="1051720385" target="9782463283" id="0">
   <data key="d15">1065218848,90625882</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">376.5354282168673</data>
@@ -24849,7 +24849,7 @@
 </edge>
 <edge source="1051720369" target="1051720455" id="0">
   <data key="d15">1013729241,90625879,92924039</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">114.18451156686744</data>
@@ -24927,7 +24927,7 @@
 </edge>
 <edge source="1051720455" target="1051720369" id="0">
   <data key="d15">92924039,1013729241,90625879</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">114.18451156686746</data>
@@ -24953,7 +24953,7 @@
 </edge>
 <edge source="9782463283" target="1051720385" id="0">
   <data key="d15">1065218848,90625882</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">376.53542821686716</data>
@@ -25889,7 +25889,7 @@
 </edge>
 <edge source="1052455216" target="1615506403" id="0">
   <data key="d15">148449930,148449934</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">57.99796778447548</data>
@@ -25932,7 +25932,7 @@
 </edge>
 <edge source="1615506403" target="1052455216" id="0">
   <data key="d15">148449930,148449934</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">57.99796778447548</data>
@@ -27222,7 +27222,7 @@
 </edge>
 <edge source="12531227251" target="12531227236" id="0">
   <data key="d15">1127671495,630489175</data>
-  <data key="d10">primary,tertiary</data>
+  <data key="d10">tertiary,primary</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">26.026053272874833</data>
@@ -27400,11 +27400,11 @@
 </edge>
 <edge source="1524382451" target="1064956118" id="0">
   <data key="d15">2038978,630489175</data>
-  <data key="d10">primary,tertiary_link</data>
+  <data key="d10">tertiary_link,primary</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">103.44025752281416</data>
-  <data key="d18">1,2</data>
+  <data key="d18">2,1</data>
   <data key="d19">50</data>
   <data key="d20">Sydhavns Plads</data>
   <data key="d21">O2</data>
@@ -27510,7 +27510,7 @@
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">29.5053183104903</data>
-  <data key="d18">1,4</data>
+  <data key="d18">4,1</data>
   <data key="d19">50</data>
   <data key="d20">Scandiagade,Teglholmsgade</data>
   <data key="d14">LINESTRING (345387.8311435368 6170293.662107124, 345375.481905019 6170304.19195197, 345372.1431638379 6170298.662614464, 345368.8802392277 6170292.60704281)</data>
@@ -27565,7 +27565,7 @@
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">32.753787264944265</data>
-  <data key="d18">2,3</data>
+  <data key="d18">3,2</data>
   <data key="d19">50</data>
   <data key="d20">Vasbygade,Teglholmsgade</data>
   <data key="d21">O2</data>
@@ -27855,7 +27855,7 @@
 </edge>
 <edge source="1247869998" target="12381869614" id="0">
   <data key="d15">927889627,108849013,111585334</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">97.34532335585496</data>
@@ -27925,7 +27925,7 @@
 </edge>
 <edge source="1524424899" target="5929015164" id="0">
   <data key="d15">139073364,628043332</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">81.60222975049251</data>
@@ -27951,7 +27951,7 @@
 </edge>
 <edge source="12381869614" target="1247869998" id="0">
   <data key="d15">927889627,108849013,111585334</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">97.34532335585496</data>
@@ -28136,7 +28136,7 @@
 </edge>
 <edge source="1524424891" target="1249999724" id="0">
   <data key="d15">704945484,452834033,471751026,471751031,683577497,683577499,683577500</data>
-  <data key="d10">residential,service</data>
+  <data key="d10">service,residential</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">156.98383130314318</data>
@@ -28165,7 +28165,7 @@
 </edge>
 <edge source="1270978761" target="3822955596" id="0">
   <data key="d15">28350193,415098852</data>
-  <data key="d10">service,path</data>
+  <data key="d10">path,service</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">73.48145976504236</data>
@@ -28181,7 +28181,7 @@
 </edge>
 <edge source="12381869616" target="5221431950" id="0">
   <data key="d15">1014465160,479553630</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">68.85032230558527</data>
@@ -28213,7 +28213,7 @@
 </edge>
 <edge source="1270979200" target="4726329541" id="0">
   <data key="d15">28336640,111585326</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">71.21722725764162</data>
@@ -29289,7 +29289,7 @@
 </edge>
 <edge source="12381891221" target="4161736005" id="0">
   <data key="d15">1338562016,137985295</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">127.42014984330447</data>
@@ -33547,7 +33547,7 @@
 </edge>
 <edge source="1512950423" target="1886733078" id="0">
   <data key="d15">178309484,178308791</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">140.59177755402715</data>
@@ -33629,7 +33629,7 @@
 </edge>
 <edge source="1886733078" target="1512950423" id="0">
   <data key="d15">178309484,178308791</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">140.59177755402715</data>
@@ -33828,7 +33828,7 @@
 </edge>
 <edge source="12531227236" target="1512958855" id="0">
   <data key="d15">747146465,1127671495</data>
-  <data key="d10">tertiary,service</data>
+  <data key="d10">service,tertiary</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">33.69427656168063</data>
@@ -34015,7 +34015,7 @@
 </edge>
 <edge source="4161736005" target="12381891221" id="0">
   <data key="d15">1338562016,137985295</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">127.42014984330447</data>
@@ -34118,7 +34118,7 @@
 </edge>
 <edge source="1524382459" target="9055748441" id="0">
   <data key="d15">978688175,137986863</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">68.75305877062242</data>
@@ -34225,7 +34225,7 @@
 </edge>
 <edge source="5929015164" target="1524424899" id="0">
   <data key="d15">628043332,139073364</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">81.60222975049251</data>
@@ -34429,7 +34429,7 @@
 </edge>
 <edge source="5884170583" target="8982510290" id="0">
   <data key="d15">794918737,623026381,601285789</data>
-  <data key="d10">residential,pedestrian,service</data>
+  <data key="d10">service,pedestrian,residential</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">200.31281716822468</data>
@@ -34779,7 +34779,7 @@
 </edge>
 <edge source="3280265852" target="1557314497" id="0">
   <data key="d15">142284608,1065218850</data>
-  <data key="d10">residential,service</data>
+  <data key="d10">service,residential</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">276.1379728107539</data>
@@ -35791,7 +35791,7 @@
 </edge>
 <edge source="2036142132" target="12701951801" id="0">
   <data key="d15">409319709,392125582</data>
-  <data key="d10">residential,unclassified</data>
+  <data key="d10">unclassified,residential</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">119.71057354307734</data>
@@ -36005,11 +36005,11 @@
 </edge>
 <edge source="4608009859" target="4608009856" id="0">
   <data key="d15">672675018,465897771,1354127980</data>
-  <data key="d10">tertiary,service</data>
+  <data key="d10">service,tertiary</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">72.27103594564403</data>
-  <data key="d18">2,3</data>
+  <data key="d18">3,2</data>
   <data key="d19">50</data>
   <data key="d20">Sydhavnsgade</data>
   <data key="d14">LINESTRING (345186.3421482249 6170096.175890154, 345184.0987969842 6170105.0221646475, 345176.78223839356 6170134.556020683, 345207.94045123074 6170145.024450509)</data>
@@ -37822,7 +37822,7 @@
 </edge>
 <edge source="3527203305" target="3527202785" id="0">
   <data key="d15">346102491,346102493</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">87.26645028189874</data>
@@ -38715,7 +38715,7 @@
 </edge>
 <edge source="4161717732" target="5911845007" id="0">
   <data key="d15">1299036737,415097139</data>
-  <data key="d10">residential,footway</data>
+  <data key="d10">footway,residential</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">68.89346419127226</data>
@@ -38774,7 +38774,7 @@
   <data key="d13">235.30892545704594</data>
   <data key="d17">yes</data>
   <data key="d19">50</data>
-  <data key="d20">Alfred Nobels Bro,Nelson Mandelas Allé,Topstykket</data>
+  <data key="d20">Nelson Mandelas Allé,Alfred Nobels Bro,Topstykket</data>
   <data key="d14">LINESTRING (346180.7945472618 6170114.109787043, 346187.0857930432 6170123.556888932, 346192.391835566 6170132.214420327, 346205.11565540475 6170156.194311942, 346246.23649959714 6170232.140624836, 346246.9228075221 6170233.386314993, 346263.1773618378 6170260.52801559, 346278.14779185515 6170283.404123305, 346292.91360975883 6170306.554824428, 346297.9859023029 6170313.594371207, 346300.4218105989 6170316.950588911)</data>
 </edge>
 <edge source="6144989892" target="12228257676" id="0">
@@ -39281,7 +39281,7 @@
 </edge>
 <edge source="5911845007" target="4161717732" id="0">
   <data key="d15">1299036737,415097139</data>
-  <data key="d10">residential,footway</data>
+  <data key="d10">footway,residential</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">68.89346419127226</data>
@@ -39381,11 +39381,11 @@
 </edge>
 <edge source="12531227220" target="4225294596" id="0">
   <data key="d15">1354127960,416688412,363633975</data>
-  <data key="d10">primary,tertiary</data>
+  <data key="d10">tertiary,primary</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">32.753787264944265</data>
-  <data key="d18">2,3</data>
+  <data key="d18">3,2</data>
   <data key="d19">50</data>
   <data key="d20">Vasbygade,Teglholmsgade</data>
   <data key="d21">O2</data>
@@ -39702,7 +39702,7 @@
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">14.03505344047011</data>
-  <data key="d20">Gærtorvet,Kildepladsen</data>
+  <data key="d20">Kildepladsen,Gærtorvet</data>
   <data key="d23">no</data>
   <data key="d14">LINESTRING (345112.8730316362 6171602.378899667, 345122.6098602881 6171599.794114721, 345123.69099975657 6171603.643378778)</data>
 </edge>
@@ -39989,7 +39989,7 @@
 </edge>
 <edge source="5793421456" target="4449513650" id="0">
   <data key="d15">28335764,1060882582</data>
-  <data key="d10">service,path</data>
+  <data key="d10">path,service</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">94.80733231639377</data>
@@ -40184,7 +40184,7 @@
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">72.27103594564403</data>
-  <data key="d18">2,3</data>
+  <data key="d18">3,2</data>
   <data key="d19">50</data>
   <data key="d20">Sydhavnsgade</data>
   <data key="d14">LINESTRING (345207.94045123074 6170145.024450509, 345176.78223839356 6170134.556020683, 345184.0987969842 6170105.0221646475, 345186.3421482249 6170096.175890154)</data>
@@ -40297,7 +40297,7 @@
 </edge>
 <edge source="5221431950" target="12381869616" id="0">
   <data key="d15">1014465160,479553630</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">68.85032230558527</data>
@@ -40319,7 +40319,7 @@
 </edge>
 <edge source="5930852214" target="5930852215" id="0">
   <data key="d15">628222728,628222727</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">18.295602310864503</data>
@@ -40369,7 +40369,7 @@
 </edge>
 <edge source="5930852210" target="5930852208" id="0">
   <data key="d15">628222723,628222724</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">19.71429459125524</data>
@@ -41243,7 +41243,7 @@
 </edge>
 <edge source="5586606656" target="9283040410" id="0">
   <data key="d15">1023368704,1023368705</data>
-  <data key="d10">steps,path</data>
+  <data key="d10">path,steps</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">12.634648822853457</data>
@@ -41660,7 +41660,7 @@
 </edge>
 <edge source="5221432061" target="5221432059" id="0">
   <data key="d15">666423624,539634761</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">129.802548813353</data>
@@ -41698,7 +41698,7 @@
 </edge>
 <edge source="5221432059" target="5221432061" id="0">
   <data key="d15">666423624,539634761</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">129.802548813353</data>
@@ -41755,7 +41755,7 @@
 </edge>
 <edge source="5887604984" target="5887605387" id="0">
   <data key="d15">623422106,910981220,623422101,623422103</data>
-  <data key="d10">steps,path</data>
+  <data key="d10">path,steps</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">33.606668972165906</data>
@@ -42223,7 +42223,7 @@
   <data key="d12">True</data>
   <data key="d13">19.301720799880613</data>
   <data key="d17">yes</data>
-  <data key="d20">George Marshalls Vej,Martin Luther Kings Vej</data>
+  <data key="d20">Martin Luther Kings Vej,George Marshalls Vej</data>
   <data key="d14">LINESTRING (346613.5524576595 6170758.305740723, 346613.62261473434 6170761.734147238, 346613.5532467484 6170771.761864756, 346613.394196403 6170777.626675208)</data>
 </edge>
 <edge source="6168972794" target="5584484309" id="0">
@@ -42250,7 +42250,7 @@
   <data key="d12">False</data>
   <data key="d13">58.26969233298322</data>
   <data key="d17">yes</data>
-  <data key="d20">Jane Addams Vej,Martin Luther Kings Vej</data>
+  <data key="d20">Martin Luther Kings Vej,Jane Addams Vej</data>
   <data key="d14">LINESTRING (346611.04295511224 6170744.603642871, 346604.54688036843 6170745.221911678, 346585.07082213764 6170747.243436797, 346581.44128701405 6170747.538156923, 346553.38598852477 6170741.44028465)</data>
 </edge>
 <edge source="7659225402" target="7911066755" id="0">
@@ -42364,7 +42364,7 @@
 </edge>
 <edge source="9283040410" target="5586606656" id="0">
   <data key="d15">1023368704,1023368705</data>
-  <data key="d10">steps,path</data>
+  <data key="d10">path,steps</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">12.634648822853457</data>
@@ -42423,7 +42423,7 @@
   <data key="d12">True</data>
   <data key="d13">21.168672906214766</data>
   <data key="d17">yes</data>
-  <data key="d20">Willy Brandts Vej,Martin Luther Kings Vej</data>
+  <data key="d20">Martin Luther Kings Vej,Willy Brandts Vej</data>
   <data key="d14">LINESTRING (346593.2603680393 6170668.702584058, 346595.29400549026 6170674.958143496, 346598.0948193858 6170684.4059575945, 346599.58272249496 6170688.931852763)</data>
 </edge>
 <edge source="9868591390" target="9868591389" id="0">
@@ -42519,7 +42519,7 @@
   <data key="d12">False</data>
   <data key="d13">21.168672906214766</data>
   <data key="d17">yes</data>
-  <data key="d20">Willy Brandts Vej,Martin Luther Kings Vej</data>
+  <data key="d20">Martin Luther Kings Vej,Willy Brandts Vej</data>
   <data key="d14">LINESTRING (346599.58272249496 6170688.931852763, 346598.0948193858 6170684.4059575945, 346595.29400549026 6170674.958143496, 346593.2603680393 6170668.702584058)</data>
 </edge>
 <edge source="10918330237" target="9087814792" id="0">
@@ -42735,7 +42735,7 @@
 </edge>
 <edge source="8982510290" target="5884170583" id="0">
   <data key="d15">623026381,794918737,601285789</data>
-  <data key="d10">residential,service,pedestrian</data>
+  <data key="d10">residential,pedestrian,service</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">200.31281716822468</data>
@@ -43052,7 +43052,7 @@
 </edge>
 <edge source="5887604916" target="5887604953" id="0">
   <data key="d15">910981219,623422077,623422079</data>
-  <data key="d10">steps,path</data>
+  <data key="d10">path,steps</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">19.267398913365096</data>
@@ -43115,7 +43115,7 @@
 </edge>
 <edge source="5887604953" target="5887604916" id="0">
   <data key="d15">910981219,623422077,623422079</data>
-  <data key="d10">steps,path</data>
+  <data key="d10">path,steps</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">19.2673989133651</data>
@@ -43355,7 +43355,7 @@
 </edge>
 <edge source="5887605387" target="5887604984" id="0">
   <data key="d15">623422106,910981220,623422101,623422103</data>
-  <data key="d10">steps,path</data>
+  <data key="d10">path,steps</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">33.606668972165906</data>
@@ -43601,7 +43601,7 @@
 </edge>
 <edge source="11047190425" target="5930802986" id="0">
   <data key="d15">628217569,1189736642,1189736643</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">71.66458517979913</data>
@@ -43937,7 +43937,7 @@
 </edge>
 <edge source="5930802986" target="11047190425" id="0">
   <data key="d15">628217569,1189736642,1189736643</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">71.66458517979913</data>
@@ -43962,7 +43962,7 @@
 </edge>
 <edge source="5930852211" target="5930852212" id="0">
   <data key="d15">628222725,628222726</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">18.069717494821564</data>
@@ -43985,7 +43985,7 @@
 </edge>
 <edge source="5930852212" target="5930852211" id="0">
   <data key="d15">628222725,628222726</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">18.069717494821564</data>
@@ -44018,13 +44018,13 @@
 </edge>
 <edge source="11039952607" target="6144989892" id="0">
   <data key="d15">380316352,528347963,743631535</data>
-  <data key="d10">residential,unclassified</data>
+  <data key="d10">unclassified,residential</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">235.3089254570459</data>
   <data key="d17">yes</data>
   <data key="d19">50</data>
-  <data key="d20">Alfred Nobels Bro,Nelson Mandelas Allé,Topstykket</data>
+  <data key="d20">Nelson Mandelas Allé,Topstykket,Alfred Nobels Bro</data>
   <data key="d14">LINESTRING (346300.4218105989 6170316.950588911, 346297.9859023029 6170313.594371207, 346292.91360975883 6170306.554824428, 346278.14779185515 6170283.404123305, 346263.1773618378 6170260.52801559, 346246.9228075221 6170233.386314993, 346246.23649959714 6170232.140624836, 346205.11565540475 6170156.194311942, 346192.391835566 6170132.214420327, 346187.0857930432 6170123.556888932, 346180.7945472618 6170114.109787043)</data>
 </edge>
 <edge source="11039952607" target="11039952634" id="0">
@@ -45051,7 +45051,7 @@
 </edge>
 <edge source="6284075943" target="9634914096" id="0">
   <data key="d15">701453778,671050551</data>
-  <data key="d10">residential,footway</data>
+  <data key="d10">footway,residential</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">37.12573615351243</data>
@@ -45068,7 +45068,7 @@
 </edge>
 <edge source="9634914096" target="6284075943" id="0">
   <data key="d15">701453778,671050551</data>
-  <data key="d10">residential,footway</data>
+  <data key="d10">footway,residential</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">37.12573615351243</data>
@@ -46691,7 +46691,7 @@
   <data key="d13">8.115602711804065</data>
   <data key="d19">50</data>
   <data key="d20">Enghave Plads,Haderslevgade</data>
-  <data key="d24">5,9.5</data>
+  <data key="d24">9.5,5</data>
   <data key="d14">LINESTRING (345648.2103726703 6171740.220606561, 345650.25318631076 6171739.056654125, 345651.8680083811 6171737.8967099795, 345654.7852012452 6171735.465348264)</data>
 </edge>
 <edge source="10130727947" target="10130727946" id="0">
@@ -46778,7 +46778,7 @@
 </edge>
 <edge source="9104000687" target="9103996139" id="0">
   <data key="d15">984728003,787568350</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">96.75653170014635</data>
@@ -47415,7 +47415,7 @@
 </edge>
 <edge source="7911066755" target="8939649172" id="0">
   <data key="d15">847787224,847787226,1106529763</data>
-  <data key="d10">residential,footway</data>
+  <data key="d10">footway,residential</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">200.8730366073912</data>
@@ -47433,7 +47433,7 @@
 </edge>
 <edge source="10097318946" target="7659225404" id="0">
   <data key="d15">847761888,820239976,875146220,1106529773,847761887</data>
-  <data key="d10">residential,service</data>
+  <data key="d10">service,residential</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">69.37570924135564</data>
@@ -47952,7 +47952,7 @@
 </edge>
 <edge source="8939649172" target="7911066755" id="0">
   <data key="d15">847787224,847787226,1106529763</data>
-  <data key="d10">residential,footway</data>
+  <data key="d10">footway,residential</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">200.8730366073912</data>
@@ -48323,11 +48323,11 @@
 </edge>
 <edge source="8395200951" target="9386674516" id="0">
   <data key="d15">903945209,1017666527</data>
-  <data key="d10">residential,path</data>
+  <data key="d10">path,residential</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">14.03505344047011</data>
-  <data key="d20">Gærtorvet,Kildepladsen</data>
+  <data key="d20">Kildepladsen,Gærtorvet</data>
   <data key="d23">no</data>
   <data key="d14">LINESTRING (345123.69099975657 6171603.643378778, 345122.6098602881 6171599.794114721, 345112.8730316362 6171602.378899667)</data>
 </edge>
@@ -48358,7 +48358,7 @@
 </edge>
 <edge source="10804732475" target="12209829032" id="0">
   <data key="d15">1319348241,1161714658,1319348242</data>
-  <data key="d10">steps,path</data>
+  <data key="d10">path,steps</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">22.083332144383697</data>
@@ -48373,7 +48373,7 @@
 </edge>
 <edge source="12209829032" target="10804732475" id="0">
   <data key="d15">1319348241,1319348242,1161714658</data>
-  <data key="d10">steps,path</data>
+  <data key="d10">path,steps</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">22.083332144383697</data>
@@ -48963,7 +48963,7 @@
 </edge>
 <edge source="12652971295" target="10012303879" id="0">
   <data key="d15">1093250436,960114892</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">38.05589849394375</data>
@@ -51185,7 +51185,7 @@
 </edge>
 <edge source="9103996139" target="9104000687" id="0">
   <data key="d15">984728003,787568350</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">96.75653170014638</data>
@@ -51380,7 +51380,7 @@
 </edge>
 <edge source="9283040409" target="9286721758" id="0">
   <data key="d15">1006560960,1006560958,1006560959</data>
-  <data key="d10">service,path</data>
+  <data key="d10">path,service</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">42.73547042880663</data>
@@ -51517,7 +51517,7 @@
 </edge>
 <edge source="9782463281" target="9502317297" id="0">
   <data key="d15">1065218845,1030885678</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">47.903299986605305</data>
@@ -51570,7 +51570,7 @@
 </edge>
 <edge source="9502317297" target="9782463281" id="0">
   <data key="d15">1065218845,1030885678</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">True</data>
   <data key="d13">47.903299986605305</data>
@@ -52835,7 +52835,7 @@
 </edge>
 <edge source="10012303879" target="12652971295" id="0">
   <data key="d15">960114892,1093250436</data>
-  <data key="d10">service,footway</data>
+  <data key="d10">footway,service</data>
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">38.055898493943744</data>
@@ -56163,7 +56163,7 @@
 </edge>
 <edge source="11046896378" target="11046896387" id="0">
   <data key="d15">1189700658,1189700651,1189700652,1296630351</data>
-  <data key="d10">footway,steps,path</data>
+  <data key="d10">footway,path,steps</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">20.53873433301208</data>
@@ -56226,7 +56226,7 @@
 </edge>
 <edge source="11046896387" target="11046896378" id="0">
   <data key="d15">1189700658,1189700651,1189700652,1296630351</data>
-  <data key="d10">footway,steps,path</data>
+  <data key="d10">footway,path,steps</data>
   <data key="d11">False</data>
   <data key="d25">False,True</data>
   <data key="d13">20.53873433301208</data>
@@ -58164,9 +58164,9 @@
   <data key="d11">False</data>
   <data key="d12">False</data>
   <data key="d13">61.84821397886264</data>
-  <data key="d18">1,3</data>
+  <data key="d18">3,1</data>
   <data key="d19">50</data>
-  <data key="d20">Borgbjergsvej,Sydhavnsgade</data>
+  <data key="d20">Sydhavnsgade,Borgbjergsvej</data>
   <data key="d14">LINESTRING (345146.59982662316 6170230.924380728, 345154.35901145503 6170195.771635514, 345156.1379634404 6170181.828843451, 345149.4224731936 6170179.304582491, 345145.4881576735 6170176.7039124565)</data>
 </edge>
 <edge source="12531227239" target="12531227243" id="0">
