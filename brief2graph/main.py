@@ -113,7 +113,7 @@ def convert_json_to_csv_files(brief_text):
     progress(0.4, desc="Saving nodes.csv")
     time.sleep(0.5)
 
-    nodes_path = "nodes.csv"
+    nodes_path = "brief2graph/nodes.csv"
     with open(nodes_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["id", "label", "typology", "scale", "footprint", "social_weight"]) # update with LLM
         writer.writeheader()
@@ -122,7 +122,7 @@ def convert_json_to_csv_files(brief_text):
     progress(0.7, desc="Saving edges.csv")
     time.sleep(0.5)
 
-    edges_path = "edges.csv"
+    edges_path = "brief2graph/edges.csv"
     with open(edges_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["source", "target", "type"])
         writer.writeheader()
