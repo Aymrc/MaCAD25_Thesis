@@ -39,7 +39,7 @@ This Master Thesis project is a copilot to improve architects knowledge on a sit
 
 ## Authors
 
-- César [@cdherbosa](https://github.com/cdherbosa)
+- César Diego Herbosa [@cdherbosa](https://github.com/cdherbosa)
 - Aymeric Brouez [@Aymrc](https://github.com/Aymrc)
 
 ## Supervisor
