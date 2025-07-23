@@ -1,0 +1,8 @@
+source,target,type
+Jernbanebyen,development_area,scope
+development_area,new_apartments,location
+development_area,workplaces,location
+development_area,parks_and_green_spaces,location
+development_area,heritage_buildings,location
+new_apartments,pedestrian_streets,adjacent
+workplaces,cycling_paths,adjacent

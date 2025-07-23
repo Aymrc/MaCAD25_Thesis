@@ -1,0 +1,9 @@
+id,label,typology,scale,footprint,social_weight
+Jernbanebyen,Jernbanebyen Masterplan Competition Brief and Program,urban_design_brief,large,550000,0.8
+development_area,Development Area,site,large,550000,0.6
+new_apartments,New Apartments,residential,medium,200000,0.7
+workplaces,Workplaces,commercial,medium,150000,0.6
+parks_and_green_spaces,Parks and Green Spaces,recreational,large,300000,0.8
+heritage_buildings,Heritage Buildings,cultural,medium,100000,0.7
+pedestrian_streets,Pedestrian Streets,public_space,small,50000,0.6
+cycling_paths,Cycling Paths,transportation,medium,100000,0.5
