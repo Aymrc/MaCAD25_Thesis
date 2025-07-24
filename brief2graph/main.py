@@ -12,7 +12,7 @@ from PIL import Image
 import gradio as gr
 from gradio import Progress
 
-# ====
+# ==============================================
 
 # Connect LM Studio
 client = OpenAI(
@@ -29,7 +29,7 @@ print("\n")
 
 
 
-# LLM 
+# LLM
 def brief_to_json(brief_text):
     prompt = f"""
 You are an expert urban planner. Read the following urban design brief and convert it into a JSON graph.
@@ -170,7 +170,7 @@ def visualize_csv_graph(nodes_file, edges_file):
 
 
 
-
+# ==============================================
 
 # Gradio UI
 with gr.Blocks() as demo:
