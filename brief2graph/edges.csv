@@ -1,8 +1,6 @@
-source,target,type
-Jernbanebyen,development_area,scope
-development_area,new_apartments,location
-development_area,workplaces,location
-development_area,parks_and_green_spaces,location
-development_area,heritage_buildings,location
-new_apartments,pedestrian_streets,adjacent
-workplaces,cycling_paths,adjacent
+source,target,type,mode
+masterplan_root,residential_1,contains,
+masterplan_root,commercial_1,contains,
+masterplan_root,retail_1,contains,
+residential_1,park_1,adjacent,"pedestrian, bike"
+commercial_1,library_1,adjacent,"pedestrian, bike"
