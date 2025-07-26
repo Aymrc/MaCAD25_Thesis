@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>3D NetworkX Graph</title>
+    <style>
+      body { margin: 0; overflow: hidden; }
+      #3d-graph { width: 100vw; height: 100vh; }
+    </style>
+  </head>
+  <body>
+    <div id="3d-graph"></div>
+
+    <!-- Load required libraries -->
+    <script src="https://unpkg.com/three@0.150.1/build/three.min.js"></script>
+    <script src="https://unpkg.com/3d-force-graph"></script>
+
+    <script>
+      // Load your graph JSON
+      fetch("graph.json")
+        .then(res => res.json())
+        .then(data => {
+          const Graph = ForceGraph3D()
+            (document.getElementById('3d-graph'))
+            .graphData(data)
+            .nodeAutoColorBy('group')  // optional, add "group" property to nodes if desired
+            .nodeLabel(node => node.id)
+            .linkDirectionalParticles(2)
+            .linkDirectionalParticleSpeed(0.005)
+            .backgroundColor("#000");
+        });
+    </script>
+  </body>
+</html>
