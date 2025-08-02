@@ -16,15 +16,22 @@
     <script src="https://unpkg.com/3d-force-graph"></script>
 
     <script>
-      // Load your graph JSON
-      fetch("graph.json")
+      fetch("enriched_graph.json")
         .then(res => res.json())
         .then(data => {
           const Graph = ForceGraph3D()
             (document.getElementById('3d-graph'))
             .graphData(data)
-            .nodeAutoColorBy('group')  // optional, add "group" property to nodes if desired
-            .nodeLabel(node => node.id)
+            .nodeAutoColorBy('assigned_programs')
+            // .nodeLabel(node => node.id)
+            .nodeLabel(node => {
+              if (node.assigned_programs && node.assigned_programs.length > 0) {
+                return node.assigned_programs
+                  .map(p => `${p[0]} (${p[1]})`)  // p[0] = program ID, p[1] = typology
+                  .join(', ');
+              }
+              return `Node ${node.id}`;// fallback
+            })
             .linkDirectionalParticles(2)
             .linkDirectionalParticleSpeed(0.005)
             .backgroundColor("#000");

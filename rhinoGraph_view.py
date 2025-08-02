@@ -176,3 +176,19 @@ fig = go.Figure(data=[edge_trace, node_trace],
 )
 
 fig.show()
+
+
+
+# NetworkX back to JSON
+enriched_data = json_graph.node_link_data(host_graph)
+
+# Removing unnecessary fields or round numbers if needed
+for node in enriched_data["nodes"]:
+    if "pos" in node:
+        node["pos"] = [round(coord, 2) for coord in node["pos"]]
+    if "assigned_programs" in node and not node["assigned_programs"]:
+        node.pop("assigned_programs", None)
+
+# Save to file
+with open("enriched_graph.json", "w") as f:
+    json.dump(enriched_data, f, indent=2)
