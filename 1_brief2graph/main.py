@@ -29,63 +29,6 @@ print("\n")
 
 
 
-# LLM
-# def brief_to_json(brief_text):
-#     prompt = f"""
-# You are an expert urban planner. Read the following urban design brief and convert it into a JSON graph.
-
-# Brief:
-# \"\"\"
-# {brief_text}
-# \"\"\"
-
-# Your output should be a JSON object with two keys:
-
-# 1. "nodes": a list of elements in the design (e.g., plaza, school, housing). Each node must have:
-#    - id (short identifier)
-#    - label (name)
-#    - typology (e.g., residential, civic)
-#    - scale (small, medium, large)
-#    - footprint (in m²)
-#    - social_weight (0.0 to 1.0)
-
-# 2. "edges": a list of relationships between nodes. Each edge must have:
-#    - source
-#    - target
-#    - type (e.g., pedestrian, visual, transit)
-
-# Nodes can connnected to multiple nodes if the relation is logic. A node can be a sub-node part of a bigger topic(e.g. new_appartments can take place in the heritage_buildings)
-
-# Output only valid JSON. No explanations, no markdown. Just the JSON.
-# IMPORTANT: Do not wrap the JSON in markdown code fences. Return raw JSON only.
-# """
-
-#     try:
-#         response = client.chat.completions.create(
-#             model="local-model",  # Replace with your model name
-#             messages=[
-#                 {"role": "system", "content": "You convert urban planning briefs into structured JSON graph data."},
-#                 {"role": "user", "content": prompt}
-#             ],
-#             temperature=0.2
-#         )
-
-#         raw_output = response.choices[0].message.content
-
-#         # Remove markdown code fences if present
-#         clean_output = re.sub(r"^```(?:json)?\s*|```$", "", raw_output.strip(), flags=re.IGNORECASE | re.MULTILINE)
-
-#         # Try to parse the cleaned JSON
-#         try:
-#             parsed = json.loads(clean_output)
-#             return json.dumps(parsed, indent=2)
-#         except json.JSONDecodeError:
-#             return "// Still invalid after cleanup:\n" + clean_output
-
-#     except Exception as e:
-#         return f"// Error contacting local LLM: {str(e)}"
-
-
 def extract_first_json(text):
     """Extracts the first valid JSON object from any messy LLM output."""
     match = re.search(r'\{[\s\S]+\}', text)
