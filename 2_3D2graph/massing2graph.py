@@ -6,10 +6,11 @@
 
 import Rhino.Geometry as rg
 import rhinoscriptsyntax as rs
+import os
 from collections import defaultdict
 
 debug_messages = []
-
+ghenv.Component.Params.Output[0].Name = "something"
 # === Input check & cleanup
 geo_objects = []
 for g in geo_list:
@@ -162,7 +163,7 @@ debug_messages.append(f"\nGraph built: {G.number_of_nodes()} nodes, {G.number_of
 
 
 data = json_graph.node_link_data(G)
-json_path = path + "massing2graph.json"
+json_path = path + "/" + "massing2graph.json"
 with open(json_path, "w") as f:
     json.dump(data, f, indent=2)
 debug_messages.append(f"Graph exported to: {json_path}")

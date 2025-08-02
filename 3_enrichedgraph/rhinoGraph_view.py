@@ -1,38 +1,20 @@
-# import json
-# import networkx as nx
-# from networkx.readwrite import json_graph
-# import matplotlib.pyplot as plt
-
-# # Load graph from file
-# with open("C:/Users/broue/Documents/IAAC MaCAD/Master_Thesis/July_research&experimentation/graph.json", "r") as f:
-#     data = json.load(f)
-
-# # Convert JSON back to a NetworkX graph
-# G = json_graph.node_link_graph(data)
-
-# # Get node positions (if stored)
-# pos = nx.get_node_attributes(G, 'pos')
-# # Convert 3D to 2D for plotting
-# pos2d = {k: (v[0], v[1]) for k, v in pos.items()}
-
-# # Draw graph
-# nx.draw(G, pos=pos2d, with_labels=True, node_size=300, node_color="lightblue")
-# plt.show()
-
-
-import json
+import json, os
 import networkx as nx
 from networkx.readwrite import json_graph
 import plotly.graph_objects as go
 import plotly.io as pio
+
 pio.renderers.default = 'browser'
 
+USE_SPRING_LAYOUT = True #True #False  # <<<< Change to False to use Rhino 3D layout
 
-# === Load Host Graph ===
-with open("C:/Users/broue/Documents/IAAC MaCAD/Master_Thesis/July_research&experimentation/graph.json", "r") as f:
+# === File loading ===
+base_dir = os.path.dirname(__file__)
+json_path = os.path.abspath(os.path.join(base_dir, "..", "2_3D2graph", "massing2graph.json"))
+
+with open(json_path, "r") as f:
     host_data = json.load(f)
 
-# Fix future warning in networkx
 host_graph = json_graph.node_link_graph(host_data, edges="links")
 
 # === Define Brief Nodes ===
@@ -47,7 +29,6 @@ brief_nodes = [
     {"id": "cycling_paths", "label": "Cycling Paths", "footprint": 100000, "typology": "transportation"}
 ]
 
-# === Color map for typologies ===
 typology_colors = {
     "residential": "orange",
     "commercial": "blue",
@@ -61,14 +42,14 @@ typology_colors = {
 
 # === STEP 1: Annotate host nodes ===
 for node in host_graph.nodes.values():
-    node['available_area'] = 100000  # Placeholder area (replace with real later)
+    node['available_area'] = 100000
     node['program'] = None
     node['assigned_programs'] = []
 
 # === STEP 2: Assign programs ===
 for b_node in brief_nodes:
     if b_node['id'] == "Jernbanebyen" or b_node['typology'] == "site":
-        continue  # skip plot and site-level nodes
+        continue
 
     program_id = b_node['id']
     typology = b_node['typology']
@@ -97,42 +78,48 @@ for b_node in brief_nodes:
             break
 
     if remaining > 0:
-        print(f"⚠️ Program '{program_id}' only partially placed. Remaining: {remaining}")
+        print(f"Program '{program_id}' only partially placed. Remaining: {remaining}")
     else:
-        print(f"✅ Program '{program_id}' placed in nodes: {assigned}")
+        print(f"Program '{program_id}' placed in nodes: {assigned}")
 
-# === Plotly Interactive Graph ===
-# Get 2D node positions
-pos = nx.get_node_attributes(host_graph, 'pos')
-pos2d = {k: (v[0], v[1]) for k, v in pos.items()}
+# === TOGGLE 3D POSITION LAYOUT ===
+original_pos = nx.get_node_attributes(host_graph, 'pos')
+if USE_SPRING_LAYOUT:
+    pos3d = nx.spring_layout(host_graph, dim=3, seed=42)
+    print("Using 3D spring layout for node positions.")
+else:
+    if all(len(v) == 3 for v in original_pos.values()):
+        pos3d = original_pos
+        print("Using original 3D positions from Rhino.")
+    else:
+        print("Original positions missing. Falling back to spring layout.")
+        pos3d = nx.spring_layout(host_graph, dim=3, seed=42)
 
-# Edge traces
-edge_x = []
-edge_y = []
+# === Create 3D Edge Trace ===
+edge_x, edge_y, edge_z = [], [], []
 for u, v in host_graph.edges():
-    x0, y0 = pos2d[u]
-    x1, y1 = pos2d[v]
+    x0, y0, z0 = pos3d[u]
+    x1, y1, z1 = pos3d[v]
     edge_x += [x0, x1, None]
     edge_y += [y0, y1, None]
+    edge_z += [z0, z1, None]
 
-edge_trace = go.Scatter(
-    x=edge_x, y=edge_y,
-    line=dict(width=0.5, color='#888'),
-    hoverinfo='none',
-    mode='lines'
+edge_trace = go.Scatter3d(
+    x=edge_x, y=edge_y, z=edge_z,
+    mode='lines',
+    line=dict(color='#888', width=2),
+    hoverinfo='none'
 )
 
-# Node traces
-node_x = []
-node_y = []
-node_text = []
-node_labels = []
-node_color = []
+# === Create 3D Node Trace ===
+node_x, node_y, node_z = [], [], []
+node_text, node_labels, node_color = [], [], []
 
 for node_id, data in host_graph.nodes(data=True):
-    x, y = pos2d[node_id]
+    x, y, z = pos3d[node_id]
     node_x.append(x)
     node_y.append(y)
+    node_z.append(z)
 
     if data['assigned_programs']:
         programs = [f"{p[0]} ({p[1]}): {p[2]:,.0f} m²" for p in data['assigned_programs']]
@@ -149,46 +136,44 @@ for node_id, data in host_graph.nodes(data=True):
     node_labels.append(label)
     node_color.append(color)
 
-node_trace = go.Scatter(
-    x=node_x, y=node_y,
+node_trace = go.Scatter3d(
+    x=node_x, y=node_y, z=node_z,
     mode='markers+text',
     text=node_labels,
     textposition='top center',
-    hoverinfo='text',
     hovertext=node_text,
+    hoverinfo='text',
     marker=dict(
         color=node_color,
-        size=18,
+        size=10,
         line=dict(width=1, color='black')
     )
 )
 
+# === Render Plotly 3D Graph ===
 fig = go.Figure(data=[edge_trace, node_trace],
-         layout=go.Layout(
-            title=dict(text="📦 Embedded Brief in Host Graph", font=dict(size=20)),
-            showlegend=False,
-            hovermode='closest',
-            margin=dict(b=20,l=20,r=20,t=40),
-            xaxis=dict(showgrid=False, zeroline=False),
-            yaxis=dict(showgrid=False, zeroline=False),
-            height=800
+    layout=go.Layout(
+        title=dict(text="3D Host Graph with Assigned Programs", font=dict(size=20)),
+        showlegend=False,
+        margin=dict(l=20, r=20, b=20, t=40),
+        scene=dict(
+            xaxis=dict(title='X'),
+            yaxis=dict(title='Y'),
+            zaxis=dict(title='Z')
         )
+    )
 )
 
 fig.show()
 
-
-
-# NetworkX back to JSON
+# === Optional: Save Enriched Graph ===
 enriched_data = json_graph.node_link_data(host_graph)
 
-# Removing unnecessary fields or round numbers if needed
 for node in enriched_data["nodes"]:
     if "pos" in node:
         node["pos"] = [round(coord, 2) for coord in node["pos"]]
     if "assigned_programs" in node and not node["assigned_programs"]:
         node.pop("assigned_programs", None)
 
-# Save to file
 with open("enriched_graph.json", "w") as f:
     json.dump(enriched_data, f, indent=2)

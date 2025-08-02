@@ -1,0 +1,270 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "pos": [
+        381.92,
+        240.36,
+        0.0
+      ],
+      "volume": 284092.5873620584,
+      "available_area": 0,
+      "program": null,
+      "assigned_programs": [
+        [
+          "new_apartments",
+          "residential",
+          100000
+        ]
+      ],
+      "id": 0
+    },
+    {
+      "pos": [
+        473.94,
+        197.63,
+        0.0
+      ],
+      "volume": 284092.58736205945,
+      "available_area": 0,
+      "program": null,
+      "assigned_programs": [
+        [
+          "new_apartments",
+          "residential",
+          100000
+        ]
+      ],
+      "id": 1
+    },
+    {
+      "pos": [
+        565.3,
+        155.21,
+        0.0
+      ],
+      "volume": 284092.5873620587,
+      "available_area": 0,
+      "program": null,
+      "assigned_programs": [
+        [
+          "workplaces",
+          "commercial",
+          100000
+        ]
+      ],
+      "id": 2
+    },
+    {
+      "pos": [
+        672.53,
+        118.0,
+        0.0
+      ],
+      "volume": 284092.58736205846,
+      "available_area": 50000,
+      "program": null,
+      "assigned_programs": [
+        [
+          "workplaces",
+          "commercial",
+          50000
+        ]
+      ],
+      "id": 3
+    },
+    {
+      "pos": [
+        778.27,
+        114.51,
+        0.0
+      ],
+      "volume": 284092.5873620589,
+      "available_area": 0,
+      "program": null,
+      "assigned_programs": [
+        [
+          "parks_and_green_spaces",
+          "recreational",
+          100000
+        ]
+      ],
+      "id": 4
+    },
+    {
+      "pos": [
+        -54.92,
+        353.81,
+        0.0
+      ],
+      "volume": 1154900.3704046872,
+      "available_area": 0,
+      "program": null,
+      "assigned_programs": [
+        [
+          "parks_and_green_spaces",
+          "recreational",
+          100000
+        ]
+      ],
+      "id": 5
+    },
+    {
+      "pos": [
+        153.96,
+        341.02,
+        0.0
+      ],
+      "volume": 435812.2609239539,
+      "available_area": 0,
+      "program": null,
+      "assigned_programs": [
+        [
+          "parks_and_green_spaces",
+          "recreational",
+          100000
+        ]
+      ],
+      "id": 6
+    },
+    {
+      "pos": [
+        -201.88,
+        -59.01,
+        0.0
+      ],
+      "volume": 1229970.246924413,
+      "available_area": 0,
+      "program": null,
+      "assigned_programs": [
+        [
+          "heritage_buildings",
+          "cultural",
+          100000
+        ]
+      ],
+      "id": 7
+    },
+    {
+      "pos": [
+        1075.05,
+        29.82,
+        0.0
+      ],
+      "volume": 284092.5873620578,
+      "available_area": 50000,
+      "program": null,
+      "assigned_programs": [
+        [
+          "pedestrian_streets",
+          "public_space",
+          50000
+        ]
+      ],
+      "id": 8
+    },
+    {
+      "pos": [
+        918.44,
+        97.13,
+        0.0
+      ],
+      "volume": 284092.5873620588,
+      "available_area": 0,
+      "program": null,
+      "assigned_programs": [
+        [
+          "cycling_paths",
+          "transportation",
+          100000
+        ]
+      ],
+      "id": 9
+    },
+    {
+      "pos": [
+        1355.26,
+        29.82,
+        0.0
+      ],
+      "volume": 284092.5873620573,
+      "available_area": 100000,
+      "program": null,
+      "id": 10
+    },
+    {
+      "pos": [
+        636.97,
+        -218.61,
+        0.0
+      ],
+      "volume": 284092.5873620591,
+      "available_area": 100000,
+      "program": null,
+      "id": 11
+    },
+    {
+      "pos": [
+        354.42,
+        91.24,
+        0.0
+      ],
+      "volume": 0,
+      "available_area": 100000,
+      "program": null,
+      "id": 12
+    }
+  ],
+  "links": [
+    {
+      "source": 0,
+      "target": 12
+    },
+    {
+      "source": 1,
+      "target": 12
+    },
+    {
+      "source": 2,
+      "target": 12
+    },
+    {
+      "source": 3,
+      "target": 12
+    },
+    {
+      "source": 4,
+      "target": 12
+    },
+    {
+      "source": 5,
+      "target": 12
+    },
+    {
+      "source": 6,
+      "target": 12
+    },
+    {
+      "source": 7,
+      "target": 12
+    },
+    {
+      "source": 8,
+      "target": 12
+    },
+    {
+      "source": 9,
+      "target": 12
+    },
+    {
+      "source": 10,
+      "target": 12
+    },
+    {
+      "source": 11,
+      "target": 12
+    }
+  ]
+}
