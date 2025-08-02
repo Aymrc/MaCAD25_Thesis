@@ -54,6 +54,7 @@ debug_messages.append(f"Groups found: {len(groups)}")
 
 # === Centroids by group
 group_centroids = []
+group_volumes = [] # data volume 
 index_to_group = {}
 
 for group_id, group in enumerate(groups):
@@ -62,8 +63,12 @@ for group_id, group in enumerate(groups):
     breps = [geo_objects[i] for i in group]
     joined = rg.Brep.JoinBreps(breps, tolerance)
     brep = joined[0] if joined else breps[0]
-    vmp = rg.VolumeMassProperties.Compute(brep)
+
+    vmp = rg.VolumeMassProperties.Compute(brep) #this part deals with volume data in the node
+    volume = vmp.Volume if vmp else 0.0
     c = vmp.Centroid if vmp else brep.GetBoundingBox(True).Center
+
+    group_volumes.append(volume)
     group_centroids.append(rg.Point3d(c.X, c.Y, 0))
 
 debug_messages.append(f"Group centroids created: {len(group_centroids)}")
@@ -77,8 +82,7 @@ for i, neighbors in adj.items():
             edge = tuple(sorted((gi, gj)))
             group_edges.add(edge)
 
-debug_messages.append(f"""Group-to-group edges: {len(group_edges)}
-///""")
+debug_messages.append(f"Group-to-group edges: {len(group_edges)}\n")
 
 # === Plot connections
 plot_crv = plot.ToNurbsCurve() if hasattr(plot, 'ToNurbsCurve') else plot
@@ -106,7 +110,7 @@ if plot_crv and plot_crv.IsClosed:
                 debug_messages.append(f"Plot connection made to group {group_id}")
                 break
 
-debug_messages.append(f"Total plot connections: {len(plot_edges)}")
+debug_messages.append(f"Total plot connections: {len(plot_edges)}\n")
 
 # === GH Outputs
 merged_points_out = group_centroids + ([plot_center] if plot_center else [])
@@ -130,8 +134,12 @@ from networkx.readwrite import json_graph
 G = nx.Graph()
 
 # Add nodes
+# Add group nodes with volume
 for i, pt in enumerate(group_centroids):
-    G.add_node(i, pos=(pt.X, pt.Y, pt.Z))
+    volume = group_volumes[i]
+    G.add_node(i, pos=(pt.X, pt.Y, pt.Z), volume=volume)
+    debug_messages.append(f"Group {i}: volume = {volume:.0f} m³")
+
 
 # Add edges group-to-group
 for u, v in group_edges:
@@ -141,7 +149,7 @@ for u, v in group_edges:
 plot_node_id = None
 if plot_center:
     plot_node_id = len(group_centroids)
-    G.add_node(plot_node_id, pos=(plot_center.X, plot_center.Y, plot_center.Z))
+    G.add_node(plot_node_id, pos=(plot_center.X, plot_center.Y, plot_center.Z), volume=0)
     for i, line in enumerate(plot_edges):
         end_pt = line.To
         for j, pt in enumerate(group_centroids):
@@ -149,11 +157,12 @@ if plot_center:
                 G.add_edge(plot_node_id, j)
                 break
 
-debug_messages.append(f"///\nGraph built: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
+
+debug_messages.append(f"\nGraph built: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
 
 
 data = json_graph.node_link_data(G)
-json_path = path + "graph.json"
+json_path = path + "massing2graph.json"
 with open(json_path, "w") as f:
     json.dump(data, f, indent=2)
 debug_messages.append(f"Graph exported to: {json_path}")
