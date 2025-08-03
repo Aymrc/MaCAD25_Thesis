@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Graph Copilot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="chat-history-container">
+    <div id="chat-history"></div>
+  </div>
+
+  <div class="chat-footer">
+    <div class="chat-footer-inner">
+      <!-- LEFT pills -->
+      <div class="pill-group pill-group-left">
+        <div class="pill context-pill" id="contextPill">
+          <span>Context</span>
+          <div class="dropdown context-form" id="contextForm">
+            <label>Lat: <input type="number" step="any" id="latInput" /></label>
+            <label>Long: <input type="number" step="any" id="longInput" /></label>
+            <label>Radius (km): <input type="number" step="any" id="radiusInput" /></label>
+            <button id="saveContextBtn">Set</button>
+          </div>
+        </div>
+
+        <div class="pill upload-pill">
+          <span id="uploadLabel">Brief</span>
+          <input type="file" id="brief-upload" accept=".pdf" />
+        </div>
+      </div>
+
+      <!-- CENTER input -->
+      <div class="chat-bar">
+        <div class="input-wrapper">
+          <input type="text" id="chatInput" placeholder="Ask anything..." />
+          <button id="sendBtn">Send</button>
+        </div>
+      </div>
+
+      <!-- RIGHT pill -->
+      <div class="pill-group pill-group-right">
+        <div class="pill param-pill" id="paramPill">
+          <span>Parameters</span>
+          <div class="dropdown param-form" id="paramForm">
+            <label><input type="checkbox" id="toggleContext" /> View Context</label>
+            <label><input type="checkbox" id="toggleNodeId" /> Node ID</label>
+            <label><input type="checkbox" id="toggleNodeName" /> Node Name</label>
+            <label><input type="checkbox" id="toggleFootprint" /> Node Footprint</label>
+            <label><input type="checkbox" id="toggleColors" /> Node Colors</label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const uploadInput = document.getElementById("brief-upload");
+    const uploadLabel = document.getElementById("uploadLabel");
+
+    uploadInput.addEventListener("change", function (e) {
+      const file = e.target.files[0];
+      if (!file || !file.name.endsWith(".pdf")) {
+        alert("Please upload a PDF file.");
+        return;
+      }
+
+      uploadLabel.textContent = `Brief ${file.name}`;
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      fetch("http://localhost:8000/upload_brief", {
+        method: "POST",
+        body: formData
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log("Uploaded:", data);
+          uploadLabel.textContent = "Brief uploaded";
+        })
+        .catch(err => {
+          console.error("Upload failed", err);
+          uploadLabel.textContent = "Upload failed";
+        });
+    });
+
+
+
+    function setupStickyDropdown(pillId, dropdownId) {
+      const pill = document.getElementById(pillId);
+      const dropdown = document.getElementById(dropdownId);
+
+      let hideTimeout;
+
+      const showDropdown = () => {
+        clearTimeout(hideTimeout);
+        dropdown.style.display = "block";
+      };
+
+      const hideDropdown = () => {
+        hideTimeout = setTimeout(() => {
+          dropdown.style.display = "none";
+        }, 250); // Delay allows crossing the gap
+      };
+
+      pill.addEventListener("mouseenter", showDropdown);
+      dropdown.addEventListener("mouseenter", showDropdown);
+
+      pill.addEventListener("mouseleave", hideDropdown);
+      dropdown.addEventListener("mouseleave", hideDropdown);
+    }
+
+    // Attach to both pills
+    setupStickyDropdown("contextPill", "contextForm");
+    setupStickyDropdown("paramPill", "paramForm");
+
+  </script>
+
+  <script src="chat.js"></script>
+</body>
+</html>

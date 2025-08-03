@@ -6,7 +6,7 @@ import plotly.io as pio
 
 pio.renderers.default = 'browser'
 
-USE_SPRING_LAYOUT = True #True #False  # <<<< Change to False to use Rhino 3D layout
+USE_SPRING_LAYOUT = False #True #False  # <<<< Change to False to use Rhino 3D layout
 
 # === File loading ===
 base_dir = os.path.dirname(__file__)
