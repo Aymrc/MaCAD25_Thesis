@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>3D Graph Viewer with Multi-Select</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: white; font-family: sans-serif; }
+    #3d-graph { width: 100vw; height: 100vh; }
+
+    #info-panel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 250px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 10;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="3d-graph"></div>
+  <div id="info-panel"></div>
+
+  <script src="https://unpkg.com/3d-force-graph"></script>
+  <script>
+    // Sample graph data
+    const graphData = {
+      nodes: [
+        { id: "node1", name: "Node One", program: "A", footprint: "12.3m²" },
+        { id: "node2", name: "Node Two", program: "B", footprint: "8.5m²" },
+        { id: "node3", name: "Node Three", program: "C", footprint: "20.0m²" },
+        { id: "node4", name: "Node Four", program: "D", footprint: "14.2m²" }
+      ],
+      links: [
+        { source: "node1", target: "node2" },
+        { source: "node2", target: "node3" },
+        { source: "node3", target: "node4" }
+      ]
+    };
+
+    const infoPanel = document.getElementById('info-panel');
+    const selectedNodes = new Set();
+
+    const Graph = ForceGraph3D()(document.getElementById('3d-graph'))
+      .graphData(graphData)
+      .backgroundColor("#fff") // white background
+      .nodeColor(node => selectedNodes.has(node.id) ? 'red' : 'rgb(100,100,100)')
+      .nodeOpacity(1)
+      .nodeLabel(node => node.name)
+      .onNodeClick((node, event) => {
+        if (event.shiftKey) {
+          // Multi-select toggle
+          if (selectedNodes.has(node.id)) {
+            selectedNodes.delete(node.id);
+          } else {
+            selectedNodes.add(node.id);
+          }
+        } else {
+          // Regular click = single selection
+          selectedNodes.clear();
+          selectedNodes.add(node.id);
+        }
+
+        // Update visuals and info panel
+        Graph.nodeColor(Graph.nodeColor()); // force color update
+        updateInfoPanel();
+      })
+      .onBackgroundClick(() => {
+        selectedNodes.clear();
+        Graph.nodeColor(Graph.nodeColor());
+        infoPanel.style.display = 'none';
+      });
+
+    function updateInfoPanel() {
+      if (selectedNodes.size === 0) {
+        infoPanel.style.display = 'none';
+        return;
+      }
+
+      infoPanel.innerHTML = '';
+      selectedNodes.forEach(id => {
+        const node = graphData.nodes.find(n => n.id === id);
+        if (node) {
+          infoPanel.innerHTML += `
+            <div style="margin-bottom:10px;">
+              <strong>ID:</strong> ${node.id}<br>
+              <strong>Name:</strong> ${node.name}<br>
+              <strong>Program:</strong> ${node.program}<br>
+              <strong>Footprint:</strong> ${node.footprint}
+            </div>
+          `;
+        }
+      });
+      infoPanel.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
