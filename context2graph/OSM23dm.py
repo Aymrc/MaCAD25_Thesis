@@ -11,8 +11,8 @@ import pandas as pd
 # =======================
 # HARD-CODED PARAMETERS
 # =======================
-location_point = (41.3874, 2.1686)  # Barcelona centro (lat, lon)
-buffer_distance = 500  # metros
+location_point = (41.3874, 2.1686)  # Barcelona city center (lat, lon)
+buffer_distance = 500  # meters
 cache_folder = r"C:\Users\CDH\Documents\GitHub\MaCAD25_Thesis\cache"
 
 tags_streets = {"highway": True}
@@ -32,16 +32,22 @@ os.makedirs(ox.settings.cache_folder, exist_ok=True)
 # =======================
 # DOWNLOAD OSM DATA
 # =======================
-print("Descargando datos de OSM...")
-gdf_streets = project_gdf(ox.features_from_point(location_point, tags=tags_streets, dist=buffer_distance))
-gdf_buildings = project_gdf(ox.features_from_point(location_point, tags=tags_buildings, dist=buffer_distance))
-gdf_greens = project_gdf(ox.features_from_point(location_point, tags=tags_greens, dist=buffer_distance))
+print("Downloading OSM data...")
+gdf_streets = project_gdf(
+    ox.features_from_point(location_point, tags=tags_streets, dist=buffer_distance)
+)
+gdf_buildings = project_gdf(
+    ox.features_from_point(location_point, tags=tags_buildings, dist=buffer_distance)
+)
+gdf_greens = project_gdf(
+    ox.features_from_point(location_point, tags=tags_greens, dist=buffer_distance)
+)
 
 # =======================
-# FUNCIONES DE CONVERSION
+# CONVERSION FUNCTIONS
 # =======================
 def shapely_to_rhino(geometry):
-    """Convierte geometria Shapely a Rhino.Geometry"""
+    """Converts Shapely geometry to Rhino.Geometry"""
     if geometry is None:
         return None
     if isinstance(geometry, LineString):
@@ -53,7 +59,7 @@ def shapely_to_rhino(geometry):
     return None
 
 def add_to_rhino(gdf, layer_name):
-    """Agrega geometria de un GeoDataFrame a Rhino en una capa especifica"""
+    """Adds geometry from a GeoDataFrame to a specific Rhino layer"""
     if not rs.IsLayer(layer_name):
         rs.AddLayer(layer_name)
     rs.CurrentLayer(layer_name)
@@ -64,7 +70,7 @@ def add_to_rhino(gdf, layer_name):
         if rhino_geom:
             rs.AddPolyline([p for p in rhino_geom])
             count += 1
-    print("{} elementos agregados a {}".format(count, layer_name))
+    print("{} elements added to {}".format(count, layer_name))
 
 # =======================
 # ADD TO RHINO
@@ -73,4 +79,4 @@ add_to_rhino(gdf_streets, "OSM_Streets")
 add_to_rhino(gdf_buildings, "OSM_Buildings")
 add_to_rhino(gdf_greens, "OSM_Greens")
 
-print("Datos importados a Rhino.")
+print("Data imported to Rhino.")
