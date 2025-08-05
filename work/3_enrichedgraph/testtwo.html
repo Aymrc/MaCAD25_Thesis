@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>3D Graph Viewer</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: white; }
+    #3d-graph { width: 100vw; height: 100vh; }
+
+    #info-panel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 250px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px;
+      border-radius: 8px;
+      font-family: sans-serif;
+      display: none;
+      z-index: 10;
+    }
+
+    #selection-rectangle {
+      position: absolute;
+      border: 2px dashed #007bff;
+      background: rgba(0, 123, 255, 0.1);
+      pointer-events: none;
+      display: none;
+      z-index: 9;
+    }
+  </style>
+</head>
+<body>
+  <div id="3d-graph"></div>
+  <div id="info-panel"></div>
+  <div id="selection-rectangle"></div>
+
+  <!-- Only import THREE once -->
+  <script src="https://unpkg.com/three@0.150.1/build/three.min.js"></script>
+  <script src="https://unpkg.com/3d-force-graph"></script>
+
+  <script>
+    const graphData = {
+      nodes: Array.from({ length: 40 }, (_, i) => ({
+        id: `node${i}`,
+        name: `Node ${i}`,
+        program: `Program ${i % 4}`,
+        footprint: `${(Math.random() * 20 + 5).toFixed(1)} m²`
+      })),
+      links: Array.from({ length: 39 }, (_, i) => ({
+        source: `node${i}`,
+        target: `node${Math.floor(Math.random() * i)}`
+      }))
+    };
+
+    const infoPanel = document.getElementById('info-panel');
+    const selectionRect = document.getElementById('selection-rectangle');
+    const selectedNodes = new Set();
+
+    let shiftPressed = false;
+    let isDragging = false;
+    let dragStart = null;
+    let camera;
+
+    const Graph = ForceGraph3D()(document.getElementById('3d-graph'))
+      .graphData(graphData)
+      .backgroundColor('#ffffff')
+      .nodeRelSize(4)
+      .nodeOpacity(1)
+      .nodeLabel(node => node.name)
+      .linkColor(() => 'black')
+      .enableNodeDrag(false)
+      .d3AlphaDecay(0.3)
+      .d3VelocityDecay(0.3)
+      .nodeThreeObject(node => {
+        const color = selectedNodes.has(node.id) ? 'red' : 'black';
+        const canvas = document.createElement('canvas');
+        canvas.width = 40;
+        canvas.height = 40;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(20, 20, 14, 0, 2 * Math.PI);
+        ctx.fill();
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.SpriteMaterial({ map: texture });
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.set(10, 10, 1); // 🎯 adjust this to make nodes bigger
+        return sprite;
+        })
+
+      .onNodeClick((node, event) => {
+        if (shiftPressed) return;
+        selectedNodes.clear();
+        selectedNodes.add(node.id);
+        showNodeInfo(node);
+        Graph.nodeThreeObject(Graph.nodeThreeObject()); // refresh visuals
+      })
+      .onBackgroundClick(() => {
+        if (!shiftPressed) {
+          selectedNodes.clear();
+          infoPanel.style.display = 'none';
+          Graph.nodeThreeObject(Graph.nodeThreeObject()); // refresh visuals
+        }
+      })
+      .onEngineStop(() => {
+        camera = Graph.camera();
+        console.log("Camera ready.");
+      });
+
+    // Freeze layout after 2s
+    setTimeout(() => {
+      console.log('[Freeze] Forcing layout freeze');
+      Graph.d3Force('charge', d3.forceManyBody().strength(5)); //null
+      Graph.d3Force('link', null);
+      Graph.d3VelocityDecay(10);
+      Graph.d3AlphaDecay(1); // No further energy decay
+      camera = Graph.camera();
+    }, 5000);
+
+    // Shift key handling
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Shift') {
+        shiftPressed = true;
+        Graph.controls().enabled = false;
+      }
+    });
+
+    window.addEventListener('keyup', e => {
+      if (e.key === 'Shift') {
+        shiftPressed = false;
+        Graph.controls().enabled = true;
+        selectionRect.style.display = 'none';
+      }
+    });
+
+    // Lasso selection
+    document.addEventListener('mousedown', e => {
+      if (!shiftPressed) return;
+      dragStart = { x: e.clientX, y: e.clientY };
+      isDragging = true;
+      Object.assign(selectionRect.style, {
+        display: 'block',
+        left: `${dragStart.x}px`,
+        top: `${dragStart.y}px`,
+        width: '0px',
+        height: '0px'
+      });
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (!shiftPressed || !isDragging) return;
+      const x = Math.min(e.clientX, dragStart.x);
+      const y = Math.min(e.clientY, dragStart.y);
+      const width = Math.abs(e.clientX - dragStart.x);
+      const height = Math.abs(e.clientY - dragStart.y);
+      Object.assign(selectionRect.style, {
+        left: `${x}px`,
+        top: `${y}px`,
+        width: `${width}px`,
+        height: `${height}px`
+      });
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!shiftPressed || !isDragging || !camera) return;
+      const rect = selectionRect.getBoundingClientRect();
+      const nodes = Graph.graphData().nodes;
+
+      nodes.forEach(node => {
+        if ([node.x, node.y, node.z].some(v => typeof v !== 'number')) return;
+        const vec = new THREE.Vector3(node.x, node.y, node.z).project(camera);
+        const screenX = (vec.x + 1) / 2 * window.innerWidth;
+        const screenY = (-vec.y + 1) / 2 * window.innerHeight;
+        if (
+          screenX >= rect.left && screenX <= rect.right &&
+          screenY >= rect.top && screenY <= rect.bottom
+        ) {
+          selectedNodes.add(node.id);
+        }
+      });
+
+      Graph.nodeThreeObject(Graph.nodeThreeObject()); // refresh visuals
+      updateInfoPanel();
+      selectionRect.style.display = 'none';
+      dragStart = null;
+      isDragging = false;
+    });
+
+    function showNodeInfo(node) {
+      infoPanel.innerHTML = `
+        <strong>ID:</strong> ${node.id}<br>
+        <strong>Name:</strong> ${node.name}<br>
+        <strong>Program:</strong> ${node.program}<br>
+        <strong>Footprint:</strong> ${node.footprint}
+      `;
+      infoPanel.style.display = 'block';
+    }
+
+    function updateInfoPanel() {
+      if (selectedNodes.size === 0) {
+        infoPanel.style.display = 'none';
+        return;
+      }
+
+      infoPanel.innerHTML = '';
+      selectedNodes.forEach(id => {
+        const node = graphData.nodes.find(n => n.id === id);
+        if (node) {
+          infoPanel.innerHTML += `
+            <div style="margin-bottom:10px;">
+              <strong>ID:</strong> ${node.id}<br>
+              <strong>Name:</strong> ${node.name}<br>
+              <strong>Program:</strong> ${node.program}<br>
+              <strong>Footprint:</strong> ${node.footprint}
+            </div>
+          `;
+        }
+      });
+      infoPanel.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

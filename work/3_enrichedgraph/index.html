@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>3D NetworkX Graph</title>
+    <style>
+      body { margin: 0; overflow: hidden; }
+      #3d-graph { width: 100vw; height: 100vh; }
+
+
+      
+    </style>
+  </head>
+  <body>
+    <div id="3d-graph"></div>
+
+    <!-- Load required libraries -->
+    <script src="https://unpkg.com/three@0.150.1/build/three.min.js"></script>
+    <script src="https://unpkg.com/3d-force-graph"></script>
+
+    <script>
+      fetch("enriched_graph.json")
+        .then(res => res.json())
+        .then(data => {
+          const Graph = ForceGraph3D()
+            (document.getElementById('3d-graph'))
+            .graphData(data)
+            .nodeAutoColorBy('assigned_programs')
+            // .nodeLabel(node => node.id)
+            .nodeLabel(node => {
+              if (node.assigned_programs && node.assigned_programs.length > 0) {
+                return node.assigned_programs
+                  .map(p => `${p[0]} (${p[1]})`)  // p[0] = program ID, p[1] = typology
+                  .join(', ');
+              }
+              return `Node ${node.id}`;// fallback
+            })
+            .linkDirectionalParticles(2)
+            .linkDirectionalParticleSpeed(0.005)
+            .backgroundColor("#000");
+        });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,67 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+}
+
+#3d-graph {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+}
+
+/* Side panel (Tab) */
+.side-panel {
+  position: absolute;
+  top: 5%;
+  left: 2%;
+  height: 90%;
+  width: 20%;
+  background-color: rgba(255, 255, 255, 0.5);
+  z-index: 10;
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Chat bar styles */
+.chat-bar {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  padding: 10px;
+  width: 60px;
+  height: 40px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  z-index: 15;
+  cursor: pointer;
+}
+
+.chat-bar.open {
+  width: 300px;
+  height: 150px;
+  padding: 15px;
+}
+
+.chat-bar input {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  outline: none;
+}
+
+.chat-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
