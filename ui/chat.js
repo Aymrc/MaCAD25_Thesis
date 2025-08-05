@@ -43,33 +43,38 @@ window.addEventListener("load", async () => {
   }
 
   // Handle Set button
+  // --- Handle Set button ---
   const saveContextBtn = document.getElementById("saveContextBtn");
   if (saveContextBtn) {
     console.log("Attaching click handler to Set button");
 
     saveContextBtn.addEventListener("click", () => {
-  console.log("Set button clicked");
+      console.log("Set button clicked");
 
-  const lat = document.getElementById("latInput").value;
-  const long = document.getElementById("longInput").value;
-  const radius = document.getElementById("radiusInput").value;
+      const lat = parseFloat(document.getElementById("latInput").value);
+      const long = parseFloat(document.getElementById("longInput").value);
+      const radius = parseFloat(document.getElementById("radiusInput").value);
 
-  console.log("Context set:", { lat, long, radius });
+      console.log("Context set (numbers):", { lat, long, radius });
 
-  fetch("http://localhost:8000/run_context_script", { method: "POST" })
-    .then(res => {
-      console.log("Server responded:", res.status, res.statusText);
-      return res.json();
-    })
-    .then(data => {
-      console.log("Script executed:", data); 
-    })
-    .catch(err => {
-      console.error("Fetch error:", err);
+      const payload = JSON.stringify({ lat: lat, long: long, radius: radius });
+      console.log("Sending JSON:", payload); // Debug
+
+      fetch("http://localhost:8000/run_context_script", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log("Script executed:", data);
+        })
+        .catch(err => {
+          console.error("Fetch error:", err);
+        });
     });
-});
-
   }
+
 
   // Handle file upload
   const fileInput = document.getElementById("brief-upload");

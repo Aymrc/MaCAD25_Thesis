@@ -1,5 +1,3 @@
-# requirements: osmnx
-
 import os
 import rhinoscriptsyntax as rs
 import Rhino.Geometry as rg
@@ -9,10 +7,15 @@ from osmnx.projection import project_gdf
 import pandas as pd
 
 # =======================
-# HARD-CODED PARAMETERS
+# PARAMETERS
 # =======================
-location_point = (41.3874, 2.1686)  # Barcelona city center (lat, lon)
-buffer_distance = 500  # meters
+lat = float(os.environ.get("LAT", 41.3874))
+lon = float(os.environ.get("LON", 2.1686))
+radius_km = float(os.environ.get("RADIUS_KM", 0.5))  # kilometers
+
+location_point = (lat, lon)
+buffer_distance = radius_km * 1000  # convert to meters
+
 cache_folder = r"C:\Users\CDH\Documents\GitHub\MaCAD25_Thesis\cache"
 
 tags_streets = {"highway": True}
@@ -23,7 +26,7 @@ tags_greens = {
 }
 
 # =======================
-# OSMNX CONFIG
+# OSMNX SETTINGS
 # =======================
 ox.settings.use_cache = True
 ox.settings.cache_folder = cache_folder
@@ -44,10 +47,25 @@ gdf_greens = project_gdf(
 )
 
 # =======================
-# CONVERSION FUNCTIONS
+# RECENTER GEOMETRY TO ORIGIN
+# =======================
+# Compute centroid of all street geometries as the reference point
+center_x, center_y = gdf_streets.unary_union.centroid.coords[0]
+
+def recenter_gdf(gdf, cx, cy):
+    gdf = gdf.copy()
+    gdf["geometry"] = gdf["geometry"].translate(-cx, -cy)  # shift geometries to origin
+    return gdf
+
+gdf_streets = recenter_gdf(gdf_streets, center_x, center_y)
+gdf_buildings = recenter_gdf(gdf_buildings, center_x, center_y)
+gdf_greens = recenter_gdf(gdf_greens, center_x, center_y)
+
+# =======================
+# CONVERSION TO RHINO
 # =======================
 def shapely_to_rhino(geometry):
-    """Converts Shapely geometry to Rhino.Geometry"""
+    """Converts Shapely geometry to Rhino.Geometry.Polyline"""
     if geometry is None:
         return None
     if isinstance(geometry, LineString):
@@ -59,7 +77,7 @@ def shapely_to_rhino(geometry):
     return None
 
 def add_to_rhino(gdf, layer_name):
-    """Adds geometry from a GeoDataFrame to a specific Rhino layer"""
+    """Adds geometries from a GeoDataFrame to a specific Rhino layer"""
     if not rs.IsLayer(layer_name):
         rs.AddLayer(layer_name)
     rs.CurrentLayer(layer_name)
@@ -79,4 +97,4 @@ add_to_rhino(gdf_streets, "OSM_Streets")
 add_to_rhino(gdf_buildings, "OSM_Buildings")
 add_to_rhino(gdf_greens, "OSM_Greens")
 
-print("Data imported to Rhino.")
+print("Data imported to Rhino and centered at origin.")

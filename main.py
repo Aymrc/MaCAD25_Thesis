@@ -55,18 +55,37 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         print(f"[DEBUG] POST body: '{body}'")
 
         if self.path == "/run_context_script":
-            # 1) Respond immediately to the browser
+            print(f"[DEBUG] Raw body: {body}")  # Show exactly what JS sent
+            try:
+                data = json.loads(body)
+                print(f"[DEBUG] Parsed JSON: {data}")  # Confirm parse worked
+                lat = float(data.get("lat", 41.3874))
+                lon = float(data.get("long", 2.1686))
+                radius = float(data.get("radius", 0.5))  # in km
+            except Exception as e:
+                print("[ERROR] JSON parse failed:", e)
+                lat, lon, radius = 41.3874, 2.1686, 0.5
+
+            # Respond immediately to the browser
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({
                 "status": "ok",
-                "message": "Rhino task queued"
+                "message": f"Rhino task queued for {lat},{lon} radius {radius}km"
             }).encode("utf-8"))
 
-            # 2) Queue the Rhino task to run OSM23dm.py
+            # Queue the Rhino task with these values as environment variables
             script_path = r"C:\Users\CDH\Documents\GitHub\MaCAD25_Thesis\context2graph\OSM23dm.py"
-            pending_tasks.append(lambda: runpy.run_path(script_path, run_name="__main__"))
+
+            def run_task():
+                import runpy, os
+                os.environ["LAT"] = str(lat)
+                os.environ["LON"] = str(lon)
+                os.environ["RADIUS_KM"] = str(radius)
+                runpy.run_path(script_path, run_name="__main__")
+
+            pending_tasks.append(run_task)
             return
 
         super().do_POST()
