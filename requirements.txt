@@ -1,5 +1,7 @@
-json
-gradio
+fastapi
+python-multipart
+uvicorn
+pypdf2
 openai
 networkx
-matplotlib.pyplot
+# matplotlib.pyplot

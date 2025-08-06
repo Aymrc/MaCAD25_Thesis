@@ -5,8 +5,13 @@ import io
 import PyPDF2
 import os
 import uvicorn
+import sys
 from datetime import datetime
 from pathlib import Path
+
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# from config import copilot_name # project variables
+copilot_name = "MASSING"
 
 app = FastAPI()
 
@@ -22,8 +27,6 @@ app.add_middleware(
 LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
 
 stored_brief = ""
-copilot_name = "To_be_Determined"
-
 
 # === GREETING endpoint ===
 @app.get("/initial_greeting")
@@ -35,7 +38,6 @@ async def initial_greeting(test: bool = False):
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_FOLDER = BASE_DIR / "uploaded_brief"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
 
 # === CHAT endpoint ===
 @app.post("/chat")
@@ -105,8 +107,14 @@ async def get_brief():
     return { "brief": stored_brief[:1000] + "..." }
 
 # === START SERVER ===
-def run_llm():
-    print("\n> Starting the server for LLM access ...\n")
-    uvicorn.run("llm.llm:app", host="127.0.0.1", port=8000, reload=True)
+def run_llm(reload=False):
+    print("[LLM] Starting the server for LLM access ...\n")
+    uvicorn.run("llm:app", host="127.0.0.1", port=8000, reload=reload)
 
-# run_llm() # don't run llm.py because it's started by main.py
+# run_llm() # don't run llm.py because it's launched by main.py
+if __name__ == "__main__":
+    try:
+        run_llm(reload=True)
+    except Exception as e:
+        print("LLM crashed:", e)
+        input("Press Enter to close...")
