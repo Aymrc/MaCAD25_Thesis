@@ -85,17 +85,12 @@ def start_llm():
     except Exception as e:
         print("Failed to launch LLM backend:", e)
 
-def start_rhino_listener():
-    print("Starting layer-based Rhino listener...")
-    rhino_listener.setup_layer_listener()
-
 def copilot_start():
     install_requirements(get_universal_python_path())
     print("=" * 50)
     print("Starting Rhino Copilot '{}'".format(copilot_name))
     print("=" * 50)
     start_llm()
-    start_rhino_listener()
     print("Copilot ready. Listening to geometry changes on {} layer.".format(layer_name))
 
 copilot_start()

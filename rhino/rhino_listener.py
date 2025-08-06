@@ -1,9 +1,13 @@
+# Listen to the opened Rhino window
+
 import Rhino
 import scriptcontext as sc
 import rhinoscriptsyntax as rs
 import time
 import threading
+import os
 
+from create_layers import create_layers_from_json
 from config import layer_name # project variables
 
 TARGET_LAYER_NAME = layer_name
@@ -50,7 +54,18 @@ def on_delete(sender, e):
     # Cannot reliably check layer on delete
     debounce_trigger()
 
+# This is the function actively called
 def setup_layer_listener():
+    # Rhino Copilot layers creation
+    json_path = os.path.join(os.path.dirname(__file__), "layers.json")
+    print("[rhino_listener] Creating layers from:", json_path)
+
+    try:
+        create_layers_from_json(json_path)
+        print("[rhino_listener] Layers created.")
+    except Exception as e:
+        print("[rhino_listener] Failed to create layers:", str(e))
+    
     Rhino.RhinoDoc.AddRhinoObject += on_add
     Rhino.RhinoDoc.ModifyObjectAttributes += on_modify
     Rhino.RhinoDoc.ReplaceRhinoObject += on_replace
