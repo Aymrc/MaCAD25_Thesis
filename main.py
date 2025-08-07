@@ -1,5 +1,5 @@
-# This is the main function of the copilot
-# It starts the copilot back and front-end
+# main.py
+# This is the main function of the copilot. It starts the copilot back & front-end
 
 # Rhino button:
 # ! _-RunPythonScript "C:\Users\broue\Documents\IAAC MaCAD\Master_Thesis\MaCAD25_Thesis\main.py"
@@ -10,10 +10,8 @@
 
 import os, sys, subprocess
 import webbrowser
-# import rhino.rhino_listener
-import distutils.spawn
 
-from config import layer_name, copilot_name, python_exe_AB, python_exe_CH # project variables
+from config import layer_name, copilot_name, python_exe_AB, python_exe_CH # project variables from config.py
 
 # === Setup paths ===
 current_dir = os.path.dirname(os.path.abspath(__file__))

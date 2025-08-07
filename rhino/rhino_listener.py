@@ -1,14 +1,13 @@
+# rhino_listener.py
 # Listen to the opened Rhino window
 
 import Rhino
 import scriptcontext as sc
 import rhinoscriptsyntax as rs
-import time
-import threading
-import os
+import os, threading, time
 
 from create_layers import create_layers_from_json
-from config import layer_name # project variables
+from config import layer_name # project variables from config.py
 
 TARGET_LAYER_NAME = layer_name
 listener_active = True

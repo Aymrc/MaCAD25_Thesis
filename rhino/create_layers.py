@@ -1,6 +1,7 @@
+# create_layers.py
+
 import rhinoscriptsyntax as rs
-import json
-import os
+import os, json
 
 def create_layers_from_json(json_path):
     if not os.path.exists(json_path):
