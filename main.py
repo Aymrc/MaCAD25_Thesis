@@ -8,10 +8,9 @@
 # r"C:\Users\broue\AppData\Local\Programs\Python\Python310\python.exe" # Adjust path
 # r"C:\Program Files\Rhino 8\System\Rhino.exe" # Adjust path 
 
-import os
-import sys
-import subprocess
-import rhino_listener
+import os, sys, subprocess
+import webbrowser
+# import rhino.rhino_listener
 import distutils.spawn
 
 from config import layer_name, copilot_name, python_exe_AB, python_exe_CH # project variables
@@ -64,7 +63,7 @@ def install_requirements(python_exe):
         print("[SETUP] Failed to install requirements:", e)
 
 def start_llm():
-    print("Starting LLM FastAPI backend...")
+    print("[LLM] Starting LLM FastAPI backend...")
     llm_script = os.path.join(llm_dir, "llm.py")
     python_exe = get_universal_python_path()
 
@@ -81,9 +80,19 @@ def start_llm():
             cwd=llm_dir,
             creationflags=0 # hidden window: subprocess.CREATE_NO_WINDOW
         )
-        print("LLM backend launched at http://127.0.0.1:8000")
+        print("[LLM] LLM backend launched at http://127.0.0.1:8000")
     except Exception as e:
-        print("Failed to launch LLM backend:", e)
+        print("[LLM] Failed to launch LLM backend:", e)
+
+def start_ui():
+    print("Interface opening...")
+    ui_path = os.path.join(current_dir, "ui", "landing.html")
+    if os.path.exists(ui_path):
+        file_url = "file:///" + ui_path.replace("\\", "/")
+        print("[UI] Opening local UI at:", file_url)
+        webbrowser.open(file_url)
+    else:
+        print("[UI] landing.html not found at:", ui_path)
 
 def copilot_start():
     install_requirements(get_universal_python_path())
@@ -92,5 +101,7 @@ def copilot_start():
     print("=" * 50)
     start_llm()
     print("Copilot ready. Listening to geometry changes on {} layer.".format(layer_name))
+    start_ui()
+    print("Interface is now visible")
 
 copilot_start()
