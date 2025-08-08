@@ -1,0 +1,9 @@
+{
+  "layers": [
+    { "name": "MASSING" },
+    { "name": "COPILOT", "color": [0, 0, 0]},
+    { "name": "COPILOT::Residential", "color": [255, 0, 0] },
+    { "name": "COPILOT::Office", "color": [0, 255, 0] },
+    { "name": "COPILOT::Leisure", "color": [0, 0, 255] }
+  ]
+}
