@@ -9,7 +9,7 @@
   function appendMessage(role, content) {
     const chat = document.getElementById("chat-history");
     const el = document.createElement("div");
-    el.className = `message ${role}`;
+    el.className = "message " + role;
 
     // Render Markdown
     const html = DOMPurify.sanitize(marked.parse(content));
@@ -18,7 +18,6 @@
     chat.appendChild(el);
     chat.parentElement.scrollTop = chat.parentElement.scrollHeight;
   }
-
 
   async function checkServer() {
     try {
@@ -86,7 +85,7 @@
         return;
       }
 
-      uploadLabel.textContent = `Brief: ${file.name}`;
+      uploadLabel.textContent = "Brief: " + file.name;
       setUploadEmptyState();
 
       const formData = new FormData();
@@ -107,14 +106,101 @@
       } catch (err) {
         console.error("Upload failed", err);
         uploadLabel.textContent = "Upload failed";
-        // Optional: reset state on failure
-        // fileInput.value = "";
-        // setUploadEmptyState();
       }
     }
 
     fileInput.addEventListener("change", handleUpload);
     setUploadEmptyState();
+  }
+
+  // ---------- OSM run + polling (Step 4) ----------
+  function toNumber(val) {
+    var n = parseFloat((val || "").toString().trim());
+    return isNaN(n) ? null : n;
+  }
+
+  function startOsm(lat, lon, radius_km) {
+    return fetch("http://localhost:8000/osm/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lat: lat, lon: lon, radius_km: radius_km })
+    }).then(function (r) { return r.json(); });
+  }
+
+  function pollStatus(jobId) {
+    return fetch("http://localhost:8000/osm/status/" + jobId)
+      .then(function (r) { return r.json(); });
+  }
+
+  function initChatControls() {
+    document.getElementById("sendBtn").addEventListener("click", sendMessage);
+    document.getElementById("chatInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
+
+    // Context setter -> Start OSM job and poll status
+    document.getElementById("saveContextBtn").addEventListener("click", function () {
+      var lat = toNumber(document.getElementById("latInput").value);
+      var lon = toNumber(document.getElementById("longInput").value); // HTML id is 'longInput'
+      var radius = toNumber(document.getElementById("radiusInput").value);
+
+      if (lat === null || lon === null || radius === null) {
+        alert("Please enter valid numbers for Lat, Long and Radius.");
+        return;
+      }
+      if (lat < -90 || lat > 90 || lon < -180 || lon > 180 || radius <= 0) {
+        alert("Lat must be [-90,90], Long [-180,180], Radius > 0.");
+        return;
+      }
+
+      appendMessage("assistant", "Starting OSM job...");
+
+      startOsm(lat, lon, radius).then(function (resp) {
+        if (!resp.ok) {
+          appendMessage("assistant", "OSM job failed to start: " + (resp.error || "unknown error"));
+          return;
+        }
+        var jobId = resp.job_id;
+        appendMessage("assistant", "OSM job started. Job ID: `" + jobId + "`");
+
+        // Persist the latest job id locally for reference (Step 5 will use backend)
+        try { localStorage.setItem("latest_osm_job", jobId); } catch (e) {}
+
+        // Optional hook for future Rhino integration (Step 5)
+        if (typeof window.setRhinoJobId === "function") {
+          try { window.setRhinoJobId(jobId); } catch (e) {}
+        }
+
+        // Poll every 3 seconds until finished or failed
+        var intv = setInterval(function () {
+          pollStatus(jobId).then(function (st) {
+            if (!st.ok) {
+              clearInterval(intv);
+              appendMessage("assistant", "Status error: " + (st.error || "unknown"));
+              return;
+            }
+            if (st.status === "finished") {
+              clearInterval(intv);
+              appendMessage("assistant", "OSM job finished. Files ready at: `" + st.out_dir + "`");
+              appendMessage("assistant", "Importing into Rhino will be handled automatically in Step 5.");
+            }
+            if (st.status === "failed") {
+              clearInterval(intv);
+              appendMessage("assistant", "OSM job failed. Check FAILED.txt in the job folder.");
+            }
+          }).catch(function (err) {
+            clearInterval(intv);
+            appendMessage("assistant", "Error checking job: " + err);
+          });
+        }, 3000);
+      }).catch(function (err) {
+        appendMessage("assistant", "Error starting OSM job: " + err);
+      });
+    });
+
+    // Dropdowns
+    setupStickyDropdown("contextPill", "contextForm");
+    setupStickyDropdown("paramPill", "paramForm");
   }
 
   async function sendMessage() {
@@ -143,30 +229,6 @@
       chatbox.removeChild(chatbox.lastChild);
       appendMessage("assistant", "Error contacting the assistant.");
     }
-  }
-
-  function initChatControls() {
-    document.getElementById("sendBtn").addEventListener("click", sendMessage);
-    document.getElementById("chatInput").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") sendMessage();
-    });
-
-    // Context setter
-    document.getElementById("saveContextBtn").addEventListener("click", () => {
-      const lat = document.getElementById("latInput").value;
-      const long = document.getElementById("longInput").value;
-      const radius = document.getElementById("radiusInput").value;
-      if (!lat || !long || !radius) {
-        alert("Please fill in all fields.");
-        return;
-      }
-      console.log("📍 Context set:", { lat, long, radius });
-      // TODO: Optionally POST this to backend when endpoint is available.
-    });
-
-    // Dropdowns
-    setupStickyDropdown("contextPill", "contextForm");
-    setupStickyDropdown("paramPill", "paramForm");
   }
 
   // ---------- Boot ----------
