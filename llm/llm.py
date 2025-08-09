@@ -108,7 +108,7 @@ async def chat(request: Request):
         GUARDRAILS\n
         - Do not reveal internal chain‑of‑thought. Provide final reasoning only.
         When helpful, format replies in Markdown (bold, lists, short headings).
-"""}
+        """}
     ]
 
     if stored_brief:
