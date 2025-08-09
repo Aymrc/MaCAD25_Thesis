@@ -1,11 +1,28 @@
-window.addEventListener("load", async () => {
-  const chatbox = document.getElementById("chat-history");
-  appendMessage("assistant", "Connecting...");
+// JS front-end script
 
-  // Try to connect to LLM server
+(function () {
+  // ---------- Utilities ----------
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+  function appendMessage(role, content) {
+    const chat = document.getElementById("chat-history");
+    const el = document.createElement("div");
+    el.className = `message ${role}`;
+
+    // Render Markdown
+    const html = DOMPurify.sanitize(marked.parse(content));
+    el.innerHTML = html;
+
+    chat.appendChild(el);
+    chat.parentElement.scrollTop = chat.parentElement.scrollHeight;
+  }
+
+
   async function checkServer() {
     try {
-      const res = await fetch("http://localhost:8000/initial_greeting?test=true");
+      const res = await fetch("http://localhost:8000/initial_greeting?test=true", { credentials: "omit" });
       const json = await res.json();
       return json.dynamic === true;
     } catch {
@@ -13,138 +30,171 @@ window.addEventListener("load", async () => {
     }
   }
 
-  let serverReady = false;
-  for (let i = 0; i < 10; i++) {
-    serverReady = await checkServer();
-    if (serverReady) break;
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  function setupStickyDropdown(pillId, dropdownId) {
+    const pill = document.getElementById(pillId);
+    const dropdown = document.getElementById(dropdownId);
+    let hideTimeout;
+
+    const showDropdown = () => {
+      clearTimeout(hideTimeout);
+      dropdown.style.display = "block";
+      if (pill) pill.setAttribute("aria-expanded", "true");
+    };
+
+    const hideDropdown = () => {
+      hideTimeout = setTimeout(() => {
+        dropdown.style.display = "none";
+        if (pill) pill.setAttribute("aria-expanded", "false");
+      }, 250);
+    };
+
+    pill.addEventListener("mouseenter", showDropdown);
+    dropdown.addEventListener("mouseenter", showDropdown);
+    pill.addEventListener("mouseleave", hideDropdown);
+    dropdown.addEventListener("mouseleave", hideDropdown);
+
+    // Keyboard: open on focus, close on blur
+    pill.addEventListener("focus", showDropdown);
+    pill.addEventListener("blur", hideDropdown);
   }
 
-  chatbox.innerHTML = "";
-  if (serverReady) {
-    const res = await fetch("http://localhost:8000/initial_greeting");
-    const json = await res.json();
-    appendMessage("assistant", json.response);
-  } else {
-    appendMessage("assistant", "Couldn't connect to the assistant.");
-  }
+  function initUpload() {
+    const fileInput   = document.getElementById("brief-upload");
+    const uploadLabel = document.getElementById("uploadLabel");
+    const uploadPill  = document.querySelector(".pill.upload-pill");
 
-  setupStickyDropdown("contextPill", "contextForm");
-  setupStickyDropdown("paramPill", "paramForm");
-});
+    const setUploadEmptyState = () => {
+      const isEmpty = !fileInput.files || fileInput.files.length === 0;
+      uploadPill.classList.toggle("empty", isEmpty);
+    };
 
-// Chat send
-async function sendMessage() {
-  const input = document.getElementById("chatInput");
-  const text = input.value.trim();
-  if (!text) return;
-
-  appendMessage("user", text);
-  input.value = "";
-
-  appendMessage("assistant", "...");
-  const chatbox = document.getElementById("chat-history");
-
-  try {
-    const res = await fetch("http://localhost:8000/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: text })
+    // Open file picker when clicking the pill or pressing Enter/Space
+    uploadPill.addEventListener("click", () => fileInput.click());
+    uploadPill.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        fileInput.click();
+      }
     });
 
-    const json = await res.json();
-    const botReply = json.response || "No reply.";
+    async function handleUpload(e) {
+      const file = e.target.files[0];
+      if (!file || !file.name.toLowerCase().endsWith(".pdf")) {
+        alert("Please upload a PDF file.");
+        fileInput.value = "";
+        setUploadEmptyState();
+        return;
+      }
 
-    chatbox.removeChild(chatbox.lastChild);
-    appendMessage("assistant", botReply);
-  } catch (err) {
-    console.error(err);
-    chatbox.removeChild(chatbox.lastChild);
-    appendMessage("assistant", "Error contacting the assistant.");
-  }
-}
+      uploadLabel.textContent = `Brief: ${file.name}`;
+      setUploadEmptyState();
 
-// Add message to chat history
-function appendMessage(role, content) {
-  const chat = document.getElementById("chat-history");
-  const el = document.createElement("div");
-  el.className = `message ${role}`;
-  el.textContent = content;
-  chat.appendChild(el);
-  chat.parentElement.scrollTop = chat.parentElement.scrollHeight;
-}
+      const formData = new FormData();
+      formData.append("file", file);
 
-// Send on button or Enter
-document.getElementById("sendBtn").addEventListener("click", sendMessage);
-document.getElementById("chatInput").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") sendMessage();
-});
+      try {
+        const res = await fetch("http://localhost:8000/upload_brief", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
 
-// Handle context button
-document.getElementById("saveContextBtn").addEventListener("click", () => {
-  const lat = document.getElementById("latInput").value;
-  const long = document.getElementById("longInput").value;
-  const radius = document.getElementById("radiusInput").value;
+        if (data.chat_notice) appendMessage("assistant", data.chat_notice);
+        uploadLabel.textContent = "Brief uploaded";
 
-  if (!lat || !long || !radius) {
-    alert("Please fill in all fields.");
-    return;
-  }
+        console.log("Uploaded:", data);
+        uploadLabel.textContent = "Brief uploaded";
+      } catch (err) {
+        console.error("Upload failed", err);
+        uploadLabel.textContent = "Upload failed";
+        // Optional: reset state on failure
+        // fileInput.value = "";
+        // setUploadEmptyState();
+      }
+    }
 
-  console.log("📍 Context set:", { lat, long, radius });
-  // Optionally send to backend
-});
-
-// Upload logic (single source of truth)
-const fileInput = document.getElementById("brief-upload");
-const uploadLabel = document.getElementById("uploadLabel");
-
-fileInput.addEventListener("change", handleUpload);
-
-function handleUpload(e) {
-  const file = e.target.files[0];
-  if (!file || !file.name.endsWith(".pdf")) {
-    alert("Please upload a PDF file.");
-    return;
+    fileInput.addEventListener("change", handleUpload);
+    setUploadEmptyState();
   }
 
-  uploadLabel.textContent = `Brief: ${file.name}`;
+  async function sendMessage() {
+    const input = document.getElementById("chatInput");
+    const text = input.value.trim();
+    if (!text) return;
 
-  const formData = new FormData();
-  formData.append("file", file);
+    appendMessage("user", text);
+    input.value = "";
 
-  fetch("http://localhost:8000/upload_brief", {
-    method: "POST",
-    body: formData
-  })
-    .then(res => res.json())
-    .then(data => {
-      console.log("Uploaded:", data);
-      uploadLabel.textContent = "Brief uploaded";
-    })
-    .catch(err => {
-      console.error("Upload failed", err);
-      uploadLabel.textContent = "Upload failed";
+    appendMessage("assistant", "...");
+    const chatbox = document.getElementById("chat-history");
+
+    try {
+      const res = await fetch("http://localhost:8000/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text }),
+      });
+      const json = await res.json();
+      const botReply = json.response || "No reply.";
+      chatbox.removeChild(chatbox.lastChild);
+      appendMessage("assistant", botReply);
+    } catch (err) {
+      console.error(err);
+      chatbox.removeChild(chatbox.lastChild);
+      appendMessage("assistant", "Error contacting the assistant.");
+    }
+  }
+
+  function initChatControls() {
+    document.getElementById("sendBtn").addEventListener("click", sendMessage);
+    document.getElementById("chatInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendMessage();
     });
-}
 
-// Sticky dropdown logic
-function setupStickyDropdown(pillId, dropdownId) {
-  const pill = document.getElementById(pillId);
-  const dropdown = document.getElementById(dropdownId);
+    // Context setter
+    document.getElementById("saveContextBtn").addEventListener("click", () => {
+      const lat = document.getElementById("latInput").value;
+      const long = document.getElementById("longInput").value;
+      const radius = document.getElementById("radiusInput").value;
+      if (!lat || !long || !radius) {
+        alert("Please fill in all fields.");
+        return;
+      }
+      console.log("📍 Context set:", { lat, long, radius });
+      // TODO: Optionally POST this to backend when endpoint is available.
+    });
 
-  let hideTimeout;
+    // Dropdowns
+    setupStickyDropdown("contextPill", "contextForm");
+    setupStickyDropdown("paramPill", "paramForm");
+  }
 
-  const showDropdown = () => {
-    clearTimeout(hideTimeout);
-    dropdown.style.display = "block";
-  };
+  // ---------- Boot ----------
+  window.addEventListener("DOMContentLoaded", async () => {
+    appendMessage("assistant", "Connecting...");
+    let serverReady = false;
 
-  const hideDropdown = () => {
-    hideTimeout = setTimeout(() => {
-      dropdown.style.display = "none";
-    }, 250);
-  };
+    for (let i = 0; i < 10; i++) {
+      serverReady = await checkServer();
+      if (serverReady) break;
+      await sleep(1000);
+    }
 
-  pill.addEventListener("mouseenter", showDropdown);
-  dropdown.addEventListener("
+    // Clear placeholder and greet
+    document.getElementById("chat-history").innerHTML = "";
+    if (serverReady) {
+      try {
+        const res = await fetch("http://localhost:8000/initial_greeting");
+        const json = await res.json();
+        appendMessage("assistant", json.response);
+      } catch {
+        appendMessage("assistant", "Couldn't fetch greeting, but the server seems up.");
+      }
+    } else {
+      appendMessage("assistant", "Couldn't connect to the assistant.");
+    }
+
+    initChatControls();
+    initUpload();
+  });
+})();

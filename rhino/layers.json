@@ -1,9 +1,11 @@
 {
   "layers": [
-    { "name": "MASSING" },
-    { "name": "COPILOT", "color": [0, 0, 0]},
-    { "name": "COPILOT::Residential", "color": [255, 0, 0] },
-    { "name": "COPILOT::Office", "color": [0, 255, 0] },
-    { "name": "COPILOT::Leisure", "color": [0, 0, 255] }
+    { "name": "MASSING", "color": [240,140,0]},
+    { "name": "COPILOT", "color": [32,34,36]},
+    { "name": "COPILOT::Residential", "color": [220,45,70] },
+    { "name": "COPILOT::Office", "color": [0,112,184] },
+    { "name": "COPILOT::Leisure", "color": [0,170,70] },
+    { "name": "COPILOT::Cultural", "color": [140,0,140] },
+    { "name": "COPILOT::Green", "color": [80,180,120] }
   ]
 }
