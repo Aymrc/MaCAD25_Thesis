@@ -24,6 +24,7 @@ debounce_timer = None
 
 STICKY_KEY = "macad_listener_active"
 STICKY_IMPORTED = "macad_imported_jobs"
+WATCHER_STARTED_AT = None  # epoch seconds to ignore old DONE.txt
 
 # ---- Paths (project structure aware) ----
 THIS_DIR = os.path.dirname(__file__)
@@ -98,20 +99,13 @@ def on_delete(sender, e):
     # Cannot reliably check layer on delete -> may trigger for any delete
     debounce_trigger()
 
-# ---- OSM job watcher (UI-thread import) ----
+# ---- Helpers for OSM watcher ----
 def _list_job_dirs(osm_root):
     try:
         items = [os.path.join(osm_root, d) for d in os.listdir(osm_root)]
         return [d for d in items if os.path.isdir(d)]
     except:
         return []
-
-def _latest_job_dir(osm_root):
-    dirs = _list_job_dirs(osm_root)
-    if not dirs:
-        return None
-    dirs.sort(key=lambda p: os.path.getmtime(p), reverse=True)
-    return dirs[0]
 
 def _ensure_imported_registry():
     reg = sc.sticky.get(STICKY_IMPORTED)
@@ -144,10 +138,14 @@ def _import_job_on_ui(job_dir, job_id, imported_registry):
                 rs.EnableRedraw(True)
             except:
                 pass
+            # Persist and mark as processed
+            try:
+                open(os.path.join(job_dir, "IMPORTED.txt"), "w").write("ok")
+            except:
+                pass
             imported_registry.add(job_id)
 
     try:
-        # Use a .NET delegate for InvokeOnUiThread
         Rhino.RhinoApp.InvokeOnUiThread(Action(_do_import))
     except Exception as e:
         Rhino.RhinoApp.WriteLine("[rhino_listener] InvokeOnUiThread failed ({0}); running inline.".format(e))
@@ -159,26 +157,52 @@ def _try_import_finished_job():
     if not os.path.exists(OSM_DIR):
         return
 
-    job_dir = _latest_job_dir(OSM_DIR)
-    if not job_dir:
+    job_dirs = _list_job_dirs(OSM_DIR)
+    if not job_dirs:
         return
+    # Newest first
+    job_dirs.sort(key=lambda p: os.path.getmtime(p), reverse=True)
 
-    job_id = _job_id_from_path(job_dir)
     imported = _ensure_imported_registry()
-    if job_id in imported:
-        return  # already processed
 
-    done_flag = os.path.join(job_dir, "DONE.txt")
-    fail_flag = os.path.join(job_dir, "FAILED.txt")
+    for job_dir in job_dirs:
+        job_id = _job_id_from_path(job_dir)
+        if job_id in imported:
+            continue
 
-    if os.path.exists(fail_flag):
-        Rhino.RhinoApp.WriteLine("[rhino_listener] OSM job {0} failed. See FAILED.txt".format(job_id))
-        imported.add(job_id)
-        return
+        done_flag = os.path.join(job_dir, "DONE.txt")
+        fail_flag = os.path.join(job_dir, "FAILED.txt")
+        imported_flag = os.path.join(job_dir, "IMPORTED.txt")
 
-    if os.path.exists(done_flag):
+        # Skip if already imported in a previous session
+        if os.path.exists(imported_flag):
+            imported.add(job_id)
+            continue
+
+        if os.path.exists(fail_flag):
+            Rhino.RhinoApp.WriteLine("[rhino_listener] OSM job {0} failed. See FAILED.txt".format(job_id))
+            imported.add(job_id)
+            continue
+
+        if not os.path.exists(done_flag):
+            continue  # not finished yet
+
+        # Ignore DONE older than watcher start
+        try:
+            done_mtime = os.path.getmtime(done_flag)
+        except:
+            done_mtime = None
+
+        if (WATCHER_STARTED_AT is not None) and (done_mtime is not None):
+            if done_mtime < WATCHER_STARTED_AT:
+                imported.add(job_id)
+                Rhino.RhinoApp.WriteLine("[rhino_listener] Skipping old OSM job {0} (finished before listener start).".format(job_id))
+                continue
+
         Rhino.RhinoApp.WriteLine("[rhino_listener] OSM job {0} finished. Queuing import...".format(job_id))
         _import_job_on_ui(job_dir, job_id, imported)
+        # Handle one job per tick
+        break
 
 def _watcher_loop():
     Rhino.RhinoApp.WriteLine("[rhino_listener] OSM watcher started. Folder: {0}".format(OSM_DIR))
@@ -201,6 +225,7 @@ def _start_watcher_thread():
 
 # ---- Setup / teardown ----
 def setup_layer_listener():
+    global WATCHER_STARTED_AT
     if sc.sticky.get(STICKY_KEY):
         Rhino.RhinoApp.WriteLine("[rhino_listener] Already active on '{0}'.".format(TARGET_LAYER_NAME))
         return
@@ -220,6 +245,12 @@ def setup_layer_listener():
 
     sc.sticky[STICKY_KEY] = True
     Rhino.RhinoApp.WriteLine("[rhino_listener] Layer-specific listener active on '{0}'.".format(TARGET_LAYER_NAME))
+
+    # Mark watcher start time to ignore old DONE flags
+    try:
+        WATCHER_STARTED_AT = time.time()
+    except:
+        WATCHER_STARTED_AT = None
 
     _start_watcher_thread()
 

@@ -1,4 +1,4 @@
-// JS front-end script
+// JS front-end script (clean: only LLM messages go to chat)
 
 (function () {
   // ---------- Utilities ----------
@@ -10,13 +10,16 @@
     const chat = document.getElementById("chat-history");
     const el = document.createElement("div");
     el.className = "message " + role;
-
-    // Render Markdown
     const html = DOMPurify.sanitize(marked.parse(content));
     el.innerHTML = html;
-
     chat.appendChild(el);
     chat.parentElement.scrollTop = chat.parentElement.scrollHeight;
+  }
+
+  function setStatus(text) {
+    const s = document.getElementById("status");
+    if (s) s.textContent = text || "";
+    else console.log("[status]", text);
   }
 
   async function checkServer() {
@@ -51,8 +54,6 @@
     dropdown.addEventListener("mouseenter", showDropdown);
     pill.addEventListener("mouseleave", hideDropdown);
     dropdown.addEventListener("mouseleave", hideDropdown);
-
-    // Keyboard: open on focus, close on blur
     pill.addEventListener("focus", showDropdown);
     pill.addEventListener("blur", hideDropdown);
   }
@@ -67,7 +68,6 @@
       uploadPill.classList.toggle("empty", isEmpty);
     };
 
-    // Open file picker when clicking the pill or pressing Enter/Space
     uploadPill.addEventListener("click", () => fileInput.click());
     uploadPill.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -97,14 +97,10 @@
           body: formData,
         });
         const data = await res.json();
-
-        if (data.chat_notice) appendMessage("assistant", data.chat_notice);
-        uploadLabel.textContent = "Brief uploaded";
-
-        console.log("Uploaded:", data);
+        console.log("[brief] uploaded:", data);
         uploadLabel.textContent = "Brief uploaded";
       } catch (err) {
-        console.error("Upload failed", err);
+        console.error("[brief] upload failed", err);
         uploadLabel.textContent = "Upload failed";
       }
     }
@@ -113,7 +109,7 @@
     setUploadEmptyState();
   }
 
-  // ---------- OSM run + polling (Step 4) ----------
+  // ---------- OSM run + polling (silent to chat) ----------
   function toNumber(val) {
     var n = parseFloat((val || "").toString().trim());
     return isNaN(n) ? null : n;
@@ -138,10 +134,10 @@
       if (e.key === "Enter") sendMessage();
     });
 
-    // Context setter -> Start OSM job and poll status
+    // Context setter -> Start OSM job and poll status (NO chat messages)
     document.getElementById("saveContextBtn").addEventListener("click", function () {
       var lat = toNumber(document.getElementById("latInput").value);
-      var lon = toNumber(document.getElementById("longInput").value); // HTML id is 'longInput'
+      var lon = toNumber(document.getElementById("longInput").value);
       var radius = toNumber(document.getElementById("radiusInput").value);
 
       if (lat === null || lon === null || radius === null) {
@@ -153,52 +149,40 @@
         return;
       }
 
-      appendMessage("assistant", "Starting OSM job...");
-
+      setStatus("Starting OSM job...");
       startOsm(lat, lon, radius).then(function (resp) {
         if (!resp.ok) {
-          appendMessage("assistant", "OSM job failed to start: " + (resp.error || "unknown error"));
+          setStatus("OSM job failed: " + (resp.error || "unknown error"));
           return;
         }
         var jobId = resp.job_id;
-        appendMessage("assistant", "OSM job started. Job ID: `" + jobId + "`");
-
-        // Persist the latest job id locally for reference (Step 5 will use backend)
         try { localStorage.setItem("latest_osm_job", jobId); } catch (e) {}
+        setStatus("OSM job running...");
 
-        // Optional hook for future Rhino integration (Step 5)
-        if (typeof window.setRhinoJobId === "function") {
-          try { window.setRhinoJobId(jobId); } catch (e) {}
-        }
-
-        // Poll every 3 seconds until finished or failed
         var intv = setInterval(function () {
           pollStatus(jobId).then(function (st) {
             if (!st.ok) {
               clearInterval(intv);
-              appendMessage("assistant", "Status error: " + (st.error || "unknown"));
+              setStatus("Status error: " + (st.error || "unknown"));
               return;
             }
             if (st.status === "finished") {
               clearInterval(intv);
-              appendMessage("assistant", "OSM job finished. Files ready at: `" + st.out_dir + "`");
-              appendMessage("assistant", "Importing into Rhino will be handled automatically in Step 5.");
-            }
-            if (st.status === "failed") {
+              setStatus("OSM job finished. Importing into Rhino...");
+            } else if (st.status === "failed") {
               clearInterval(intv);
-              appendMessage("assistant", "OSM job failed. Check FAILED.txt in the job folder.");
+              setStatus("OSM job failed. See FAILED.txt");
             }
           }).catch(function (err) {
             clearInterval(intv);
-            appendMessage("assistant", "Error checking job: " + err);
+            setStatus("Error checking job: " + err);
           });
         }, 3000);
       }).catch(function (err) {
-        appendMessage("assistant", "Error starting OSM job: " + err);
+        setStatus("Error starting OSM job: " + err);
       });
     });
 
-    // Dropdowns
     setupStickyDropdown("contextPill", "contextForm");
     setupStickyDropdown("paramPill", "paramForm");
   }
@@ -211,6 +195,7 @@
     appendMessage("user", text);
     input.value = "";
 
+    // Temporary typing indicator
     appendMessage("assistant", "...");
     const chatbox = document.getElementById("chat-history");
 
@@ -233,27 +218,25 @@
 
   // ---------- Boot ----------
   window.addEventListener("DOMContentLoaded", async () => {
-    appendMessage("assistant", "Connecting...");
+    // No "Connecting..." message in chat
     let serverReady = false;
-
     for (let i = 0; i < 10; i++) {
       serverReady = await checkServer();
       if (serverReady) break;
       await sleep(1000);
     }
 
-    // Clear placeholder and greet
     document.getElementById("chat-history").innerHTML = "";
+
+    // Only show LLM greeting if available
     if (serverReady) {
       try {
         const res = await fetch("http://localhost:8000/initial_greeting");
         const json = await res.json();
-        appendMessage("assistant", json.response);
-      } catch {
-        appendMessage("assistant", "Couldn't fetch greeting, but the server seems up.");
+        if (json && json.response) appendMessage("assistant", json.response);
+      } catch (e) {
+        console.log("[greeting] failed", e);
       }
-    } else {
-      appendMessage("assistant", "Couldn't connect to the assistant.");
     }
 
     initChatControls();

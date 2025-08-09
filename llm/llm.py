@@ -9,6 +9,7 @@ import uvicorn
 import sys
 import uuid
 import subprocess
+import json
 from datetime import datetime
 from pathlib import Path
 from typing import Dict
@@ -37,11 +38,10 @@ PROJECT_DIR = BASE_DIR.parent
 RUNTIME_DIR = PROJECT_DIR / "runtime"
 OSM_DIR = RUNTIME_DIR / "osm"
 UPLOAD_FOLDER = BASE_DIR / "uploaded_brief"
-
 for d in (RUNTIME_DIR, OSM_DIR, UPLOAD_FOLDER):
     os.makedirs(d, exist_ok=True)
 
-# Serve runtime files (e.g., logs, artifacts) at /files/*
+# Serve runtime files at /files/*
 app.mount("/files", StaticFiles(directory=str(RUNTIME_DIR)), name="files")
 
 # In-memory job registry (simple)
@@ -50,6 +50,20 @@ JOBS: Dict[str, Dict] = {}
 def _python_exe():
     # Use the same interpreter that runs FastAPI
     return sys.executable
+
+def _job_dir(job_id):
+    return OSM_DIR / job_id
+
+def _write_json(path, payload):
+    with open(path, "w") as f:
+        json.dump(payload, f, indent=2)
+
+def _read_json(path):
+    try:
+        with open(path, "r") as f:
+            return json.load(f)
+    except Exception:
+        return None
 
 # ============================
 # GREETING endpoint
@@ -102,13 +116,11 @@ async def upload_brief(file: UploadFile = File(None), text: str = Form(None)):
     elif file and file.content_type == "application/pdf":
         contents = await file.read()
 
-        # Save to disk with timestamped name
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         saved_filename = str(UPLOAD_FOLDER / "brief_{}.pdf".format(timestamp))
         with open(saved_filename, "wb") as f:
             f.write(contents)
 
-        # Extract text to memory for context
         reader = PyPDF2.PdfReader(io.BytesIO(contents))
         brief_text = "\n".join(page.extract_text() or "" for page in reader.pages)
         stored_brief = brief_text
@@ -127,7 +139,7 @@ async def get_brief():
     return {"brief": stored_brief[:1000] + "..."}
 
 # ============================
-# OSM endpoints (Step 1)
+# OSM endpoints (silent responses)
 # ============================
 @app.post("/osm/run")
 async def osm_run(payload: dict):
@@ -158,41 +170,46 @@ async def osm_run(payload: dict):
         return {"ok": False, "error": "Worker not found: {}".format(worker)}
 
     try:
-        proc = subprocess.Popen([_python_exe(), str(worker)], cwd=str(PROJECT_DIR), env=env)
-        JOBS[job_id] = {"pid": proc.pid, "status": "running", "out_dir": str(out_dir)}
+        subprocess.Popen([_python_exe(), str(worker)], cwd=str(PROJECT_DIR), env=env)
+        # No mensajes “narrativos” para la UI: solo status
         return {"ok": True, "job_id": job_id}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
+
 @app.get("/osm/status/{job_id}")
 async def osm_status(job_id: str):
     """
-    Check job status. Looks for DONE.txt or FAILED.txt in the job folder.
-    Returns: { ok, status, out_dir }
+    Minimal status: running/finished/failed and the output folder.
+    Works after restarts using filesystem flags.
     """
     info = JOBS.get(job_id)
-    if not info:
-        return {"ok": False, "error": "unknown job"}
+    out_dir = str(_job_dir(job_id))
+    if info is None:
+        # Try to recover from filesystem
+        job_json = _read_json(Path(out_dir) / "job.json")
+        if job_json is None:
+            return {"ok": False, "error": "unknown job"}
+        info = {"status": "running", "out_dir": out_dir}
+        JOBS[job_id] = info
 
-    out_dir = info["out_dir"]
     done_flag = os.path.join(out_dir, "DONE.txt")
     failed_flag = os.path.join(out_dir, "FAILED.txt")
 
+    status = info.get("status", "running")
     if os.path.exists(failed_flag):
-        info["status"] = "failed"
+        status = "failed"
     elif os.path.exists(done_flag):
-        info["status"] = "finished"
-    else:
-        # still running
-        pass
+        status = "finished"
 
-    return {"ok": True, "status": info["status"], "out_dir": out_dir}
+    info["status"] = status
+    return {"ok": True, "status": status, "out_dir": out_dir}
 
 # ============================
 # Server entry point
 # ============================
 def run_llm(reload=False):
-    print("[LLM] Starting the server for LLM access ...\n")
+    print("[LLM] Starting the server for LLM access ...")
     uvicorn.run("llm:app", host="127.0.0.1", port=8000, reload=reload)
 
 if __name__ == "__main__":

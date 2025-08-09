@@ -1,379 +1,180 @@
-# main.py - Rhino-compatible web server script
+# -*- coding: utf-8 -*-
+# main.py — Launcher compatible with IronPython 2.7 (Rhino)
+# Starts the backend (LLM) with an external Python 3 and opens the local UI.
 
-import http.server
-import socketserver
-import threading as _th
-import webbrowser
+# Rhino button:
+# ! _-RunPythonScript "C:\Users\broue\Documents\IAAC MaCAD\Master_Thesis\MaCAD25_Thesis\main.py"
+# _-RunPythonScript "C:\Users\broue\Documents\IAAC MaCAD\Master_Thesis\MaCAD25_Thesis\rhino\rhino_listener.py"
+
 import os
-import json
-import runpy
-import Rhino
-import requests  # para el proxy
+import sys
+import subprocess
+import webbrowser
 
-
-import threading, socket, time, io
-from datetime import datetime
-from pathlib import Path
-
+# Import project variables
 try:
-    from fastapi import FastAPI, Request, UploadFile, File, Form
-    from fastapi.middleware.cors import CORSMiddleware
-    import uvicorn, requests, PyPDF2
-except Exception as e:
-    print("[LLM] Falta instalar dependencias FastAPI:", e)
-    # Puedes seguir sirviendo la UI aunque falte el LLM
-    FastAPI = None
+    from config import layer_name, copilot_name, python_exe_AB, python_exe_CH
+except Exception as _e:
+    # Default values if config.py does not exist or variables are missing
+    layer_name = "COPILOT"
+    copilot_name = "Rhino Copilot"
+    python_exe_AB = ""
+    python_exe_CH = ""
 
-LLM_API_BASE = "http://127.0.0.1:8010"  
-LLM_HOST = "127.0.0.1"
-LLM_PORT = 8010
-LM_STUDIO_URL = "http://127.0.0.1:1234/v1/chat/completions"
-COPILOT_NAME = "MASSING"
+# === Base paths ===
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+LLM_DIR = os.path.join(CURRENT_DIR, "llm")
+RHINO_DIR = os.path.join(CURRENT_DIR, "rhino")
+UI_DIR = os.path.join(CURRENT_DIR, "ui")
 
-_llm_server = None
-_llm_thread = None
-_stored_brief = ""
-UPLOAD_FOLDER = Path(os.path.dirname(os.path.abspath(__file__))) / "uploaded_brief"
-UPLOAD_FOLDER.mkdir(exist_ok=True)
+# Ensure local imports (not strictly required for this launcher)
+if LLM_DIR not in sys.path:
+    sys.path.append(LLM_DIR)
+if RHINO_DIR not in sys.path:
+    sys.path.append(RHINO_DIR)
 
-def _port_in_use(host, port):
-    import socket as _s
-    s = _s.socket(_s.AF_INET, _s.SOCK_STREAM)
-    s.settimeout(0.2)
+def _safe_print(msg):
     try:
-        return s.connect_ex((host, port)) == 0
-    finally:
-        s.close()
+        print(msg)
+    except:
+        # IronPython in some environments may fail with unicode: force str
+        print(str(msg))
+
+def get_universal_python_path():
+    """
+    Find a Python 3 executable to launch the backend.
+    - If Rhino is running with IronPython, this will be an external executable.
+    - Avoid using shutil.which (not available in IronPython 2.7).
+    """
+    # 1) If sys.executable points to something valid and is NOT IronPython, use it.
+    if sys.executable and os.path.exists(sys.executable):
+        v = ""
+        try:
+            v = sys.version
+        except:
+            v = ""
+        if "IronPython" not in v:
+            _safe_print("Using current Python: {}".format(sys.executable))
+            return sys.executable
+
+    # 2) Search in PATH using distutils.spawn (available in IronPython 2.7)
+    try:
+        import distutils.spawn
+        for candidate in ('python', 'python3', 'py'):
+            path = distutils.spawn.find_executable(candidate)
+            if path and os.path.exists(path):
+                _safe_print("Found Python in PATH: {}".format(path))
+                return path
+    except Exception as e:
+        _safe_print("PATH lookup failed: {}".format(e))
+
+    # 3) Known paths (includes those from config.py if set)
+    username = os.getenv("USERNAME") or ""
+    possible_paths = [
+        python_exe_AB,
+        python_exe_CH,
+        r"C:\Python313\python.exe",
+        r"C:\Python312\python.exe",
+        r"C:\Python311\python.exe",
+        r"C:\Program Files\Python313\python.exe",
+        r"C:\Program Files\Python312\python.exe",
+        r"C:\Program Files\Python311\python.exe",
+        r"C:\Users\{}\AppData\Local\Programs\Python\Python313\python.exe".format(username),
+        r"C:\Users\{}\AppData\Local\Programs\Python\Python312\python.exe".format(username),
+        r"C:\Users\{}\AppData\Local\Programs\Python\Python311\python.exe".format(username),
+        # Official Python launcher on Windows:
+        r"C:\Windows\py.exe",
+    ]
+    for path in possible_paths:
+        if path and os.path.exists(path):
+            _safe_print("Found fallback Python: {}".format(path))
+            return path
+
+    _safe_print("No valid Python interpreter found.")
+    return None
+
+def _run_pip_install(python_exe, requirements_path):
+    """
+    Try to install requirements.txt using the found Python.
+    Supports both 'python.exe -m pip' and 'py -3 -m pip'.
+    """
+    if not os.path.exists(requirements_path):
+        _safe_print("[SETUP] requirements.txt not found: {}".format(requirements_path))
+        return
+
+    try:
+        if os.path.basename(python_exe).lower() == "py.exe":
+            cmd = [python_exe, "-3", "-m", "pip", "install", "-r", requirements_path]
+        else:
+            cmd = [python_exe, "-m", "pip", "install", "-r", requirements_path]
+
+        _safe_print("[SETUP] Running: {}".format(" ".join(cmd)))
+        subprocess.check_call(cmd, cwd=CURRENT_DIR)
+        _safe_print("[SETUP] Requirements installed.")
+    except Exception as e:
+        _safe_print("[SETUP] Failed to install requirements: {}".format(e))
+
+def install_requirements(python_exe):
+    req = os.path.join(CURRENT_DIR, "requirements.txt")
+    _run_pip_install(python_exe, req)
 
 def start_llm():
-    """Arranca FastAPI en segundo plano (si FastAPI está disponible)."""
-    global _llm_server, _llm_thread
-    if FastAPI is None:
-        print("[LLM] FastAPI no disponible. Omitiendo API LLM.")
-        return
-    if _llm_thread and _llm_thread.is_alive():
-        print(f"[LLM] Ya corriendo en http://{LLM_HOST}:{LLM_PORT}")
-        return
-    if _port_in_use(LLM_HOST, LLM_PORT):
-        print(f"[LLM] Puerto ocupado http://{LLM_HOST}:{LLM_PORT}. Asumo que está arriba.")
-        return
+    """
+    Launch the LLM backend (FastAPI, etc.) using the external Python 3.
+    This file does NOT attempt to run FastAPI with IronPython.
+    """
+    _safe_print("[LLM] Starting backend...")
+    llm_script = os.path.join(LLM_DIR, "llm.py")
+    python_exe = get_universal_python_path()
 
-    # --- FastAPI app ---
-    llm_app = FastAPI()
-    llm_app.add_middleware(
-        CORSMiddleware, allow_origins=["*"], allow_credentials=True,
-        allow_methods=["*"], allow_headers=["*"]
-    )
-
-    # Reutiliza TCP/HTTP para menos latencia
-    session = requests.Session()
-
-    @llm_app.get("/initial_greeting")
-    async def initial_greeting(test: bool = False):
-        if test:
-            return {"dynamic": True}
-        return {"response": f"Hello! I am the copilot {COPILOT_NAME}. What would you like to do?"}
-
-    @llm_app.get("/health")
-    async def health():
-        """Ping rápido a LM Studio para saber si está listo."""
-        try:
-            r = session.post(
-                LM_STUDIO_URL,
-                json={"model": "lmstudio",
-                      "messages": [{"role": "user", "content": "ping"}],
-                      "max_tokens": 1, "stream": False, "temperature": 0},
-                timeout=3
-            )
-            return {"ok": r.status_code < 500, "status": r.status_code}
-        except Exception:
-            return {"ok": False, "status": None}
-
-    @llm_app.post("/chat")
-    async def chat(request: Request):
-        data = await request.json()
-        user_message = data.get("message", "")
-
-        messages = []
-        if _stored_brief:
-            messages.append({"role": "system",
-                             "content": f"Use this project brief as context:\n\n{_stored_brief[:2000]}"})
-        messages.append({"role": "user", "content": user_message})
-
-        payload = {
-            "messages": messages,
-            "stream": False,
-            "temperature": 0.7,
-            "max_tokens": 512,
-            "model": "lmstudio"
-        }
-        try:
-            r = session.post(LM_STUDIO_URL, json=payload, timeout=20)
-            r.raise_for_status()
-            j = r.json()
-            return {"response": j["choices"][0]["message"]["content"]}
-        except Exception as e:
-            return {"error": str(e), "response": "Failed to reach LM Studio."}
-
-    @llm_app.post("/upload_brief")
-    async def upload_brief(file: UploadFile = File(None), text: str = Form(None)):
-        global _stored_brief
-        if text:
-            _stored_brief = text
-            return {"status": "ok", "source": "text"}
-
-        if file:
-            contents = await file.read()
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            saved = UPLOAD_FOLDER / f"brief_{ts}.pdf"
-            with open(saved, "wb") as f:
-                f.write(contents)
-            try:
-                reader = PyPDF2.PdfReader(io.BytesIO(contents))
-                brief = "\n".join(page.extract_text() or "" for page in reader.pages)
-            except Exception:
-                brief = ""
-            _stored_brief = brief
-            return {"status": "ok", "source": "pdf", "filename": str(saved), "length": len(brief)}
-
-        return {"status": "error", "message": "No valid input received."}
-
-    @llm_app.get("/brief")
-    async def brief():
-        return {"brief": (_stored_brief[:1000] + "...") if _stored_brief else ""}
-
-    # --- Warmup: dispara la 1ª inferencia en segundo plano ---
-    import threading as _th
-    def _warmup():
-        try:
-            payload = {
-                "model": "lmstudio",
-                "messages": [{"role": "user", "content": "ping"}],
-                "stream": False, "max_tokens": 5, "temperature": 0
-            }
-            session.post(LM_STUDIO_URL, json=payload, timeout=8)
-            print("[LLM] Warmup done.")
-        except Exception as e:
-            print("[LLM] Warmup skipped:", e)
-    _th.Thread(target=_warmup, daemon=True).start()
-
-    # --- Uvicorn en hilo ---
-    config = uvicorn.Config(llm_app, host=LLM_HOST, port=LLM_PORT, log_level="info")
-    _llm_server = uvicorn.Server(config)
-
-    def _run():
-        print("[LLM] Iniciando FastAPI…")
-        _llm_server.run()
-        print("[LLM] FastAPI detenido.")
-
-    _llm_thread = threading.Thread(target=_run, daemon=True)
-    _llm_thread.start()
-
-    # Espera breve hasta que el puerto responda
-    for _ in range(50):
-        if _port_in_use(LLM_HOST, LLM_PORT):
-            print(f"[LLM] Servidor listo en http://{LLM_HOST}:{LLM_PORT}")
-            break
-        time.sleep(0.1)
-
-def stop_llm():
-    """Detiene FastAPI embebida (si está corriendo)."""
-    global _llm_server, _llm_thread
-    if not _llm_thread or not _llm_thread.is_alive():
-        print("[LLM] No hay LLM server en ejecución.")
-        return
-    print("[LLM] Deteniendo FastAPI…")
-    _llm_server.should_exit = True
-    _llm_thread.join(timeout=3.0)
-    _llm_server = None
-    _llm_thread = None
-    print("[LLM] FastAPI detenida.")
-
-
-# === CONFIGURATION ===
-PORT = 8000
-DIRECTORY = "ui"
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-os.chdir(BASE_DIR)
-
-pending_tasks = []  # Task queue for Rhino-safe execution
-
-# === SERVER CLASSES ===
-
-class ReusableTCPServer(socketserver.TCPServer):
-    allow_reuse_address = True
-
-class Handler(http.server.SimpleHTTPRequestHandler):
-# --- dentro de Handler ---
-    def _proxy_post(self, path, raw_body, content_type="application/json"):
-        import requests as _r
-        try:
-            url = f"http://{LLM_HOST}:{LLM_PORT}{path}"
-            r = _r.post(url, data=raw_body, headers={"Content-Type": content_type}, timeout=30)
-            self.send_response(r.status_code)
-            self.send_header("Content-Type", r.headers.get("Content-Type", "application/json"))
-            self.end_headers()
-            self.wfile.write(r.content)
-        except Exception as e:
-            self._send_json({"error": f"Proxy POST failed: {e}"}, status=502)
-
-    def _proxy_get(self, path):
-        import requests as _r
-        try:
-            url = f"http://{LLM_HOST}:{LLM_PORT}{path}"
-            r = _r.get(url, timeout=15)
-            self.send_response(r.status_code)
-            self.send_header("Content-Type", r.headers.get("Content-Type", "application/json"))
-            self.end_headers()
-            self.wfile.write(r.content)
-        except Exception as e:
-            self._send_json({"error": f"Proxy GET failed: {e}"}, status=502)
-
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=DIRECTORY, **kwargs)
-
-    def end_headers(self):
-        # Add CORS headers
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        super().end_headers()
-
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.end_headers()
-
-    def do_GET(self):
-        print(f"[DEBUG] GET: {self.path}")
-
-        if self.path.startswith("/initial_greeting"):
-            self._send_json({
-                "dynamic": True,
-                "response": "Connected to Rhino server"
-            })
-            return
-
-        # Proxy GET a la API LLM
-        if self.path in ("/brief", "/llm/initial_greeting"):
-            path = self.path.replace("/llm", "")
-            return self._proxy_get(path)
-
-        # servir landing por defecto
-        if self.path == "/":
-            self.path = "/landing.html"
-
-        return super().do_GET()
-
-    def do_POST(self):
-        print(f"[DEBUG] POST: {self.path}")
-        content_length = int(self.headers.get('Content-Length', 0))
-        raw_body = self.rfile.read(content_length) if content_length else b""
-
-        # body completo para lógica; preview solo para log
-        body_text = raw_body.decode("utf-8", errors="ignore")
-        print(f"[DEBUG] POST body preview: '{body_text[:200]}'")
-
-        # 1) Proxy a LLM
-        if self.path in ("/chat", "/upload_brief"):
-            return self._proxy_post(
-                self.path,
-                raw_body,
-                self.headers.get("Content-Type", "application/json"),
-            )
-
-        # 2) Tarea para Rhino
-        if self.path == "/run_context_script":
-            return self._handle_context_request(body_text)
-
-        # 3) 404
-        self.send_response(404)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(b'{"error":"Not found"}')
-
-    def _send_json(self, data):
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps(data).encode("utf-8"))
-
-    def _handle_context_request(self, body):
-        try:
-            data = json.loads(body)
-            lat = float(data.get("lat", 41.3874))
-            lon = float(data.get("long", 2.1686))
-            radius = float(data.get("radius", 0.5))
-        except Exception as e:
-            print("[ERROR] Failed to parse JSON:", e)
-            lat, lon, radius = 41.3874, 2.1686, 0.5
-
-        # Respond immediately to the frontend
-        self._send_json({
-            "status": "ok",
-            "message": f"Rhino task queued for {lat},{lon} with radius {radius} km"
-        })
-
-        # Queue Rhino task for main-thread execution
-        script_path = r"C:\Users\CDH\Documents\GitHub\MaCAD25_Thesis\context2graph\OSM23dm.py"
-
-        def run_task():
-            os.environ["LAT"] = str(lat)
-            os.environ["LON"] = str(lon)
-            os.environ["RADIUS_KM"] = str(radius)
-            runpy.run_path(script_path, run_name="__main__")
-
-        pending_tasks.append(run_task)
-
-# === RHINO TASK EXECUTION ===
-
-def process_tasks(sender, e):
-    global pending_tasks
-    if not pending_tasks:
+    if not python_exe or not os.path.exists(python_exe):
+        _safe_print("[LLM] No valid Python 3 found. Aborting.")
         return
 
-    tasks = pending_tasks[:]
-    pending_tasks.clear()
+    if not os.path.exists(llm_script):
+        _safe_print("[LLM] llm.py not found at: {}".format(llm_script))
+        return
 
-    for task in tasks:
+    try:
+        if os.path.basename(python_exe).lower() == "py.exe":
+            cmd = [python_exe, "-3", llm_script]
+        else:
+            cmd = [python_exe, llm_script]
+
+        subprocess.Popen(cmd, cwd=LLM_DIR, creationflags=0)
+        _safe_print("[LLM] Backend launched at http://127.0.0.1:8000")
+    except Exception as e:
+        _safe_print("[LLM] Failed to launch backend: {}".format(e))
+
+def start_ui():
+    _safe_print("Opening interface...")
+    ui_path = os.path.join(UI_DIR, "landing.html")
+    if os.path.exists(ui_path):
+        file_url = "file:///" + ui_path.replace("\\", "/")
+        _safe_print("[UI] Opening: {}".format(file_url))
         try:
-            task()
-        except Exception as ex:
-            print("[ERROR] Task execution failed:", ex)
+            webbrowser.open(file_url)
+        except Exception as e:
+            _safe_print("[UI] Failed to open browser: {}".format(e))
+    else:
+        _safe_print("[UI] landing.html not found at: {}".format(ui_path))
 
-# === START WEB SERVER ===
+def copilot_start():
+    py = get_universal_python_path()
+    if py:
+        install_requirements(py)
+    else:
+        _safe_print("[SETUP] Skipping requirements installation: no external Python 3 found.")
 
-def start_web_server():
-    global httpd
+    _safe_print("=" * 50)
+    _safe_print("Starting '{}'".format(copilot_name))
+    _safe_print("=" * 50)
 
-    if "httpd" in globals() and httpd:
-        try:
-            print("[INFO] Stopping previous server...")
-            httpd.shutdown()
-            httpd.server_close()
-        except:
-            pass
-        httpd = None
-
-    def server_thread():
-        global httpd
-        with ReusableTCPServer(("", PORT), Handler) as httpd:
-            print(f"[INFO] Serving at http://127.0.0.1:{PORT}")
-            try:
-                webbrowser.open(f"http://127.0.0.1:{PORT}/")
-            except:
-                pass
-            httpd.serve_forever()
-
-    threading.Thread(target=server_thread, daemon=True).start()
-    print("[INFO] Web server started in the background.")
-
-# === RHINO ENTRY POINT ===
-if __name__ == "__main__" or "RhinoInside" in globals():
-    # 1) Arranca FastAPI LLM en :8010 (no bloquea)
     start_llm()
-    # 2) Arranca el servidor UI en :8000
-    start_web_server()
-    # 3) Conecta el procesado de cola al Idle de Rhino
-    Rhino.RhinoApp.Idle += process_tasks
-    print("[INFO] Copilot listo. UI en http://127.0.0.1:8000 (proxy LLM activo)")
+
+    _safe_print("Copilot ready. Listening to geometry changes on '{}' layer.".format(layer_name))
+    start_ui()
+    _safe_print("Interface is now visible.")
+
+if __name__ == "__main__":
+    copilot_start()
