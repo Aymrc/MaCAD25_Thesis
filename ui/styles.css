@@ -99,6 +99,28 @@ body {
   border-color: #999;
 }
 
+/* Show a + badge when the pill is empty */
+.pill.upload-pill.empty #uploadLabel::after {
+  content: "+";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 8px;
+  font-weight: 700;
+  line-height: 1;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.pill.upload-pill.empty:hover #uploadLabel::after {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
 /* Upload */
 .upload-pill input[type="file"] {
   display: none;
