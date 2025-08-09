@@ -1,6 +1,6 @@
+import requests, io, PyPDF2, os, uvicorn, sys, re, glob, json, shutil, csv
 from fastapi import FastAPI, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-import requests, io, PyPDF2, os, uvicorn, sys, re, glob
 from datetime import datetime
 from pathlib import Path
 
@@ -23,33 +23,23 @@ LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
 stored_brief = ""
 
 # Files path
-BASE_DIR = Path(__file__).resolve().parent
-UPLOAD_FOLDER = BASE_DIR / "uploaded_brief"
+BASE_DIR = Path(__file__).resolve().parent # .../llm sub-folder
+ROOT_DIR = BASE_DIR.parent # project root
+KNOWLEDGE_DIR = ROOT_DIR / "knowledge" # ../knowledge sub-folder
+UPLOAD_FOLDER = KNOWLEDGE_DIR / "briefs" # ../knowledge/brief_upload sub-folder
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
-UPLOAD_PATTERN = "brief_*.pdf"
 
-# ---------- Helpers ----------
-def extract_project_name(brief_text: str, original_filename: str | None) -> str:
-    """
-    Try to find a project/masterplan name from the brief content.
-    Fallbacks to first plausible title line or the original filename.
-    """
-    if not brief_text:
-        return (os.path.splitext(original_filename)[0] if original_filename else "Untitled Project")
-
-    lines = [l.strip() for l in brief_text.splitlines() if l.strip()]
-
-    label_rx = re.compile(r"^(project\s*name|project|masterplan|title)\s*:\s*(.+)$", re.I)
-    for l in lines[:50]:
-        m = label_rx.match(l)
-        if m:
-            return m.group(2).strip().strip("-–:")[:120]
-
-    for l in lines:
-        if len(l) <= 80 and not re.search(r"^(page\s*\d+|confidential|draft|version|rev\.?)\b", l, re.I):
-            return l.strip(" -–:")[:120]
-
-    return (os.path.splitext(original_filename)[0] if original_filename else "Untitled Project")
+# === START SERVER ===
+def run_llm(reload=False):
+    print("[LLM] Starting the server for LLM access ...\n")
+    uvicorn.run(
+        "llm:app",
+        host="127.0.0.1",
+        port=8000,
+        reload=reload,
+        reload_dirs=[str(BASE_DIR)],
+        reload_includes=["*.py"],
+    )
 
 # === GREETING endpoint ===
 @app.get("/initial_greeting")
@@ -125,7 +115,7 @@ async def chat(request: Request):
             "messages": messages,
             "stream": False,
             "temperature": 0.3, # less blabla
-            "max_tokens": 300 # concise
+            "max_tokens": 500 # 150 = concise
         }
 
         res = requests.post(LM_STUDIO_URL, json=lmstudio_payload, timeout=30)
@@ -143,58 +133,92 @@ async def chat(request: Request):
 async def upload_brief(file: UploadFile = File(None), text: str = Form(None)):
     global stored_brief
 
-    # if input = TEXT
-    if text:
-        stored_brief = text
-        project_name = extract_project_name(text, None)
-        return {
-            "status": "ok",
-            "source": "text",
-            "project_name": project_name,
-            "chat_notice": f"Brief received for **{project_name}** (via text)."
-        }
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_dir = UPLOAD_FOLDER / f"brief_{timestamp}"
 
-    # if input = PDF
-    elif file and file.content_type == "application/pdf":
-        contents = await file.read()
-
-        # Remove previous brief history
+    # Clean previous briefs (folders + stray PDFs)
+    for p in UPLOAD_FOLDER.glob("brief_*"):
         try:
-            for old in glob.glob(str(UPLOAD_FOLDER / UPLOAD_PATTERN)):
-                try:
-                    os.remove(old)
-                    print("Old briefs cleared.")
-                except Exception:
-                    pass
+            if p.is_dir():
+                shutil.rmtree(p)
+            elif p.suffix.lower() == ".pdf":
+                p.unlink()
         except Exception:
             pass
 
-        # Save PDF
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        saved_filename = UPLOAD_FOLDER / f"brief_{timestamp}.pdf"
-        with open(saved_filename, "wb") as f:
-            f.write(contents)
+    # Brief to text (from text OR PDF)
+    if text:
+        stored_brief = text
+        source_label = "text"
+        original_name = "pasted_text.txt"
 
-        # text to memory
+    elif file and file.content_type == "application/pdf":
+        contents = await file.read()
+        out_dir.mkdir(parents=True, exist_ok=True)
+        pdf_path = out_dir / "brief.pdf"
+        with open(pdf_path, "wb") as f:
+            f.write(contents)
         try:
             reader = PyPDF2.PdfReader(io.BytesIO(contents))
-            brief_text = "\n".join((page.extract_text() or "") for page in reader.pages)
+            stored_brief = "\n".join((p.extract_text() or "") for p in reader.pages)
         except Exception:
-            brief_text = ""
+            stored_brief = ""
+        source_label = "pdf"
+        original_name = file.filename
 
-        stored_brief = brief_text or ""
-        project_name = extract_project_name(stored_brief, file.filename)
+    else:
+        return {"status": "error", "message": "No valid input received."}
 
+    # Run brief to graph
+    try:
+        graph = llm_extract_graph_from_brief(stored_brief)
+    except Exception as e:
         return {
             "status": "ok",
-            "source": "pdf",
-            "filename": str(saved_filename),
-            "length": len(stored_brief),
-            "project_name": project_name,
-            "chat_notice": f"Brief received for **{project_name}** (PDF: {file.filename})."
+            "source": source_label,
+            "chat_notice": f"Brief received ({source_label}: {original_name}). Graph extraction failed: {e}",
+            "graph": None
         }
 
-    return {"status": "error", "message": "No valid input received."}
+    # Save JSON in PDF folder
+    out_dir.mkdir(parents=True, exist_ok=True)
+    graph_json_path = out_dir / "brief_graph.json"
+    with open(graph_json_path, "w", encoding="utf-8") as f:
+        json.dump(graph, f, indent=2, ensure_ascii=False)
+
+    # Response
+    n = len(graph.get("nodes", []))
+    e = len(graph.get("edges", []))
+    return {
+        "status": "ok",
+        "source": source_label,
+        "chat_notice": f"Brief received ({source_label}: {original_name}). Graph ready — **{n} nodes**, **{e} edges**.",
+        "graph_path": str(graph_json_path),
+        "graph": graph
+    }
+
+# ---------- Helpers ----------
+def extract_project_name(brief_text: str, original_filename: str | None) -> str:
+    """
+    Try to find a project/masterplan name from the brief content.
+    Fallbacks to first plausible title line or the original filename.
+    """
+    if not brief_text:
+        return (os.path.splitext(original_filename)[0] if original_filename else "Untitled Project")
+
+    lines = [l.strip() for l in brief_text.splitlines() if l.strip()]
+
+    label_rx = re.compile(r"^(project\s*name|project|masterplan|title)\s*:\s*(.+)$", re.I)
+    for l in lines[:50]:
+        m = label_rx.match(l)
+        if m:
+            return m.group(2).strip().strip("-–:")[:120]
+
+    for l in lines:
+        if len(l) <= 80 and not re.search(r"^(page\s*\d+|confidential|draft|version|rev\.?)\b", l, re.I):
+            return l.strip(" -–:")[:120]
+
+    return (os.path.splitext(original_filename)[0] if original_filename else "Untitled Project")
 
 # === BRIEF preview ===
 @app.get("/brief")
@@ -202,10 +226,62 @@ async def get_brief():
     text = (stored_brief or "")
     return {"brief": (text[:1000] + "...") if len(text) > 1000 else text}
 
-# === START SERVER ===
-def run_llm(reload=False):
-    print("[LLM] Starting the server for LLM access ...\n")
-    uvicorn.run("llm:app", host="127.0.0.1", port=8000, reload=reload)
+# === BRIEF to JSON ??????????? ===
+def extract_first_json(text: str) -> str | None:
+    fenced = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", text, flags=re.I)
+    if fenced:
+        text = fenced.group(1)
+    m = re.search(r"\{[\s\S]*\}", text)
+    return m.group(0) if m else None
+
+# === JSON CLEAN ===
+def clean_graph_schema(data: dict) -> dict:
+    for n in data.get("nodes", []):
+        n.setdefault("typology", "")
+        n.setdefault("footprint", 0)
+        n.setdefault("scale", "")
+        n.setdefault("social_weight", 0.5)
+    for e in data.get("edges", []):
+        e.setdefault("type", "mobility")
+        mv = e.get("mode", [])
+        if mv is None: e["mode"] = []
+        elif isinstance(mv, str): e["mode"] = [mv]
+        elif not isinstance(mv, list): e["mode"] = []
+    return data
+
+# === BRIEF to GRAPH ===
+def llm_extract_graph_from_brief(brief_text: str) -> dict:
+    system = (
+        "You are an expert urban planner who converts briefs into program graphs. "
+        "Return only valid JSON with keys 'nodes' and 'edges'."
+    )
+    user = f"""
+Extract a buildable program graph.
+
+- Nodes: {{id, label, typology∈["residential","commercial","cultural","public_space","recreational","office"], footprint:int, scale∈["small","medium","large"], social_weight:0..1}}
+- Include a root/masterplan node; connect top-level programs to it with type "contains".
+- Edges: {{source, target, type∈["contains","mobility","adjacent"], mode:list}}
+- For "contains" use "mode": [].
+
+Brief:
+\"\"\"{brief_text}\"\"\"
+"""
+    payload = {
+        "model": "lmstudio",
+        "messages": [{"role": "system", "content": system},
+                     {"role": "user", "content": user}],
+        "temperature": 0.2,
+        "max_tokens": 1200,
+        "stream": False
+    }
+    r = requests.post(LM_STUDIO_URL, json=payload, timeout=60)
+    r.raise_for_status()
+    raw = r.json()["choices"][0]["message"]["content"]
+    txt = extract_first_json(raw) or raw
+    data = json.loads(txt)
+    return clean_graph_schema(data)
+
+
 
 if __name__ == "__main__":
     try:
