@@ -23,7 +23,8 @@ body {
   left: 0;
   right: 0;
   padding: 0 20px;
-  max-height: calc(100vh - var(--bar-height) - 60px);
+  /* max-height: calc(100vh - var(--bar-height) - 60px); */
+  max-height: 33vh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -201,10 +202,7 @@ body {
 #graph3d-container {
   position: fixed;
   inset: 0;
-  z-index: 1;          /* behind chat */
+  z-index: 1; /* behind chat */
   background: #f0f0f0; /* visible through translucent chat */
 }
 #graph3d { width: 100%; height: 100%; }
-
-/* Optional: hide if you keep a close button somewhere */
-#close-graph3d { display: none; }

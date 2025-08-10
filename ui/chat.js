@@ -187,58 +187,81 @@
 
   // ---------- 3D Graph (background) ----------
   // Renders or updates the 3D graph behind the chat
-  function showGraph3DBackground(dataGraph) {
-    if (typeof ForceGraph3D !== "function") {
-      console.error("3D library not loaded");
-      return;
-    }
+  // 3D graph as a live background with real 3D nodes and dynamic relaxation
+// 3D graph as a live background with real 3D nodes and force-directed "wingy" motion
+function showGraph3DBackground(dataGraph) {
+  if (typeof ForceGraph3D !== "function") return;
+  const mount = document.getElementById("graph3d");
+  if (!mount) return;
 
-    const mount = document.getElementById("graph3d");
-    if (!mount) return;
+  // Map {nodes, edges} -> {nodes, links}
+  const nodes = (dataGraph.nodes || []).map(n => ({
+    id: n.id,
+    name: n.label || n.id,
+    typology: n.typology || "",
+    footprint: n.footprint || 0
+  }));
+  const links = (dataGraph.edges || []).map(e => ({
+    source: e.source, target: e.target, type: e.type || "adjacent"
+  }));
 
-    // Map {nodes, edges} to {nodes, links}
-    const data = {
-      nodes: (dataGraph.nodes || []).map(n => ({
-        id: n.id,
-        name: n.label || n.id,
-        typology: n.typology || "",
-        footprint: n.footprint || 0
-      })),
-      links: (dataGraph.edges || []).map(e => ({
-        source: e.source,
-        target: e.target,
-        type: e.type || "adjacent"
-      }))
-    };
+  // Degrees for distance scaling
+  const deg = new Map(nodes.map(n => [n.id, 0]));
+  links.forEach(l => {
+    deg.set(l.source, (deg.get(l.source) || 0) + 1);
+    deg.set(l.target, (deg.get(l.target) || 0) + 1);
+  });
 
-    // Init once
-    if (!Graph3DInstance) {
-      Graph3DInstance = ForceGraph3D()(mount)
-        .backgroundColor("#f0f0f0")
-        .nodeRelSize(4)
-        .nodeOpacity(1)
-        .nodeLabel(n => `${n.name}${n.typology ? " • " + n.typology : ""}`)
-        .linkColor(() => "rgba(138, 138, 138, 0.8)")
-        .enableNodeDrag(false)
-        .cooldownTicks(200)
-        .nodeThreeObject(() => {
-          const canvas = document.createElement("canvas");
-          canvas.width = canvas.height = 32;
-          const ctx = canvas.getContext("2d");
-          ctx.fillStyle = "#d9ff00ff";
-          ctx.beginPath(); ctx.arc(16, 16, 12, 0, Math.PI * 2); ctx.fill();
-          const tex = new THREE.CanvasTexture(canvas);
-          const mat = new THREE.SpriteMaterial({ map: tex });
-          const sprite = new THREE.Sprite(mat);
-          sprite.scale.set(8, 8, 1);
-          return sprite;
-        });
-    }
+  // Init once
+  if (!Graph3DInstance) {
+    Graph3DInstance = ForceGraph3D()(mount)
+      .backgroundColor("#f0f0f0ff")
+      .cooldownTicks(100) // <-- keep the simulation running
+      .d3VelocityDecay(0.12) // lower = floatier
+      .nodeRelSize(4)
+      .nodeOpacity(1)
+      .nodeLabel(n => `${n.name}${n.typology ? " • " + n.typology : ""}`)
+      .linkColor(() => "rgba(133, 133, 133, 0.85)")
+      .enableNodeDrag(true)
+      .nodeThreeObject(n => {
+        const geom = new THREE.SphereGeometry(3.5, 16, 16);
+        const mat  = new THREE.MeshLambertMaterial({ color: 0x6aa9ff });
+        return new THREE.Mesh(geom, mat);
+      });
 
-    // Update data and fit view
-    Graph3DInstance.graphData(data);
-    setTimeout(() => {
-      try { Graph3DInstance.zoomToFit(400, 60); } catch (_) {}
-    }, 100);
+    // Lights for Lambert shading
+    const scene = Graph3DInstance.scene();
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+    dir.position.set(1, 1, 1);
+    scene.add(dir);
   }
+
+  // Set data
+  Graph3DInstance.graphData({ nodes, links });
+
+  // Force tuning after data is set
+  const charge = Graph3DInstance.d3Force('charge');
+  if (charge && charge.strength) charge.strength(-160); // -120..-220 for more push
+
+  const linkForce = Graph3DInstance.d3Force('link');
+  if (linkForce && linkForce.distance && linkForce.strength) {
+    linkForce
+      .distance(l => {
+        const s = l.source.id || l.source, t = l.target.id || l.target;
+        const d = (deg.get(s) || 0) + (deg.get(t) || 0);
+        return 40 + 8 * Math.sqrt(d); // 30..90
+      })
+      .strength(0.04); // 0.02..0.08 softer->springier
+  }
+
+  // Kick the solver
+  try { Graph3DInstance.d3ReheatSimulation(); } catch {}
+
+  // Fit view
+  setTimeout(() => { try { Graph3DInstance.zoomToFit(800, 100); } catch {} }, 150);
+}
+
+
+
 })();
