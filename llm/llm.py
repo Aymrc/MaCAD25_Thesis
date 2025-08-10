@@ -236,6 +236,74 @@ async def osm_status(job_id: str):
     info["status"] = status
     return {"ok": True, "status": status, "out_dir": out_dir}
 
+
+# ============================
+# EVALUATION endpoint
+# ============================
+@app.post("/evaluate/run")
+async def evaluate_run(payload: dict):
+    """
+    Launch evaluation worker as a background subprocess.
+    Expects: { "job_dir": "<absolute path to job folder>" }
+    """
+    try:
+        job_dir = payload.get("job_dir")
+        if not job_dir or not os.path.isdir(job_dir):
+            return {"ok": False, "error": "invalid job_dir"}
+
+        worker = PROJECT_DIR / "4_evaluation" / "eval_worker.py"
+        if not worker.exists():
+            return {"ok": False, "error": f"Worker not found: {worker}"}
+
+        env = os.environ.copy()
+        env["JOB_DIR"] = str(job_dir)
+
+        subprocess.Popen([_python_exe(), str(worker)], cwd=str(PROJECT_DIR), env=env)
+
+        return {"ok": True, "message": "Evaluation started.", "job_dir": job_dir}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+# ============================
+# Preview (UI state) endpoints
+# ============================
+UI_STATE_PATH = RUNTIME_DIR / "ui_state.json"
+
+def _read_ui_state():
+    if UI_STATE_PATH.exists():
+        try:
+            with open(UI_STATE_PATH, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    # default state: both off
+    return {"context_preview": False, "plot_preview": False}
+
+def _write_ui_state(state):
+    UI_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(UI_STATE_PATH, "w") as f:
+        json.dump(state, f, indent=2)
+
+@app.get("/preview/state")
+async def get_preview_state():
+    return _read_ui_state()
+
+@app.post("/preview/context")
+async def set_context_preview(payload: dict):
+    enabled = bool(payload.get("enabled", False))
+    st = _read_ui_state()
+    st["context_preview"] = enabled
+    _write_ui_state(st)
+    return {"ok": True, "context_preview": enabled}
+
+@app.post("/preview/plot")
+async def set_plot_preview(payload: dict):
+    enabled = bool(payload.get("enabled", False))
+    st = _read_ui_state()
+    st["plot_preview"] = enabled
+    _write_ui_state(st)
+    return {"ok": True, "plot_preview": enabled}
+
 # ============================
 # Server entry point
 # ============================

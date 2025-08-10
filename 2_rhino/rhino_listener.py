@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 # rhino_listener.py
-# Listen to the opened Rhino window, auto-import finished OSM jobs, and
-# export a boundary from the PLOT layer (UI-thread safe).
+# Listen to the opened Rhino window, auto-import finished OSM jobs, export a boundary
+# from the PLOT layer, trigger evaluation, and enable evaluation preview (UI-thread safe).
 
 import os
 import sys
 import threading
 import time
+import json  # for HTTP POST payloads
 
 import Rhino
 import scriptcontext as sc
@@ -34,6 +35,8 @@ STICKY_IMPORTED = "macad_imported_jobs"
 STICKY_ACTIVE_JOB = "active_job_dir"
 STICKY_PLOT_DIRTY = "plot_dirty"
 STICKY_PLOT_LAST = "plot_last_candidate"
+STICKY_EVAL_PREVIEW_MTIME = "eval_preview_mtime"  # track last previewed evaluation.json mtime
+STICKY_UI_STATE_MTIME = "ui_state_mtime"
 
 WATCHER_STARTED_AT = None  # epoch seconds to ignore old DONE.txt
 
@@ -43,18 +46,31 @@ PROJECT_DIR = os.path.dirname(THIS_DIR)
 CONTEXT_DIR = os.path.join(PROJECT_DIR, "1_context")
 OSM_DIR = os.path.join(CONTEXT_DIR, "runtime", "osm")
 IMPORTER_DIR = os.path.join(PROJECT_DIR, "1_context")
+UI_STATE_PATH = os.path.join(CONTEXT_DIR, "runtime", "ui_state.json")
 
 # Ensure importer is importable
 if IMPORTER_DIR not in sys.path:
     sys.path.append(IMPORTER_DIR)
 
 # Graph preview (optional)
+start_preview = None
+stop_preview = None
 try:
     if THIS_DIR not in sys.path:
         sys.path.append(THIS_DIR)
-    from graph_preview import start_preview
+    from graph_preview import start_preview, stop_preview
 except Exception:
     start_preview = None
+    stop_preview = None
+
+# Evaluation preview (optional)
+EP = None
+try:
+    if THIS_DIR not in sys.path:
+        sys.path.append(THIS_DIR)
+    import evaluation_preview as EP
+except Exception:
+    EP = None
 
 try:
     import osm_importer  # from 1_context/osm_importer.py
@@ -149,6 +165,62 @@ def _seed_active_job_dir_from_latest_done():
 
 
 # ===========================
+# UI preview state helpers
+# ===========================
+def _read_ui_state():
+    try:
+        if os.path.exists(UI_STATE_PATH):
+            return json.load(open(UI_STATE_PATH, "r"))
+    except:
+        pass
+    return {"context_preview": False, "plot_preview": False}
+
+
+def _apply_ui_preview_state():
+    """Enable/disable conduits according to ui_state.json."""
+    try:
+        st = _read_ui_state()
+        job_dir = _get_active_job_dir()
+        if not job_dir or not os.path.isdir(job_dir):
+            return
+        # Context Graph
+        try:
+            if st.get("context_preview"):
+                if start_preview:
+                    start_preview(job_dir)
+            else:
+                if stop_preview:
+                    stop_preview()
+        except:
+            pass
+        # Plot Graph
+        try:
+            if st.get("plot_preview") and EP:
+                EP.start_evaluation_preview(job_dir)
+            else:
+                if EP:
+                    EP.stop_evaluation_preview()
+        except:
+            pass
+    except Exception as e:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] apply_ui_preview_state error: {0}".format(e))
+
+
+def _apply_ui_preview_state_if_changed():
+    """Only re-apply when ui_state.json mtime changed."""
+    try:
+        if not os.path.exists(UI_STATE_PATH):
+            return
+        m = os.path.getmtime(UI_STATE_PATH)
+        last = sc.sticky.get(STICKY_UI_STATE_MTIME)
+        if (last is None) or (float(m) > float(last)):
+            _apply_ui_preview_state()
+            sc.sticky[STICKY_UI_STATE_MTIME] = m
+    except:
+        pass
+
+
+# ===========================
 # PLOT boundary helpers
 # ===========================
 def _guid_is_closed_planar(guid):
@@ -192,7 +264,6 @@ def _export_plot_boundary_to_job(job_dir, candidate_id=None):
     """Export boundary.json from PLOT layer. Prefer candidate_id; fallback to largest-area closed planar curve."""
     try:
         import Rhino.Geometry as rg
-        import json
 
         if not job_dir or not os.path.isdir(job_dir):
             Rhino.RhinoApp.WriteLine("[rhino_listener] No active job dir for boundary export.")
@@ -242,6 +313,13 @@ def _export_plot_boundary_to_job(job_dir, candidate_id=None):
             json.dump(xy, f, indent=2)
 
         Rhino.RhinoApp.WriteLine("[rhino_listener] boundary.json written to: {0}".format(out_path))
+
+        # Trigger evaluation AFTER boundary.json is written successfully
+        try:
+            _trigger_evaluation(job_dir)
+        except:
+            pass
+
         return True
 
     except Exception as e:
@@ -256,7 +334,56 @@ def _mark_plot_dirty(guid=None):
 
 
 # ===========================
-# Main change handler + debounce (with passive fallback)
+# HTTP helpers / evaluation trigger
+# ===========================
+def _http_post_json(url, payload):
+    try:
+        from System.Net import WebClient
+        from System.Text import UTF8Encoding
+        wc = WebClient()
+        wc.Headers.Add("Content-Type", "application/json")
+        data = UTF8Encoding(False).GetBytes(json.dumps(payload))
+        resp_bytes = wc.UploadData(url, "POST", data)
+        return UTF8Encoding(False).GetString(resp_bytes)
+    except Exception as e:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] HTTP POST error: {0}".format(e))
+        return None
+
+
+def _trigger_evaluation(job_dir):
+    try:
+        url = "http://127.0.0.1:8000/evaluate/run"
+        payload = {"job_dir": job_dir}
+        _http_post_json(url, payload)
+        Rhino.RhinoApp.WriteLine("[rhino_listener] Evaluation triggered for: {0}".format(job_dir))
+    except Exception as e:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] Eval trigger error: {0}".format(e))
+
+
+# ===========================
+# Evaluation preview (enable when evaluation.json appears/updates)
+# ===========================
+def _try_evaluation_preview(job_dir):
+    try:
+        if not EP:
+            return False
+        ejson = os.path.join(job_dir, "evaluation.json")
+        if not os.path.exists(ejson):
+            return False
+        mtime = os.path.getmtime(ejson)
+        last_mtime = sc.sticky.get(STICKY_EVAL_PREVIEW_MTIME)
+        if (last_mtime is None) or (mtime > float(last_mtime)):
+            EP.start_evaluation_preview(job_dir)
+            sc.sticky[STICKY_EVAL_PREVIEW_MTIME] = mtime
+            Rhino.RhinoApp.WriteLine("[rhino_listener] Evaluation preview enabled.")
+            return True
+    except Exception as e:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] Eval preview error: {0}".format(e))
+    return False
+
+
+# ===========================
+# Main change handler + debounce
 # ===========================
 def handle_layer_change():
     global is_running
@@ -275,11 +402,19 @@ def handle_layer_change():
             if not wrote:
                 Rhino.RhinoApp.WriteLine("[rhino_listener] PLOT changed but boundary export failed.")
 
-        # 2) Passive fallback: if nothing was written, try exporting any valid PLOT boundary
+        # 2) Passive fallback: try exporting any valid PLOT boundary if nothing written
         if not wrote:
             job_dir = sc.sticky.get(STICKY_ACTIVE_JOB)
             if job_dir and os.path.isdir(job_dir):
                 wrote = _export_plot_boundary_to_job(job_dir, candidate_id=None) or False
+
+        # 3) Try to enable evaluation preview if results are ready/updated
+        job_dir = sc.sticky.get(STICKY_ACTIVE_JOB)
+        if job_dir:
+            _try_evaluation_preview(job_dir)
+
+        # 4) Apply UI preview toggles
+        _apply_ui_preview_state_if_changed()
 
         Rhino.RhinoApp.WriteLine("[rhino_listener] Debounced change processed.")
     finally:
@@ -384,15 +519,19 @@ def _import_job_on_ui(job_dir, job_id, imported_registry):
             total = osm_importer.import_osm_folder(job_dir)
             Rhino.RhinoApp.WriteLine("[rhino_listener] OSM import complete ({0} elements).".format(total))
 
-            # Mark active job for boundary export
+            # Mark active job for boundary export and preview tracking
             _set_active_job_dir(job_dir)
+            sc.sticky[STICKY_EVAL_PREVIEW_MTIME] = None
 
-            # Try to start graph preview if available
+            # Apply current UI preview state for this graph
+            _apply_ui_preview_state_if_changed()
+
+            # Try to start graph preview if available (and if UI toggle says so)
             try:
                 gjson = os.path.join(job_dir, "graph.json")
                 if start_preview and os.path.exists(gjson):
-                    start_preview(job_dir)
-                    Rhino.RhinoApp.WriteLine("[rhino_listener] Graph preview enabled.")
+                    # start/stop handled by _apply_ui_preview_state_if_changed()
+                    pass
                 else:
                     Rhino.RhinoApp.WriteLine("[rhino_listener] graph.json not found; no preview.")
             except Exception as pe:
@@ -485,6 +624,12 @@ def _watcher_loop():
     while listener_active:
         try:
             _try_import_finished_job()
+            # also poll for evaluation results to start preview automatically
+            job_dir = _get_active_job_dir()
+            if job_dir:
+                _try_evaluation_preview(job_dir)
+            # and reflect UI toggles if they changed
+            _apply_ui_preview_state_if_changed()
         except Exception as e:
             Rhino.RhinoApp.WriteLine("[rhino_listener] Watcher error: {0}".format(e))
         time.sleep(3.0)
@@ -536,6 +681,9 @@ def setup_layer_listener():
 
     # If there is no active job yet (e.g., listener started after a job finished), seed it.
     _seed_active_job_dir_from_latest_done()
+
+    # Apply current UI toggles on boot
+    _apply_ui_preview_state_if_changed()
 
 
 def remove_layer_listener():
