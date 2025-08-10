@@ -23,7 +23,8 @@ def main():
     lat = getenv_float("LAT", 41.3874)
     lon = getenv_float("LON", 2.1686)
     radius_km = getenv_float("RADIUS_KM", 0.5)
-    out_dir = os.environ.get("OUT_DIR", os.path.abspath("./runtime/osm/_tmp"))
+    default_runtime = os.path.abspath(os.path.join(os.path.dirname(__file__), "runtime", "osm", "_tmp"))
+    out_dir = os.environ.get("OUT_DIR", default_runtime)
 
     os.makedirs(out_dir, exist_ok=True)
 

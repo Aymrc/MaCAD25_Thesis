@@ -29,7 +29,8 @@ WATCHER_STARTED_AT = None  # epoch seconds to ignore old DONE.txt
 # ---- Paths (project structure aware) ----
 THIS_DIR = os.path.dirname(__file__)
 PROJECT_DIR = os.path.dirname(THIS_DIR)  # parent of 2_rhino -> MaCAD25_Thesis
-OSM_DIR = os.path.join(PROJECT_DIR, "runtime", "osm")
+CONTEXT_DIR = os.path.join(PROJECT_DIR, "1_context")
+OSM_DIR = os.path.join(CONTEXT_DIR, "runtime", "osm")
 IMPORTER_DIR = os.path.join(PROJECT_DIR, "1_context")
 
 # Ensure importer is importable

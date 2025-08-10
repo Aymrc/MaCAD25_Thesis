@@ -35,7 +35,8 @@ stored_brief = ""
 # ----------------------------
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BASE_DIR.parent
-RUNTIME_DIR = PROJECT_DIR / "runtime"
+CONTEXT_DIR = PROJECT_DIR / "1_context"
+RUNTIME_DIR = CONTEXT_DIR / "runtime"
 OSM_DIR = RUNTIME_DIR / "osm"
 UPLOAD_FOLDER = BASE_DIR / "uploaded_brief"
 for d in (RUNTIME_DIR, OSM_DIR, UPLOAD_FOLDER):
