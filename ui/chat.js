@@ -216,7 +216,7 @@ function showGraph3DBackground(dataGraph) {
   if (!Graph3DInstance) {
     Graph3DInstance = ForceGraph3D()(mount)
       .backgroundColor("#f0f0f0ff")
-      .cooldownTicks(100) // <-- keep the simulation running
+      .cooldownTicks(100) // keep the simulation running
       .d3VelocityDecay(0.12) // lower = floatier
       .nodeRelSize(4)
       .nodeOpacity(1)
