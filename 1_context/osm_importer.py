@@ -7,12 +7,28 @@ import rhinoscriptsyntax as rs
 import Rhino
 import scriptcontext as sc
 import Rhino.Geometry as rg
+import System.Drawing as sd
 
-def _ensure_layer(name):
-    """Create layer if not exists and set as current."""
-    if not rs.IsLayer(name):
-        rs.AddLayer(name)
-    rs.CurrentLayer(name)
+def _ensure_sublayer(parent_name, child_name):
+    
+    if not rs.IsLayer(parent_name):
+        rs.AddLayer(parent_name)
+    full_name = parent_name + "::" + child_name
+    if not rs.IsLayer(full_name):
+        # Colors
+        color = None
+        if child_name.lower() == "streets":
+            color = sd.Color.FromArgb(128, 128, 128)
+        elif child_name.lower() == "greens":
+            color = sd.Color.FromArgb(0, 128, 0)
+
+        if color:
+            rs.AddLayer(child_name, color, parent=parent_name)
+        else:
+            rs.AddLayer(child_name, parent=parent_name)
+
+    rs.CurrentLayer(full_name)
+    return full_name
 
 def _add_polyline(coords):
     """Add a polyline from a list of [x, y] pairs."""
@@ -37,7 +53,9 @@ def _import_geojson(path, layer, expect):
     if not os.path.exists(path):
         Rhino.RhinoApp.WriteLine("[osm_importer] Not found: {0}".format(path))
         return 0
-    _ensure_layer(layer)
+    #_ensure_layer(layer)
+    full_layer_name = _ensure_sublayer("OSM", layer)
+    
     count = 0
     with open(path, "r") as f:
         data = json.load(f)
@@ -69,9 +87,9 @@ def import_osm_folder(folder):
     buildings = os.path.join(folder, "buildings.geojson")
     greens = os.path.join(folder, "greens.geojson")
     total = 0
-    total += _import_geojson(streets, "OSM_Streets", "line")
-    total += _import_geojson(buildings, "OSM_Buildings", "poly")
-    total += _import_geojson(greens, "OSM_Greens", "poly")
+    total += _import_geojson(streets,  "Streets",  "line")  # OSM::Streets
+    total += _import_geojson(buildings,"Buildings","poly")  # OSM::Buildings
+    total += _import_geojson(greens,   "Greens",   "poly")  # OSM::Greens
     Rhino.RhinoApp.WriteLine("[osm_importer] Total elements imported: {0}".format(total))
     return total
 

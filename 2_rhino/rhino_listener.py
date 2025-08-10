@@ -28,7 +28,7 @@ WATCHER_STARTED_AT = None  # epoch seconds to ignore old DONE.txt
 
 # ---- Paths (project structure aware) ----
 THIS_DIR = os.path.dirname(__file__)
-PROJECT_DIR = os.path.dirname(THIS_DIR)  # parent of 2_rhino -> MaCAD25_Thesis
+PROJECT_DIR = os.path.dirname(THIS_DIR)
 CONTEXT_DIR = os.path.join(PROJECT_DIR, "1_context")
 OSM_DIR = os.path.join(CONTEXT_DIR, "runtime", "osm")
 IMPORTER_DIR = os.path.join(PROJECT_DIR, "1_context")
@@ -36,6 +36,11 @@ IMPORTER_DIR = os.path.join(PROJECT_DIR, "1_context")
 # Ensure importer is importable
 if IMPORTER_DIR not in sys.path:
     sys.path.append(IMPORTER_DIR)
+
+# Ensure preview script is importable
+if THIS_DIR not in sys.path:
+    sys.path.append(THIS_DIR)
+from graph_preview import start_preview
 
 try:
     import osm_importer  # from 1_context/osm_importer.py
@@ -122,7 +127,6 @@ def _job_id_from_path(p):
         return p
 
 def _import_job_on_ui(job_dir, job_id, imported_registry):
-    """Run the GeoJSON import on Rhino's UI thread to avoid crashes."""
     def _do_import():
         try:
             Rhino.RhinoApp.WriteLine("[rhino_listener] Importing job {0} on UI thread...".format(job_id))
@@ -130,8 +134,21 @@ def _import_job_on_ui(job_dir, job_id, imported_registry):
                 rs.EnableRedraw(False)
             except:
                 pass
+
             total = osm_importer.import_osm_folder(job_dir)
             Rhino.RhinoApp.WriteLine("[rhino_listener] OSM import complete ({0} elements).".format(total))
+
+            # Try to start graph preview if available
+            try:
+                gjson = os.path.join(job_dir, "graph.json")
+                if os.path.exists(gjson):
+                    start_preview(job_dir)
+                    Rhino.RhinoApp.WriteLine("[rhino_listener] Graph preview enabled.")
+                else:
+                    Rhino.RhinoApp.WriteLine("[rhino_listener] graph.json not found; no preview.")
+            except Exception as pe:
+                Rhino.RhinoApp.WriteLine("[rhino_listener] Graph preview error: {0}".format(pe))
+
         except Exception as e:
             Rhino.RhinoApp.WriteLine("[rhino_listener] Import error for job {0}: {1}".format(job_id, e))
         finally:
@@ -139,7 +156,6 @@ def _import_job_on_ui(job_dir, job_id, imported_registry):
                 rs.EnableRedraw(True)
             except:
                 pass
-            # Persist and mark as processed
             try:
                 open(os.path.join(job_dir, "IMPORTED.txt"), "w").write("ok")
             except:
