@@ -73,7 +73,37 @@ def _read_json(path):
 async def initial_greeting(test: bool = False):
     if test:
         return {"dynamic": True}
-    return {"response": "Hello! I am the copilot {}. What would you like to do?".format(copilot_name)}
+
+    prompt_messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a friendly, professional urban design project copilot. "
+                f"Your name is {copilot_name}. "
+                "Greet the user naturally and warmly, in one short sentence. "
+                "Make the greeting vary each time, avoid repeating the exact same words, "
+                "and keep it concise."
+            )
+        }
+    ]
+
+    try:
+        res = requests.post(
+            LM_STUDIO_URL,
+            json={
+                "model": "lmstudio",
+                "messages": prompt_messages,
+                "temperature": 0.9,
+                "max_tokens": 30
+            },
+            timeout=10
+        )
+        res.raise_for_status()
+        greeting = res.json()["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        greeting = f"Hello! I’m {copilot_name}. Ready to start?"
+
+    return {"response": greeting}
 
 # ============================
 # CHAT endpoint
