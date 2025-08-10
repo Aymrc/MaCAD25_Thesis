@@ -205,7 +205,7 @@ function showGraph3DBackground(dataGraph) {
     source: e.source, target: e.target, type: e.type || "adjacent"
   }));
 
-  // Degrees for distance scaling
+  // Degree map for link distance scaling
   const deg = new Map(nodes.map(n => [n.id, 0]));
   links.forEach(l => {
     deg.set(l.source, (deg.get(l.source) || 0) + 1);
@@ -213,54 +213,48 @@ function showGraph3DBackground(dataGraph) {
   });
 
   // Init once
-  if (!Graph3DInstance) {
-    Graph3DInstance = ForceGraph3D()(mount)
-      .backgroundColor("#f0f0f0ff")
-      .cooldownTicks(100) // keep the simulation running
+  if (!window.Graph3DInstance) {
+    window.Graph3DInstance = ForceGraph3D()(mount)
+      .backgroundColor("#f0f0f0") // light grey
+      .cooldownTicks(Infinity) // continuous dynamic relaxation
       .d3VelocityDecay(0.12) // lower = floatier
-      .nodeRelSize(4)
+      .nodeRelSize(8)
       .nodeOpacity(1)
       .nodeLabel(n => `${n.name}${n.typology ? " • " + n.typology : ""}`)
-      .linkColor(() => "rgba(133, 133, 133, 0.85)")
-      .enableNodeDrag(true)
-      .nodeThreeObject(n => {
-        const geom = new THREE.SphereGeometry(3.5, 16, 16);
-        const mat  = new THREE.MeshLambertMaterial({ color: 0x6aa9ff });
-        return new THREE.Mesh(geom, mat);
-      });
-
-    // Lights for Lambert shading
-    const scene = Graph3DInstance.scene();
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-    dir.position.set(1, 1, 1);
-    scene.add(dir);
+      .nodeColor(() => "#000000ff") // spheres
+      .linkColor(() => "rgba(138, 138, 138, 1)")
+      .enableNodeDrag(true);
   }
 
   // Set data
-  Graph3DInstance.graphData({ nodes, links });
+  window.Graph3DInstance.graphData({ nodes, links });
 
-  // Force tuning after data is set
-  const charge = Graph3DInstance.d3Force('charge');
-  if (charge && charge.strength) charge.strength(-160); // -120..-220 for more push
+  // Force tuning (after data is set; next frame to ensure simulation exists)
+  requestAnimationFrame(() => {
+    const charge = window.Graph3DInstance.d3Force('charge');
+    if (charge?.strength) charge.strength(-160);  // -120..-220
 
-  const linkForce = Graph3DInstance.d3Force('link');
-  if (linkForce && linkForce.distance && linkForce.strength) {
-    linkForce
-      .distance(l => {
-        const s = l.source.id || l.source, t = l.target.id || l.target;
-        const d = (deg.get(s) || 0) + (deg.get(t) || 0);
-        return 40 + 8 * Math.sqrt(d); // 30..90
-      })
-      .strength(0.04); // 0.02..0.08 softer->springier
-  }
+    const link = window.Graph3DInstance.d3Force('link');
+    if (link?.distance && link?.strength) {
+      link
+        .distance(l => {
+          const s = l.source.id || l.source;
+          const t = l.target.id || l.target;
+          const d = (deg.get(s) || 0) + (deg.get(t) || 0);
+          return 40 + 8 * Math.sqrt(d); // 30..90
+        })
+        .strength(0.04); // softer springs
+    }
 
-  // Kick the solver
-  try { Graph3DInstance.d3ReheatSimulation(); } catch {}
+    try { window.Graph3DInstance.d3ReheatSimulation(); } catch {}
+  });
 
-  // Fit view
-  setTimeout(() => { try { Graph3DInstance.zoomToFit(800, 100); } catch {} }, 150);
+  // Fit view gently
+  setTimeout(() => {
+    try { window.Graph3DInstance.zoomToFit(800, 100); } catch {}
+  }, 150);
 }
+
 
 
 
