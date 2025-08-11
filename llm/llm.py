@@ -1,12 +1,6 @@
 from fastapi import FastAPI, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-import requests
-import io
-import PyPDF2
-import os
-import uvicorn
-import sys
 import uuid
 import subprocess
 import json
@@ -14,12 +8,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict
 
-# Project name
-copilot_name = "MASSING"
 import requests, io, PyPDF2, os, uvicorn, sys, re, glob
-from datetime import datetime
-from pathlib import Path
 
+# Project config
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from config import copilot_name
 
@@ -34,22 +25,26 @@ app.add_middleware(
 )
 
 LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
-stored_brief = ""
 
 # ----------------------------
 # Paths for runtime artifacts
 # ----------------------------
-BASE_DIR = Path(__file__).resolve().parent
-PROJECT_DIR = BASE_DIR.parent
+BASE_DIR = Path(__file__).resolve().parent         # llm/
+PROJECT_DIR = BASE_DIR.parent                      # project root
 CONTEXT_DIR = PROJECT_DIR / "context"
-RUNTIME_DIR = CONTEXT_DIR / "runtime"
-OSM_DIR = RUNTIME_DIR / "osm"
+
+# All live OSM data and UI state under knowledge/osm
+KNOWLEDGE_DIR = PROJECT_DIR / "knowledge"
+OSM_DIR = KNOWLEDGE_DIR / "osm"
+
+# Brief uploads live near backend (can be moved if preferred)
 UPLOAD_FOLDER = BASE_DIR / "uploaded_brief"
-for d in (RUNTIME_DIR, OSM_DIR, UPLOAD_FOLDER):
+
+for d in (KNOWLEDGE_DIR, OSM_DIR, UPLOAD_FOLDER):
     os.makedirs(d, exist_ok=True)
 
-# Serve runtime files at /files/*
-app.mount("/files", StaticFiles(directory=str(RUNTIME_DIR)), name="files")
+# (Optional) Serve files at /files/* from knowledge/osm for debugging
+app.mount("/files", StaticFiles(directory=str(OSM_DIR)), name="files")
 
 # In-memory job registry (simple)
 JOBS: Dict[str, Dict] = {}
@@ -76,13 +71,9 @@ def _read_json(path):
 # GREETING endpoint
 # ============================
 
-# In‑memory context for brief
+# In-memory context for brief
 stored_brief = ""
 
-# Files path
-BASE_DIR = Path(__file__).resolve().parent
-UPLOAD_FOLDER = BASE_DIR / "uploaded_brief"
-UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 UPLOAD_PATTERN = "brief_*.pdf"
 
 # ---------- Helpers ----------
@@ -140,7 +131,7 @@ async def initial_greeting(test: bool = False):
         )
         res.raise_for_status()
         greeting = res.json()["choices"][0]["message"]["content"].strip()
-    except Exception as e:
+    except Exception:
         greeting = f"Hello! I’m {copilot_name}. Ready to start?"
 
     return {"response": greeting}
@@ -156,14 +147,14 @@ async def chat(request: Request):
         You are Graph Copilot for an urban design project.\n"SCOPE & ROLE\n
         - Support across phases: set CITY context; read PROJECT BRIEF; build SEMANTIC graph;
         build TOPOLOGICAL graph from 3D massing; MERGE the two; INSERT into the GLOBAL CITY graph; EVALUATE and advise.\n
-        - Stay on project. If asked off‑topic, say it’s out of scope.\n\n
+        - Stay on project. If asked off-topic, say it’s out of scope.\n\n
         INTERACTION STYLE\n
-        - Default to short, human‑friendly answers (1–5 bullets or a short paragraph).\n
+        - Default to short, human-friendly answers (1–5 bullets or a short paragraph).\n
         - Only produce structured JSON or code when the user asks for it.\n
         - Don’t restate the full brief; surface only what’s needed now.\n
         - If something is missing, ask ONE precise question and stop. Don’t invent data or IDs.\n\n
         GUARDRAILS\n
-        - Do not reveal internal chain‑of‑thought. Provide final reasoning only.
+        - Do not reveal internal chain-of-thought. Provide final reasoning only.
         When helpful, format replies in Markdown (bold, lists, short headings).
         """}
     ]
@@ -181,8 +172,8 @@ async def chat(request: Request):
             "model": "lmstudio",
             "messages": messages,
             "stream": False,
-            "temperature": 0.3, # less blabla
-            "max_tokens": 300 # concise
+            "temperature": 0.3,
+            "max_tokens": 300
         }
 
         res = requests.post(LM_STUDIO_URL, json=lmstudio_payload, timeout=30)
@@ -220,7 +211,6 @@ async def upload_brief(file: UploadFile = File(None), text: str = Form(None)):
             for old in glob.glob(str(UPLOAD_FOLDER / UPLOAD_PATTERN)):
                 try:
                     os.remove(old)
-                    print("Old briefs cleared.")
                 except Exception:
                     pass
         except Exception:
@@ -232,7 +222,7 @@ async def upload_brief(file: UploadFile = File(None), text: str = Form(None)):
         with open(saved_filename, "wb") as f:
             f.write(contents)
 
-        # text to memory
+        # Extract text to memory
         try:
             reader = PyPDF2.PdfReader(io.BytesIO(contents))
             brief_text = "\n".join((page.extract_text() or "") for page in reader.pages)
@@ -290,11 +280,9 @@ async def osm_run(payload: dict):
 
     try:
         subprocess.Popen([_python_exe(), str(worker)], cwd=str(PROJECT_DIR), env=env)
-        # No mensajes “narrativos” para la UI: solo status
         return {"ok": True, "job_id": job_id}
     except Exception as e:
         return {"ok": False, "error": str(e)}
-
 
 @app.get("/osm/status/{job_id}")
 async def osm_status(job_id: str):
@@ -323,7 +311,6 @@ async def osm_status(job_id: str):
 
     info["status"] = status
     return {"ok": True, "status": status, "out_dir": out_dir}
-
 
 # ============================
 # EVALUATION endpoint
@@ -355,7 +342,7 @@ async def evaluate_run(payload: dict):
 # ============================
 # Preview (UI state) endpoints
 # ============================
-UI_STATE_PATH = RUNTIME_DIR / "ui_state.json"
+UI_STATE_PATH = OSM_DIR / "ui_state.json"
 
 def _read_ui_state():
     if UI_STATE_PATH.exists():

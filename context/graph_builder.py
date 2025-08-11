@@ -116,12 +116,15 @@ def export_graph_json(G: nx.Graph, out_path: str):
         json.dump(data, f, indent=2)
 
 def main():
-    # OUT_DIR provided by llm/osm worker; fallback allows manual runs
+    # OUT_DIR provided by the OSM worker or backend; fallback for manual runs
     out_dir = os.environ.get("OUT_DIR")
     if not out_dir:
-        # Default to context/runtime/osm/_tmp for manual testing
         here = os.path.dirname(__file__)
-        out_dir = os.path.abspath(os.path.join(here, "runtime", "osm", "_tmp"))
+        project_root = os.path.abspath(os.path.join(here, ".."))
+        knowledge_dir = os.path.join(project_root, "knowledge")
+        out_dir = os.path.abspath(os.path.join(knowledge_dir, "osm", "_tmp"))
+        os.makedirs(out_dir, exist_ok=True)
+
     streets_p   = os.path.join(out_dir, "streets.geojson")
     buildings_p = os.path.join(out_dir, "buildings.geojson")
     greens_p    = os.path.join(out_dir, "greens.geojson")

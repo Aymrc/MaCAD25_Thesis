@@ -24,9 +24,11 @@ def main():
     lat = getenv_float("LAT", 41.3874)
     lon = getenv_float("LON", 2.1686)
     radius_km = getenv_float("RADIUS_KM", 0.5)
-    default_runtime = os.path.abspath(os.path.join(os.path.dirname(__file__), "runtime", "osm", "_tmp"))
-    out_dir = os.environ.get("OUT_DIR", default_runtime)
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    knowledge_dir = os.path.join(project_root, "knowledge")
+    default_runtime = os.path.abspath(os.path.join(knowledge_dir, "osm", "_tmp"))
 
+    out_dir = os.environ.get("OUT_DIR", default_runtime)
     os.makedirs(out_dir, exist_ok=True)
 
     # Configure OSMnx cache to speed up repeated queries
