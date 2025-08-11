@@ -1,4 +1,5 @@
 // LLM + upload + dropdowns + optional 3D graph
+
 (function () {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -35,7 +36,7 @@
     const el = document.createElement("div");
     el.className = `msg ${role}`;
     el.innerHTML = DOMPurify.sanitize(
-    marked.parse(content).replace(/^<p>|<\/p>$/g, '')
+      marked.parse(content).replace(/^<p>|<\/p>$/g, "")
     );
     box.appendChild(el);
 
@@ -61,22 +62,58 @@
     if (!pill || !dropdown) return;
 
     let hideTimeout;
-    const show = () => { clearTimeout(hideTimeout); dropdown.style.display = "block"; pill.setAttribute("aria-expanded","true"); };
-    const hide = () => { hideTimeout = setTimeout(() => { dropdown.style.display = "none"; pill.setAttribute("aria-expanded","false"); }, 200); };
 
-    pill.addEventListener("mouseenter", show);
-    dropdown.addEventListener("mouseenter", show);
-    pill.addEventListener("mouseleave", hide);
-    dropdown.addEventListener("mouseleave", hide);
+    const open = () => {
+      clearTimeout(hideTimeout);
+      dropdown.style.display = "block";
+      pill.setAttribute("aria-expanded", "true");
+    };
 
-    // Click toggle fallback
-    pill.addEventListener("click", e => {
+    const scheduleClose = () => {
+      hideTimeout = setTimeout(() => {
+        dropdown.style.display = "none";
+        pill.setAttribute("aria-expanded", "false");
+      }, 200);
+    };
+
+    // Hover support
+    pill.addEventListener("mouseenter", open);
+    dropdown.addEventListener("mouseenter", open);
+    pill.addEventListener("mouseleave", scheduleClose);
+    dropdown.addEventListener("mouseleave", scheduleClose);
+
+    // Click toggle
+    pill.addEventListener("click", (e) => {
       e.stopPropagation();
       const visible = dropdown.style.display === "block";
-      dropdown.style.display = visible ? "none" : "block";
-      pill.setAttribute("aria-expanded", visible ? "false" : "true");
+      if (visible) scheduleClose();
+      else open();
     });
-    document.addEventListener("click", () => { dropdown.style.display = "none"; pill.setAttribute("aria-expanded","false"); });
+
+    // Keep open when interacting inside
+    dropdown.addEventListener("click", (e) => e.stopPropagation());
+    dropdown.addEventListener("mousedown", (e) => e.stopPropagation());
+    dropdown.addEventListener("focusin", open); // stays open while inputs focused
+
+    // Close only when clicking OUTSIDE pill+dropdown
+    document.addEventListener("click", (e) => {
+      const outside = !pill.contains(e.target) && !dropdown.contains(e.target);
+      if (outside) {
+        clearTimeout(hideTimeout);
+        dropdown.style.display = "none";
+        pill.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    // Esc to close
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        clearTimeout(hideTimeout);
+        dropdown.style.display = "none";
+        pill.setAttribute("aria-expanded", "false");
+        pill.focus();
+      }
+    });
   }
 
   /* ---------------- Brief upload ---------------- */
@@ -156,6 +193,45 @@
     setUploadEmptyState();
   }
 
+  /* ---------------- Rhino toggles + bake ---------------- */
+  function bindRhinoPanel() {
+    const tPlot = document.getElementById("togglePlot");
+    const tCtx  = document.getElementById("toggleContext");
+    const bake  = document.getElementById("bakeBtn");
+
+    if (tPlot) {
+      tPlot.addEventListener("change", () => {
+        console.log("[Rhino] Plot graph:", tPlot.checked);
+        // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @CESAR
+        // TODO: fetch("/rhino/plot_graph", { method:"POST", headers:{'Content-Type':'application/json'}, body: JSON.stringify({ enabled: tPlot.checked }) })
+      });
+    }
+
+    if (tCtx) {
+      tCtx.addEventListener("change", () => {
+        console.log("[Rhino] Context graph:", tCtx.checked);
+        // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @CESAR
+        // TODO: fetch("/rhino/context_graph", { method:"POST", headers:{'Content-Type':'application/json'}, body: JSON.stringify({ enabled: tCtx.checked }) })
+      });
+    }
+
+    if (bake) {
+      bake.addEventListener("click", async () => {
+        appendMessage("user", "Bake masterplan");
+        appendMessage("bot", "Starting bake…");
+        try {
+          // Example placeholder; replace with real endpoint: <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @CESAR
+          // const res = await fetch("http://localhost:8000/rhino/bake_masterplan", { method: "POST" });
+          // const json = await res.json();
+          // appendMessage("bot", json?.status || "Bake complete.");
+          appendMessage("bot", "Bake complete.");
+        } catch (e) {
+          appendMessage("bot", "Bake failed.");
+        }
+      });
+    }
+  }
+
   /* ---------------- Chat send ---------------- */
   async function sendMessage() {
     const input = document.getElementById("chat-input");
@@ -233,6 +309,8 @@
     initUpload();
     setupStickyDropdown("contextPill", "contextForm");
     setupStickyDropdown("paramPill", "paramForm");
+    setupStickyDropdown("rhinoPill", "rhinoForm");
+    bindRhinoPanel();
   });
 
   /* ---------------- 3D Graph (background, interactive) ---------------- */

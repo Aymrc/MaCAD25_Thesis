@@ -13,7 +13,7 @@ document.querySelectorAll(".tab button").forEach(btn => {
         window.showGraph3DBackground(window._briefGraph);
       }
     } else {
-      // other tabs (empty for now !!! WIP)
+      // other tabs (empty for now !!! WIP) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @AYMERIC
       if (typeof window.clearGraph === "function") window.clearGraph();
     }
   });
