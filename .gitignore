@@ -1,2 +1,6 @@
+__pycache__/
+cache/
+context/runtime/osm/
+llm/uploaded_brief/
 lib/*
 /__pycache/*

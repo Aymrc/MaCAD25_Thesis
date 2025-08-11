@@ -1,5 +1,21 @@
 from fastapi import FastAPI, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import requests
+import io
+import PyPDF2
+import os
+import uvicorn
+import sys
+import uuid
+import subprocess
+import json
+from datetime import datetime
+from pathlib import Path
+from typing import Dict
+
+# Project name
+copilot_name = "MASSING"
 import requests, io, PyPDF2, os, uvicorn, sys, re, glob
 from datetime import datetime
 from pathlib import Path
@@ -18,6 +34,47 @@ app.add_middleware(
 )
 
 LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
+stored_brief = ""
+
+# ----------------------------
+# Paths for runtime artifacts
+# ----------------------------
+BASE_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = BASE_DIR.parent
+CONTEXT_DIR = PROJECT_DIR / "context"
+RUNTIME_DIR = CONTEXT_DIR / "runtime"
+OSM_DIR = RUNTIME_DIR / "osm"
+UPLOAD_FOLDER = BASE_DIR / "uploaded_brief"
+for d in (RUNTIME_DIR, OSM_DIR, UPLOAD_FOLDER):
+    os.makedirs(d, exist_ok=True)
+
+# Serve runtime files at /files/*
+app.mount("/files", StaticFiles(directory=str(RUNTIME_DIR)), name="files")
+
+# In-memory job registry (simple)
+JOBS: Dict[str, Dict] = {}
+
+def _python_exe():
+    # Use the same interpreter that runs FastAPI
+    return sys.executable
+
+def _job_dir(job_id):
+    return OSM_DIR / job_id
+
+def _write_json(path, payload):
+    with open(path, "w") as f:
+        json.dump(payload, f, indent=2)
+
+def _read_json(path):
+    try:
+        with open(path, "r") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+# ============================
+# GREETING endpoint
+# ============================
 
 # In‑memory context for brief
 stored_brief = ""
@@ -196,15 +253,150 @@ async def upload_brief(file: UploadFile = File(None), text: str = Form(None)):
 
     return {"status": "error", "message": "No valid input received."}
 
-# === BRIEF preview ===
 @app.get("/brief")
 async def get_brief():
-    text = (stored_brief or "")
-    return {"brief": (text[:1000] + "...") if len(text) > 1000 else text}
+    return {"brief": stored_brief[:1000] + "..."}
 
-# === START SERVER ===
+# ============================
+# OSM endpoints (silent responses)
+# ============================
+@app.post("/osm/run")
+async def osm_run(payload: dict):
+    """
+    Launch OSM download worker (Python 3) as a background subprocess.
+    Expects: { "lat": float, "lon": float, "radius_km": float }
+    Returns: { ok, job_id }
+    """
+    try:
+        lat = float(payload.get("lat"))
+        lon = float(payload.get("lon"))
+        radius_km = float(payload.get("radius_km"))
+    except Exception:
+        return {"ok": False, "error": "Invalid lat/lon/radius_km"}
+
+    job_id = str(uuid.uuid4())
+    out_dir = OSM_DIR / job_id
+    os.makedirs(out_dir, exist_ok=True)
+
+    env = os.environ.copy()
+    env["LAT"] = str(lat)
+    env["LON"] = str(lon)
+    env["RADIUS_KM"] = str(radius_km)
+    env["OUT_DIR"] = str(out_dir)
+
+    worker = PROJECT_DIR / "context" / "osm_worker.py"
+    if not worker.exists():
+        return {"ok": False, "error": "Worker not found: {}".format(worker)}
+
+    try:
+        subprocess.Popen([_python_exe(), str(worker)], cwd=str(PROJECT_DIR), env=env)
+        # No mensajes “narrativos” para la UI: solo status
+        return {"ok": True, "job_id": job_id}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/osm/status/{job_id}")
+async def osm_status(job_id: str):
+    """
+    Minimal status: running/finished/failed and the output folder.
+    Works after restarts using filesystem flags.
+    """
+    info = JOBS.get(job_id)
+    out_dir = str(_job_dir(job_id))
+    if info is None:
+        # Try to recover from filesystem
+        job_json = _read_json(Path(out_dir) / "job.json")
+        if job_json is None:
+            return {"ok": False, "error": "unknown job"}
+        info = {"status": "running", "out_dir": out_dir}
+        JOBS[job_id] = info
+
+    done_flag = os.path.join(out_dir, "DONE.txt")
+    failed_flag = os.path.join(out_dir, "FAILED.txt")
+
+    status = info.get("status", "running")
+    if os.path.exists(failed_flag):
+        status = "failed"
+    elif os.path.exists(done_flag):
+        status = "finished"
+
+    info["status"] = status
+    return {"ok": True, "status": status, "out_dir": out_dir}
+
+
+# ============================
+# EVALUATION endpoint
+# ============================
+@app.post("/evaluate/run")
+async def evaluate_run(payload: dict):
+    """
+    Launch evaluation worker as a background subprocess.
+    Expects: { "job_dir": "<absolute path to job folder>" }
+    """
+    try:
+        job_dir = payload.get("job_dir")
+        if not job_dir or not os.path.isdir(job_dir):
+            return {"ok": False, "error": "invalid job_dir"}
+
+        worker = PROJECT_DIR / "4_evaluation" / "eval_worker.py"
+        if not worker.exists():
+            return {"ok": False, "error": f"Worker not found: {worker}"}
+
+        env = os.environ.copy()
+        env["JOB_DIR"] = str(job_dir)
+
+        subprocess.Popen([_python_exe(), str(worker)], cwd=str(PROJECT_DIR), env=env)
+
+        return {"ok": True, "message": "Evaluation started.", "job_dir": job_dir}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+# ============================
+# Preview (UI state) endpoints
+# ============================
+UI_STATE_PATH = RUNTIME_DIR / "ui_state.json"
+
+def _read_ui_state():
+    if UI_STATE_PATH.exists():
+        try:
+            with open(UI_STATE_PATH, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    # default state: both off
+    return {"context_preview": False, "plot_preview": False}
+
+def _write_ui_state(state):
+    UI_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(UI_STATE_PATH, "w") as f:
+        json.dump(state, f, indent=2)
+
+@app.get("/preview/state")
+async def get_preview_state():
+    return _read_ui_state()
+
+@app.post("/preview/context")
+async def set_context_preview(payload: dict):
+    enabled = bool(payload.get("enabled", False))
+    st = _read_ui_state()
+    st["context_preview"] = enabled
+    _write_ui_state(st)
+    return {"ok": True, "context_preview": enabled}
+
+@app.post("/preview/plot")
+async def set_plot_preview(payload: dict):
+    enabled = bool(payload.get("enabled", False))
+    st = _read_ui_state()
+    st["plot_preview"] = enabled
+    _write_ui_state(st)
+    return {"ok": True, "plot_preview": enabled}
+
+# ============================
+# Server entry point
+# ============================
 def run_llm(reload=False):
-    print("[LLM] Starting the server for LLM access ...\n")
+    print("[LLM] Starting the server for LLM access ...")
     uvicorn.run("llm:app", host="127.0.0.1", port=8000, reload=reload)
 
 if __name__ == "__main__":
@@ -212,4 +404,5 @@ if __name__ == "__main__":
         run_llm(reload=True)
     except Exception as e:
         print("LLM crashed:", e)
-        input("Press Enter to close...")
+        raw_input = input  # ensure name exists in case of IronPython call
+        raw_input("Press Enter to close...")
