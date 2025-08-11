@@ -37,20 +37,18 @@
   function setupStickyDropdown(pillId, dropdownId) {
     const pill = document.getElementById(pillId);
     const dropdown = document.getElementById(dropdownId);
-    if (!pill || !dropdown) return;
-
     let hideTimeout;
 
     const showDropdown = () => {
       clearTimeout(hideTimeout);
       dropdown.style.display = "block";
-      pill.setAttribute("aria-expanded", "true");
+      if (pill) pill.setAttribute("aria-expanded", "true");
     };
 
     const hideDropdown = () => {
       hideTimeout = setTimeout(() => {
         dropdown.style.display = "none";
-        pill.setAttribute("aria-expanded", "false");
+        if (pill) pill.setAttribute("aria-expanded", "false");
       }, 250);
     };
 
@@ -58,6 +56,8 @@
     dropdown.addEventListener("mouseenter", showDropdown);
     pill.addEventListener("mouseleave", hideDropdown);
     dropdown.addEventListener("mouseleave", hideDropdown);
+
+    // Keyboard: open on focus, close on blur
     pill.addEventListener("focus", showDropdown);
     pill.addEventListener("blur", hideDropdown);
   }
@@ -73,6 +73,7 @@
       uploadPill.classList.toggle("empty", isEmpty);
     };
 
+    // Open file picker when clicking the pill or pressing Enter/Space
     uploadPill.addEventListener("click", () => fileInput.click());
     uploadPill.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -90,7 +91,7 @@
         return;
       }
 
-      uploadLabel.textContent = "Brief: " + file.name;
+      uploadLabel.textContent = `Brief: ${file.name}`;
       setUploadEmptyState();
 
       const formData = new FormData();
@@ -102,11 +103,18 @@
           body: formData,
         });
         const data = await res.json();
-        console.log("[brief] uploaded:", data);
+
+        if (data.chat_notice) appendMessage("assistant", data.chat_notice);
+        uploadLabel.textContent = "Brief uploaded";
+
+        console.log("Uploaded:", data);
         uploadLabel.textContent = "Brief uploaded";
       } catch (err) {
-        console.error("[brief] upload failed", err);
+        console.error("Upload failed", err);
         uploadLabel.textContent = "Upload failed";
+        // Optional: reset state on failure
+        // fileInput.value = "";
+        // setUploadEmptyState();
       }
     }
 

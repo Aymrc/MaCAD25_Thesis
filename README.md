@@ -1,4 +1,3 @@
-
 # MaCAD 2025 / Master Thesis - Name TBD
 This Master Thesis project is a copilot to improve architects knowledge on a site to improve masterplanning, by leveraging OSMX, GraphML (2D & 3D), LLM, UI, ... 
 

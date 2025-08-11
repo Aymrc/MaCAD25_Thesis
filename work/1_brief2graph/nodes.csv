@@ -1,0 +1,7 @@
+id,label,typology,scale,footprint,social_weight
+masterplan_root,Jernbanebyen Masterplan Root,masterplan,large,550000,1.0
+residential_1,Residential Apartments,residential,medium,200000,0.8
+commercial_1,Office Spaces,office,large,150000,0.7
+retail_1,Retail Shops and Services,commercial,small,10000,0.6
+park_1,Central Park,public_space,medium,50000,0.9
+library_1,Community Library,cultural,small,10000,0.8
