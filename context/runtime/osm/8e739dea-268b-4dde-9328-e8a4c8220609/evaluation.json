@@ -1,0 +1,13 @@
+{
+  "job_dir": "C:\\Users\\CDH\\Documents\\GitHub\\MaCAD25_Thesis\\1_context\\runtime\\osm\\8e739dea-268b-4dde-9328-e8a4c8220609",
+  "timestamp": "2025-08-11T10:09:43.366199Z",
+  "stats": {
+    "total_nodes": 10113,
+    "total_edges": 11487,
+    "nodes_inside": 1927,
+    "typed_nodes_inside": 68,
+    "pairs_evaluated": 2278,
+    "paths_found": 2278
+  },
+  "score": 3.25419739753366e-05
+}
