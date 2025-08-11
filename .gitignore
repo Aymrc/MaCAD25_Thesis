@@ -1,4 +1,4 @@
 __pycache__/
 cache/
-1_context/runtime/
-knowledge/briefs/
+context/runtime/osm/
+llm/uploaded_brief/

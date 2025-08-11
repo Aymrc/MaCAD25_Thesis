@@ -43,9 +43,9 @@ WATCHER_STARTED_AT = None  # epoch seconds to ignore old DONE.txt
 # ---- Paths (project structure aware) ----
 THIS_DIR = os.path.dirname(__file__)
 PROJECT_DIR = os.path.dirname(THIS_DIR)
-CONTEXT_DIR = os.path.join(PROJECT_DIR, "1_context")
+CONTEXT_DIR = os.path.join(PROJECT_DIR, "context")
 OSM_DIR = os.path.join(CONTEXT_DIR, "runtime", "osm")
-IMPORTER_DIR = os.path.join(PROJECT_DIR, "1_context")
+IMPORTER_DIR = os.path.join(PROJECT_DIR, "context")
 UI_STATE_PATH = os.path.join(CONTEXT_DIR, "runtime", "ui_state.json")
 
 # Ensure importer is importable
@@ -73,7 +73,7 @@ except Exception:
     EP = None
 
 try:
-    import osm_importer  # from 1_context/osm_importer.py
+    import osm_importer  # from context/osm_importer.py
     Rhino.RhinoApp.WriteLine("[rhino_listener] osm_importer loaded from: {0}".format(IMPORTER_DIR))
 except Exception as _e:
     osm_importer = None

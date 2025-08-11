@@ -1,4 +1,4 @@
-# 1_context/graph_builder.py
+# context/graph_builder.py
 # Build an urban graph from OSM GeoJSON outputs and write a compact graph.json for Rhino preview.
 
 import os
@@ -119,7 +119,7 @@ def main():
     # OUT_DIR provided by llm/osm worker; fallback allows manual runs
     out_dir = os.environ.get("OUT_DIR")
     if not out_dir:
-        # Default to 1_context/runtime/osm/_tmp for manual testing
+        # Default to context/runtime/osm/_tmp for manual testing
         here = os.path.dirname(__file__)
         out_dir = os.path.abspath(os.path.join(here, "runtime", "osm", "_tmp"))
     streets_p   = os.path.join(out_dir, "streets.geojson")

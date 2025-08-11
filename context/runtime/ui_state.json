@@ -1,4 +1,4 @@
 {
-  "context_preview": true,
-  "plot_preview": false
+  "context_preview": false,
+  "plot_preview": true
 }

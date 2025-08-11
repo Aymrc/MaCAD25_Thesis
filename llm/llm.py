@@ -35,7 +35,7 @@ stored_brief = ""
 # ----------------------------
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BASE_DIR.parent
-CONTEXT_DIR = PROJECT_DIR / "1_context"
+CONTEXT_DIR = PROJECT_DIR / "context"
 RUNTIME_DIR = CONTEXT_DIR / "runtime"
 OSM_DIR = RUNTIME_DIR / "osm"
 UPLOAD_FOLDER = BASE_DIR / "uploaded_brief"
@@ -196,7 +196,7 @@ async def osm_run(payload: dict):
     env["RADIUS_KM"] = str(radius_km)
     env["OUT_DIR"] = str(out_dir)
 
-    worker = PROJECT_DIR / "1_context" / "osm_worker.py"
+    worker = PROJECT_DIR / "context" / "osm_worker.py"
     if not worker.exists():
         return {"ok": False, "error": "Worker not found: {}".format(worker)}
 
