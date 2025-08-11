@@ -1,0 +1,396 @@
+:root {
+  --bg: #f0f0f0;
+  --ink: #111;
+  --white: #fff;
+  --pill-radius: 0.4em;
+
+  /* size consistency */
+  --ui-font-size: 12px;
+  --control-height: 28px;
+  --send-circle-size: 15px;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  color: --ink;
+}
+
+/* Topbar always above graph */
+.topbar {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  position: relative;
+  z-index: 4;
+}
+
+.brand {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em; /* title styling */
+}
+.brand:hover { color: #696969; }
+
+.stage {
+  position: relative;
+  height: calc(100vh - 34px);
+  z-index: 2; /* keepp above graph */
+  pointer-events: none; /* let empty areas pass clicks to graph */
+}
+
+/* Pills bottom left */
+.pill-group {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 8px;
+  pointer-events: auto; /* re-enable clicks */
+}
+.pill {
+  border: 1px solid #fff;
+  background: #e7e7e7;
+  padding: 6px 12px;
+  border-radius: var(--pill-radius);
+  font-size: var(--ui-font-size);
+  cursor: pointer;
+
+  /* vertical centering fix */
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+.pill:hover { background: #e0e0e0; }
+
+/* Hide native file input inside Brief pill */
+#brief-upload {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  border: 0;
+  clip: rect(0 0 0 0);
+  overflow: hidden;
+}
+
+/* === Brief pill tooltip === */
+.pill.upload-pill {
+  position: relative;
+}
+
+/* Tooltip for brief pill */
+.pill.upload-pill[data-filename]:hover::after {
+  content: attr(data-filename);
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111;
+  color: #fff;
+  font-size: var(--ui-font-size);
+  padding: 4px 8px;
+  border-radius: var(--pill-radius);
+  white-space: nowrap;
+  z-index: 100;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* Triangle pointing down */
+.pill.upload-pill[data-filename]:hover::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #111;
+  z-index: 101;
+}
+
+
+/* Tabs bottom center */
+.tab {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  background: rgb(231, 231, 231, .08);
+  backdrop-filter: blur(8px) saturate(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.05);
+  border-radius: 0.5em;
+  padding: 0.25em;
+  gap: 0.2em;
+  border: 1px solid #fff;
+  pointer-events: auto; /* re-enable clicks */
+}
+.tab button:hover {
+  background: #e0e0e0;
+}
+.tab button {
+  position: relative;
+  background: transparent;
+  border: none;
+  padding: 6px 10px;
+  border-radius: var(--pill-radius);
+  cursor: pointer;
+  font-size: var(--ui-font-size);
+  color: #333;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+.tab button.active {
+  background: #252525;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,.3);
+}
+.tab button:not(.active) + button:not(.active)::before {
+  content: "";
+  position: absolute;
+  left: -0.1em;
+  top: 20%;
+  height: 60%;
+  width: 1px;
+  background: #ccc;
+}
+
+/* Chat container */
+.chat {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 360px;
+  max-width: 80vw;
+  display: flex;
+  flex-direction: column;
+  gap: 0; /* no gap between history and input */
+  font-size: var(--ui-font-size);
+  pointer-events: auto; /* re-enable clicks */
+}
+
+/* Chat history */
+.chat-history {
+  position: relative;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px) saturate(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.05);
+  border: 1px solid rgba(232, 232, 232, 0.8);
+  border-radius: var(--pill-radius);
+  padding: 8px 10px;
+  height: 60px; /* default height - same as min in app.js */
+  max-height: 50vh;
+  overflow: hidden; /* content scrolls */
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+  margin: 0;
+}
+.history-content {
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  overflow: auto; /* scrolling lives here */
+  scrollbar-gutter: stable; /* avoid layout jump */
+}
+
+/* Grab handle */
+.chat-resize-handle {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 64px;
+  height: 12px;
+  cursor: ns-resize;
+  background: transparent;
+  z-index: 1;
+}
+.chat-resize-handle::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 3px;
+  border-radius: 999px;
+  background: #cfcfcf;
+}
+
+/* Chat text */
+.chat-intro {
+  font-size: var(--ui-font-size);
+  color: #525252;
+  margin: 0 0 3px 0;
+}
+.msg {
+  font-size: var(--ui-font-size);
+  color: #333;
+  margin: 1px 0;
+  align-items: flex-start;
+}
+.msg.user {
+  color: #111;
+  font-weight: 600;
+  align-self: flex-end;
+  text-align: right;
+}
+.msg.bot  {
+  color: #444;
+  align-self: flex-start;
+  max-width: 85%;
+}
+
+/* Chat input */
+.chat-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #111;
+  border: 1px solid #fff;
+  border-radius: var(--pill-radius);
+  padding: 4px 6px 4px 10px;
+  margin-top: 0;
+}
+.chat-input-pill {
+  flex: 1;
+  height: var(--control-height);
+  line-height: var(--control-height);
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  padding: 0 6px;
+  font-size: var(--ui-font-size);
+}
+.chat-input-pill::placeholder { color: #d4d4d4; }
+
+/* White send circle (independent size) */
+.chat-send-circle {
+  width: var(--send-circle-size);
+  height: var(--send-circle-size);
+  border-radius: 50%;
+  border: none;
+  background: #ffffff;
+  color: #111;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  margin-right: 4px; /* space from pill's right edge */
+}
+.chat-send-circle:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  background: #efefef;
+}
+
+/* Hidden label for a11y */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  white-space: nowrap;
+}
+
+/* Graph loading chip (non-blocking) */
+#graph-loading {
+  position: absolute; /* positioned relative to .stage */
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  background: rgba(17,17,17,0.85);
+  color: #fff;
+  font-size: var(--ui-font-size);
+  padding: 6px 10px;
+  border-radius: var(--pill-radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  display: none;
+  pointer-events: none;
+}
+#graph-loading.show {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+#graph-loading .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  animation: pulse 1s infinite ease-in-out;
+}
+#graph-loading .dot:nth-child(2){
+  animation-delay: .15s;
+}
+#graph-loading .dot:nth-child(3){
+  animation-delay: .30s;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: .3; transform: scale(.9); }
+  50%      { opacity: 1;  transform: scale(1.05); }
+}
+
+
+/* 3D background */
+#graph3d-container {
+  position: fixed;
+  inset: 0;
+  z-index: 1; /* behind UI */
+  background: transparent;
+}
+#graph3d { width: 100%; height: 100%; }
+
+/* Dropdown */
+.dropdown {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  background: #fff;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: var(--pill-radius);
+  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  z-index: 3;
+}
+.dropdown label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--ui-font-size);
+  margin: 4px 0;
+}
+.dropdown input[type="number"] {
+  width: 110px;
+  padding: 4px 6px;
+  font-size: var(--ui-font-size);
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+/* Make the Set button black as requested */
+#saveContextBtn {
+  margin-top: 6px;
+  padding: 6px 10px;
+  font-size: var(--ui-font-size);
+  border: 1px solid #111;
+  border-radius: var(--pill-radius);
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+}
+#saveContextBtn:hover { background: #000; }
+
+/* Responsive */
+@media (max-width: 560px) {
+  .tab { bottom: 8px; }
+  .pill-group { bottom: 8px; }
+  .chat { right: 8px; bottom: 8px; }
+}

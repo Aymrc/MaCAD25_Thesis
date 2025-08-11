@@ -1,24 +1,49 @@
-// JS front-end script
-
+// LLM + upload + dropdowns + optional 3D graph
 (function () {
-  // ---------- State ----------
-  let Graph3DInstance = null;
-
-  // ---------- Utilities ----------
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const $ = (sel) => document.querySelector(sel);
 
-  // Chat message renderer (Markdown + sanitize)
-  function appendMessage(role, content) {
-    const chat = document.getElementById("chat-history");
-    const el = document.createElement("div");
-    el.className = `message ${role}`;
-    el.innerHTML = DOMPurify.sanitize(marked.parse(content));
-    chat.appendChild(el);
-    chat.parentElement.scrollTop = chat.parentElement.scrollHeight;
+  /* ---------------- Loading chip helpers ---------------- */
+  const chip = () => document.getElementById("graph-loading");
+  const chipLabel = () => {
+    const c = chip();
+    if (!c) return null;
+    return c.querySelector(".label") || c.querySelector("span:last-child");
+  };
+
+  function showLoading(text) {
+    const c = chip();
+    if (!c) return;
+    const lbl = chipLabel();
+    if (lbl && text) lbl.textContent = text;
+    c.classList.add("show");
+  }
+  function setLoading(text) {
+    const lbl = chipLabel();
+    if (lbl && typeof text === "string") lbl.textContent = text;
+  }
+  function hideLoading() {
+    const c = chip();
+    if (!c) return;
+    c.classList.remove("show");
   }
 
-  // Probe API health
+  /* ---------------- Chat rendering ---------------- */
+  function appendMessage(role, content) {
+    const wrapper = document.getElementById("chat-history");
+    const box = wrapper.querySelector(".history-content") || wrapper;
+
+    const el = document.createElement("div");
+    el.className = `msg ${role}`;
+    el.innerHTML = DOMPurify.sanitize(
+    marked.parse(content).replace(/^<p>|<\/p>$/g, '')
+    );
+    box.appendChild(el);
+
+    // handle stays pinned
+    box.scrollTop = box.scrollHeight;
+  }
+
+  /* ---------------- Server health ---------------- */
   async function checkServer() {
     try {
       const res = await fetch("http://localhost:8000/initial_greeting?test=true", { credentials: "omit" });
@@ -29,38 +54,37 @@
     }
   }
 
-  // Sticky dropdowns
+  /* ---------------- Context dropdown ---------------- */
   function setupStickyDropdown(pillId, dropdownId) {
     const pill = document.getElementById(pillId);
     const dropdown = document.getElementById(dropdownId);
+    if (!pill || !dropdown) return;
+
     let hideTimeout;
+    const show = () => { clearTimeout(hideTimeout); dropdown.style.display = "block"; pill.setAttribute("aria-expanded","true"); };
+    const hide = () => { hideTimeout = setTimeout(() => { dropdown.style.display = "none"; pill.setAttribute("aria-expanded","false"); }, 200); };
 
-    const showDropdown = () => {
-      clearTimeout(hideTimeout);
-      dropdown.style.display = "block";
-      if (pill) pill.setAttribute("aria-expanded", "true");
-    };
+    pill.addEventListener("mouseenter", show);
+    dropdown.addEventListener("mouseenter", show);
+    pill.addEventListener("mouseleave", hide);
+    dropdown.addEventListener("mouseleave", hide);
 
-    const hideDropdown = () => {
-      hideTimeout = setTimeout(() => {
-        dropdown.style.display = "none";
-        if (pill) pill.setAttribute("aria-expanded", "false");
-      }, 250);
-    };
-
-    pill.addEventListener("mouseenter", showDropdown);
-    dropdown.addEventListener("mouseenter", showDropdown);
-    pill.addEventListener("mouseleave", hideDropdown);
-    dropdown.addEventListener("mouseleave", hideDropdown);
-    pill.addEventListener("focus", showDropdown);
-    pill.addEventListener("blur", hideDropdown);
+    // Click toggle fallback
+    pill.addEventListener("click", e => {
+      e.stopPropagation();
+      const visible = dropdown.style.display === "block";
+      dropdown.style.display = visible ? "none" : "block";
+      pill.setAttribute("aria-expanded", visible ? "false" : "true");
+    });
+    document.addEventListener("click", () => { dropdown.style.display = "none"; pill.setAttribute("aria-expanded","false"); });
   }
 
-  // Upload brief → call backend → render graph in background
+  /* ---------------- Brief upload ---------------- */
   function initUpload() {
     const fileInput   = document.getElementById("brief-upload");
     const uploadLabel = document.getElementById("uploadLabel");
     const uploadPill  = document.querySelector(".pill.upload-pill");
+    if (!fileInput || !uploadLabel || !uploadPill) return;
 
     const setUploadEmptyState = () => {
       const isEmpty = !fileInput.files || fileInput.files.length === 0;
@@ -87,21 +111,44 @@
       const formData = new FormData();
       formData.append("file", file);
 
+      // UX: immediate feedback
+      appendMessage("bot", "Reading brief… extracting entities… building graph.");
+      showLoading("Reading brief…");
+
+      // simple messages while waiting
+      let stageTimers = [];
+      stageTimers.push(setTimeout(() => setLoading("Extracting entities…"), 1200));
+      stageTimers.push(setTimeout(() => setLoading("Building graph…"), 2600));
+
       try {
         const res = await fetch("http://localhost:8000/upload_brief", { method: "POST", body: formData });
         const data = await res.json();
 
-        if (data.chat_notice) appendMessage("assistant", data.chat_notice);
+        // Tooltip filename on the pill
+        if (uploadPill && file?.name) {
+          uploadPill.setAttribute("data-filename", file.name);
+        }
+
+        if (data.chat_notice) appendMessage("bot", data.chat_notice);
         uploadLabel.textContent = "Brief uploaded";
         console.log("Uploaded:", data);
 
-        if (data.graph && data.graph.nodes && data.graph.nodes.length) {
-          console.log("[3D] rendering:", data.graph.nodes.length, "nodes,", data.graph.edges.length, "edges");
-          showGraph3DBackground(data.graph);
+        // Store the brief graph globally ; render only if "Brief" tab is active
+        if (data.graph && data.graph.nodes?.length) {
+          window._briefGraph = data.graph;
+          const briefActive = document.querySelector('.tab button.active[data-tab="brief"]');
+          if (briefActive && typeof window.showGraph3DBackground === "function") {
+            window.showGraph3DBackground(window._briefGraph);
+          }
         }
       } catch (err) {
         console.error("Upload failed", err);
         uploadLabel.textContent = "Upload failed";
+        appendMessage("bot", "Hmm, that failed to process. Try again?");
+      } finally {
+        // clear staged timers & hide chip
+        stageTimers.forEach(t => clearTimeout(t));
+        hideLoading();
       }
     }
 
@@ -109,17 +156,18 @@
     setUploadEmptyState();
   }
 
-  // Send chat message
+  /* ---------------- Chat send ---------------- */
   async function sendMessage() {
-    const input = document.getElementById("chatInput");
-    const text = input.value.trim();
+    const input = document.getElementById("chat-input");
+    const text = (input?.value || "").trim();
     if (!text) return;
 
     appendMessage("user", text);
     input.value = "";
 
-    appendMessage("assistant", "...");
-    const chatbox = document.getElementById("chat-history");
+    // placeholder
+    const box = document.querySelector("#chat-history .history-content");
+    appendMessage("bot", "...");
 
     try {
       const res = await fetch("http://localhost:8000/chat", {
@@ -128,134 +176,139 @@
         body: JSON.stringify({ message: text }),
       });
       const json = await res.json();
-      chatbox.removeChild(chatbox.lastChild);
-      appendMessage("assistant", json.response || "No reply.");
+
+      // remove placeholder
+      if (box?.lastElementChild) box.removeChild(box.lastElementChild);
+      appendMessage("bot", json.response || "No reply.");
     } catch (err) {
       console.error(err);
-      chatbox.removeChild(chatbox.lastChild);
-      appendMessage("assistant", "Error contacting the assistant.");
+      if (box?.lastElementChild) box.removeChild(box.lastElementChild);
+      appendMessage("bot", "Error contacting the assistant.");
     }
   }
 
-  // Chat controls
   function initChatControls() {
-    document.getElementById("sendBtn").addEventListener("click", sendMessage);
-    document.getElementById("chatInput").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") sendMessage();
-    });
+    const sendBtn = document.getElementById("chat-send");
+    const inputEl = document.getElementById("chat-input");
 
-    document.getElementById("saveContextBtn").addEventListener("click", () => {
-      const lat = document.getElementById("latInput").value;
-      const long = document.getElementById("longInput").value;
-      const radius = document.getElementById("radiusInput").value;
-      if (!lat || !long || !radius) { alert("Please fill in all fields."); return; }
-      console.log("Context set:", { lat, long, radius });
-      // TODO: optionally POST to backend when endpoint is available
-    });
-
-    setupStickyDropdown("contextPill", "contextForm");
-    setupStickyDropdown("paramPill", "paramForm");
+    if (sendBtn) sendBtn.addEventListener("click", sendMessage);
+    if (inputEl) {
+      inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+      });
+    }
   }
 
-  // ---------- Boot ----------
+  /* ---------------- Boot ---------------- */
   window.addEventListener("DOMContentLoaded", async () => {
-    appendMessage("assistant", "Connecting...");
+    // keep handle + wrapper ; clear only messages
+    const hc = document.querySelector("#chat-history .history-content");
+    if (hc) hc.innerHTML = "";
+
+    appendMessage("bot", "Connecting...");
     let serverReady = false;
 
     for (let i = 0; i < 10; i++) {
       serverReady = await checkServer();
       if (serverReady) break;
-      await sleep(1000);
+      await sleep(800);
     }
 
-    document.getElementById("chat-history").innerHTML = "";
+    // remove the last "Connecting..." line in chat
+    if (hc?.lastElementChild) hc.removeChild(hc.lastElementChild);
+
     if (serverReady) {
       try {
         const res = await fetch("http://localhost:8000/initial_greeting");
         const json = await res.json();
-        appendMessage("assistant", json.response);
+        appendMessage("bot", json.response);
       } catch {
-        appendMessage("assistant", "Couldn't fetch greeting, but the server seems up.");
+        appendMessage("bot", "Couldn't fetch greeting, but the server seems up.");
       }
     } else {
-      appendMessage("assistant", "Couldn't connect to the assistant.");
+      appendMessage("bot", "Couldn't connect to the assistant.");
     }
 
     initChatControls();
     initUpload();
+    setupStickyDropdown("contextPill", "contextForm");
+    setupStickyDropdown("paramPill", "paramForm");
   });
 
-  // ---------- 3D Graph (background) ----------
-  // Renders or updates the 3D graph behind the chat
-  // 3D graph as a live background with real 3D nodes and dynamic relaxation
-// 3D graph as a live background with real 3D nodes and force-directed "wingy" motion
-function showGraph3DBackground(dataGraph) {
-  if (typeof ForceGraph3D !== "function") return;
-  const mount = document.getElementById("graph3d");
-  if (!mount) return;
+  /* ---------------- 3D Graph (background, interactive) ---------------- */
+  // Expose helpers globally so app.js tab logic can call them
+  window.showGraph3DBackground = function showGraph3DBackground(dataGraph) {
+    if (typeof ForceGraph3D !== "function") return;
+    const mount = document.getElementById("graph3d");
+    if (!mount) return;
 
-  // Map {nodes, edges} -> {nodes, links}
-  const nodes = (dataGraph.nodes || []).map(n => ({
-    id: n.id,
-    name: n.label || n.id,
-    typology: n.typology || "",
-    footprint: n.footprint || 0
-  }));
-  const links = (dataGraph.edges || []).map(e => ({
-    source: e.source, target: e.target, type: e.type || "adjacent"
-  }));
+    const nodes = (dataGraph.nodes || []).map(n => ({
+      id: n.id,
+      name: n.label || n.id,
+      typology: n.typology || "",
+      footprint: n.footprint || 0
+    }));
+    const links = (dataGraph.edges || []).map(e => ({
+      source: e.source, target: e.target, type: e.type || "adjacent"
+    }));
 
-  // Degree map for link distance scaling
-  const deg = new Map(nodes.map(n => [n.id, 0]));
-  links.forEach(l => {
-    deg.set(l.source, (deg.get(l.source) || 0) + 1);
-    deg.set(l.target, (deg.get(l.target) || 0) + 1);
-  });
+    const deg = new Map(nodes.map(n => [n.id, 0]));
+    links.forEach(l => {
+      deg.set(l.source, (deg.get(l.source) || 0) + 1);
+      deg.set(l.target, (deg.get(l.target) || 0) + 1);
+    });
 
-  // Init once
-  if (!window.Graph3DInstance) {
-    window.Graph3DInstance = ForceGraph3D()(mount)
-      .backgroundColor("#f0f0f0") // light grey
-      .cooldownTicks(Infinity) // continuous dynamic relaxation
-      .d3VelocityDecay(0.12) // lower = floatier
-      .nodeRelSize(8)
-      .nodeOpacity(1)
-      .nodeLabel(n => `${n.name}${n.typology ? " • " + n.typology : ""}`)
-      .nodeColor(() => "#000000ff") // spheres
-      .linkColor(() => "rgba(138, 138, 138, 1)")
-      .enableNodeDrag(true);
-  }
-
-  // Set data
-  window.Graph3DInstance.graphData({ nodes, links });
-
-  // Force tuning (after data is set; next frame to ensure simulation exists)
-  requestAnimationFrame(() => {
-    const charge = window.Graph3DInstance.d3Force('charge');
-    if (charge?.strength) charge.strength(-160);  // -120..-220
-
-    const link = window.Graph3DInstance.d3Force('link');
-    if (link?.distance && link?.strength) {
-      link
-        .distance(l => {
-          const s = l.source.id || l.source;
-          const t = l.target.id || l.target;
-          const d = (deg.get(s) || 0) + (deg.get(t) || 0);
-          return 40 + 8 * Math.sqrt(d); // 30..90
-        })
-        .strength(0.04); // softer springs
+    if (!window.Graph3DInstance) {
+      // IMPORTANT: allow interaction; nothing overlays the empty areas
+      window.Graph3DInstance = ForceGraph3D()(mount)
+        .backgroundColor("#f0f0f0")
+        .cooldownTicks(500) // finite settle
+        .d3VelocityDecay(0.12)
+        .nodeRelSize(8)
+        .nodeOpacity(1)
+        .nodeLabel(n => `${n.name}${n.typology ? " • " + n.typology : ""}`)
+        .nodeColor(() => "#000000ff")
+        .linkColor(() => "rgba(138, 138, 138, 1)")
+        .enableNodeDrag(true) // drag nodes
+        .showNavInfo(false) // cleaner look
+        .warmupTicks(60); // quicker initial layout
     }
 
-    try { window.Graph3DInstance.d3ReheatSimulation(); } catch {}
-  });
+    window.Graph3DInstance.graphData({ nodes, links });
 
-  // Fit view gently
-  setTimeout(() => {
-    try { window.Graph3DInstance.zoomToFit(800, 100); } catch {}
-  }, 150);
-}
+    requestAnimationFrame(() => {
+      const charge = window.Graph3DInstance.d3Force('charge');
+      if (charge?.strength) charge.strength(-160);
 
+      const link = window.Graph3DInstance.d3Force('link');
+      if (link?.distance && link?.strength) {
+        link
+          .distance(l => {
+            const s = l.source.id || l.source;
+            const t = l.target.id || l.target;
+            const d = (deg.get(s) || 0) + (deg.get(t) || 0);
+            return 40 + 8 * Math.sqrt(d);
+          })
+          .strength(0.04);
+      }
+      try { window.Graph3DInstance.d3ReheatSimulation(); } catch {}
+    });
 
+    setTimeout(() => {
+      try {
+        window.Graph3DInstance.zoomToFit(600, 8); // ms, paddingPx
+        const controls = window.Graph3DInstance.controls?.();
+        if (controls && typeof controls.dollyIn === "function") {
+          controls.dollyIn(1.2); // move camera closer
+          controls.update();
+        }
+      } catch {}
+    }, 150);
+  };
 
-
+  window.clearGraph = function clearGraph() {
+    if (window.Graph3DInstance) {
+      window.Graph3DInstance.graphData({ nodes: [], links: [] });
+    }
+  };
 })();

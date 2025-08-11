@@ -84,7 +84,7 @@ def start_llm():
 
 def start_ui():
     print("Interface opening...")
-    ui_path = os.path.join(current_dir, "ui", "landing.html")
+    ui_path = os.path.join(current_dir, "ui", "index.html")
     if os.path.exists(ui_path):
         file_url = "file:///" + ui_path.replace("\\", "/")
         print("[UI] Opening local UI at:", file_url)

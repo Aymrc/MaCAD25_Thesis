@@ -1,0 +1,90 @@
+<!-- WebApp for masterplan graph copilot / IAAC Thesis 2025 -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DIONYSUS</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+  <script src="https://unpkg.com/three@0.150.1/build/three.min.js"></script>
+  <script src="https://unpkg.com/3d-force-graph"></script>
+
+</head>
+
+<body>
+  <!-- 3D Graph background -->
+  <div id="graph3d-container" aria-label="3D Graph">
+    <div id="graph3d"></div>
+  </div>
+
+  <!-- loading info -->
+  <div id="graph-loading">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span>Generating graph…</span>
+  </div>
+
+  <!-- Copilot name -->
+  <header class="topbar">
+    <div class="brand">DIONYSUS</div>
+  </header>
+
+
+  <main class="stage" aria-label="graph">
+
+    <div class="pill-group">
+      <!-- Context pill with dropdown -->
+      <div class="pill context-pill" id="contextPill" tabindex="0" aria-haspopup="true" aria-expanded="false">
+        <span>Context</span>
+        <div class="dropdown context-form" id="contextForm" role="dialog" aria-label="Set geospatial context">
+          <label>Lat: <input type="number" step="any" id="latInput" /></label>
+          <label>Long: <input type="number" step="any" id="longInput" /></label>
+          <label>Radius (km): <input type="number" step="any" id="radiusInput" /></label>
+          <button id="saveContextBtn" type="button">Set</button>
+        </div>
+      </div>
+
+      <!-- Brief upload pill -->
+      <div class="pill upload-pill empty" role="button" tabindex="0" aria-controls="brief-upload" aria-label="Upload brief (PDF)">
+        <span id="uploadLabel">Brief</span>
+        <input type="file" id="brief-upload" accept=".pdf" />
+      </div>
+    </div>
+
+    <!-- Bottom-centered tabs -->
+    <div class="tab">
+      <button class="active" data-tab="brief">Brief Graph</button>
+      <button data-tab="massing">Massing Graph</button>
+      <button data-tab="masterplan">Masterplan Graph</button>
+    </div>
+
+
+
+    <!-- Chat -->
+    <section class="chat">
+      <div id="chat-history" class="chat-history" aria-live="polite">
+        <div id="chat-resize-handle" class="chat-resize-handle" title="Drag to resize"></div>
+        <div class="history-content">
+          <!-- <p class="chat-intro"></p> -->
+        </div>
+      </div>
+
+      <form class="chat-input-bar" onsubmit="return false;">
+        <input id="chat-input" class="chat-input-pill" placeholder="Ask anything" />
+        <button id="chat-send" class="chat-send-circle" aria-label="Send">
+          <span class="visually-hidden">Send</span>
+        </button>
+      </form>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+  <script src="chat.js" defer></script>
+</body>
+</html>
