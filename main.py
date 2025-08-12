@@ -6,10 +6,7 @@
 # ! _-RunPythonScript "C:\Users\broue\Documents\IAAC MaCAD\Master_Thesis\MaCAD25_Thesis\main.py"
 # _-RunPythonScript "C:\Users\broue\Documents\IAAC MaCAD\Master_Thesis\MaCAD25_Thesis\rhino\rhino_listener.py"
 
-import os
-import sys
-import subprocess
-import webbrowser
+import os, sys, subprocess, webbrowser
 
 # Import project variables
 try:
@@ -27,7 +24,7 @@ LLM_DIR = os.path.join(CURRENT_DIR, "llm")
 RHINO_DIR = os.path.join(CURRENT_DIR, "rhino")
 UI_DIR = os.path.join(CURRENT_DIR, "ui")
 
-# Ensure local imports (not strictly required for this launcher)
+# Ensure local imports
 if LLM_DIR not in sys.path:
     sys.path.append(LLM_DIR)
 if RHINO_DIR not in sys.path:
@@ -148,7 +145,7 @@ def start_llm():
 
 def start_ui():
     _safe_print("Opening interface...")
-    ui_path = os.path.join(UI_DIR, "landing.html")
+    ui_path = os.path.join(UI_DIR, "index.html")
     if os.path.exists(ui_path):
         file_url = "file:///" + ui_path.replace("\\", "/")
         _safe_print("[UI] Opening: {}".format(file_url))
