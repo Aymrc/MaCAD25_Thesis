@@ -6,19 +6,30 @@
 <head>
   <meta charset="UTF-8" />
   <title>Graph Copilot</title>
+  <link rel="icon" type="image/x-icon" href="/assets/ico.ico">
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+  <!-- <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script> -->
+  <script src="https://unpkg.com/three@0.150.1/build/three.min.js"></script>
+  <script src="https://unpkg.com/3d-force-graph"></script>
 
 </head>
 
 
 <body>
+  <div id="graph3d-container" aria-label="3D Graph">
+    <div id="graph3d"></div>
+  </div>
+
+
   <div id="chat-history-container">
     <div id="chat-history" aria-live="polite" aria-atomic="false"></div>
   </div>
+
 
   <div class="chat-footer" role="complementary" aria-label="Chat controls">
     <div class="chat-footer-inner">
