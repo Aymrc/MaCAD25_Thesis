@@ -33,15 +33,15 @@ BASE_DIR = Path(__file__).resolve().parent # .../llm
 PROJECT_DIR = BASE_DIR.parent # project root
 CONTEXT_DIR = PROJECT_DIR / "context"
 RUNTIME_DIR = CONTEXT_DIR / "runtime"
-OSM_DIR = RUNTIME_DIR / "osm"
 KNOWLEDGE_DIR = PROJECT_DIR / "knowledge"
+OSM_DIR = KNOWLEDGE_DIR / "osm"
 BRIEFS_DIR = KNOWLEDGE_DIR / "briefs" # unified briefs folder
 
 for d in (RUNTIME_DIR, OSM_DIR, BRIEFS_DIR):
     os.makedirs(d, exist_ok=True)
 
-# Serve runtime files at /files/*
-app.mount("/files", StaticFiles(directory=str(RUNTIME_DIR)), name="files")
+# (Optional) Serve files at /files/* from knowledge/osm for debugging
+app.mount("/files", StaticFiles(directory=str(OSM_DIR)), name="files")
 
 # In-memory job registry
 JOBS: Dict[str, Dict] = {}
@@ -432,7 +432,7 @@ async def evaluate_run(payload: dict):
 # ============================
 # Preview (UI state) endpoints
 # ============================
-UI_STATE_PATH = RUNTIME_DIR / "ui_state.json"
+UI_STATE_PATH = OSM_DIR / "ui_state.json"
 
 def _read_ui_state():
     if UI_STATE_PATH.exists():

@@ -43,10 +43,27 @@ WATCHER_STARTED_AT = None  # epoch seconds to ignore old DONE.txt
 # ---- Paths (project structure aware) ----
 THIS_DIR = os.path.dirname(__file__)
 PROJECT_DIR = os.path.dirname(THIS_DIR)
+
+# NEW: knowledge directory (all live state goes here)
+KNOWLEDGE_DIR = os.path.join(PROJECT_DIR, "knowledge")
+OSM_DIR = os.path.join(KNOWLEDGE_DIR, "osm")  # OSM jobs root
+
+# Ensure destination exists
+try:
+    if not os.path.exists(OSM_DIR):
+        os.makedirs(OSM_DIR)
+except Exception as _e:
+    try:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] Could not create OSM_DIR: {0}".format(_e))
+    except Exception:
+        pass
+
+# UI state JSON now lives inside knowledge/osm
+UI_STATE_PATH = os.path.join(OSM_DIR, "ui_state.json")
+
+# Keep importer dir (module lives in /context)
 CONTEXT_DIR = os.path.join(PROJECT_DIR, "context")
-OSM_DIR = os.path.join(CONTEXT_DIR, "runtime", "osm")
 IMPORTER_DIR = os.path.join(PROJECT_DIR, "context")
-UI_STATE_PATH = os.path.join(CONTEXT_DIR, "runtime", "ui_state.json")
 
 # Ensure importer is importable
 if IMPORTER_DIR not in sys.path:
@@ -78,7 +95,6 @@ try:
 except Exception as _e:
     osm_importer = None
     Rhino.RhinoApp.WriteLine("[rhino_listener] Warning: could not import osm_importer: {0}".format(_e))
-
 
 # ===========================
 # Layer helpers (robust)
