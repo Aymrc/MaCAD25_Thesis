@@ -33,8 +33,8 @@ BASE_DIR = Path(__file__).resolve().parent # .../llm
 PROJECT_DIR = BASE_DIR.parent # project root
 CONTEXT_DIR = PROJECT_DIR / "context"
 RUNTIME_DIR = CONTEXT_DIR / "runtime"
-OSM_DIR = RUNTIME_DIR / "osm"
 KNOWLEDGE_DIR = PROJECT_DIR / "knowledge"
+OSM_DIR = KNOWLEDGE_DIR / "osm"
 BRIEFS_DIR = KNOWLEDGE_DIR / "briefs" # unified briefs folder
 
 for d in (RUNTIME_DIR, OSM_DIR, BRIEFS_DIR):
