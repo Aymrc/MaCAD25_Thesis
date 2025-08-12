@@ -138,10 +138,27 @@ def main():
             env = os.environ.copy()
             env["OUT_DIR"] = out_dir
             graph_script = os.path.join(os.path.dirname(__file__), "graph_builder.py")
-            subprocess.check_call([sys.executable, graph_script], cwd=os.path.dirname(__file__), env=env)
-            print("Graph built successfully.", flush=True)
+
+            log_out = os.path.join(out_dir, "graph_builder_stdout.log")
+            log_err = os.path.join(out_dir, "graph_builder_stderr.log")
+
+            with open(log_out, "w") as fout, open(log_err, "w") as ferr:
+                proc = subprocess.Popen(
+                    [sys.executable, "-u", graph_script],
+                    cwd=os.path.dirname(__file__),
+                    env=env,
+                    stdout=fout,
+                    stderr=ferr
+                )
+                ret = proc.wait()
+
+            if ret == 0 and os.path.exists(os.path.join(out_dir, "graph.json")):
+                print("Graph built successfully.", flush=True)
+            else:
+                print("Graph build failed. See logs:", log_out, log_err, flush=True)
+
         except Exception as _e:
-            print("Graph build failed: {0}".format(_e), flush=True)
+            print("Graph build failed (exception): {0}".format(_e), flush=True)
 
         with open(os.path.join(out_dir, "DONE.txt"), "w") as f:
             f.write("ok")
