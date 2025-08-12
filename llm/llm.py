@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import Dict
+from datetime import datetime
 
 import requests, io, PyPDF2, os, uvicorn, sys, re, glob
 
@@ -264,7 +265,21 @@ async def osm_run(payload: dict):
     except Exception:
         return {"ok": False, "error": "Invalid lat/lon/radius_km"}
 
-    job_id = str(uuid.uuid4())
+    # --- Cleanup: remove previous OSM job folders ---
+    for folder in OSM_DIR.iterdir():
+        if folder.is_dir():
+            try:
+                # Remove all previous job directories
+                import shutil
+                shutil.rmtree(folder)
+            except Exception:
+                pass
+
+    ts = datetime.now().strftime("%Y%m%d_%H%M")  # e.g., 20250812_1530
+    lat_s = f"{lat:.4f}"
+    lon_s = f"{lon:.4f}"
+    job_id = f"osm_{ts}_{lat_s}_{lon_s}"
+
     out_dir = OSM_DIR / job_id
     os.makedirs(out_dir, exist_ok=True)
 
