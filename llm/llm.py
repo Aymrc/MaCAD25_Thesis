@@ -1,18 +1,21 @@
-import requests, io, PyPDF2, os, uvicorn, sys, re, glob, json, shutil, csv, uuid, subprocess
-from fastapi import FastAPI, Request, UploadFile, File, Form
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-
-
+import os, sys, io, re, json, csv, glob, uuid, shutil, subprocess
+import requests, PyPDF2, uvicorn
 from datetime import datetime
 from pathlib import Path
 from typing import Dict
 
+from fastapi import FastAPI, Request, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+# ---- Project config ----
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from config import copilot_name
 
+# ----------------------------
+# App & CORS
+# ----------------------------
 app = FastAPI()
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,27 +24,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ----------------------------
+# Constants / Paths
+# ----------------------------
 LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
-stored_brief = ""
 
-# ----------------------------
-# Paths for runtime artifacts
-# ----------------------------
-BASE_DIR = Path(__file__).resolve().parent
-PROJECT_DIR = BASE_DIR.parent
+BASE_DIR = Path(__file__).resolve().parent # .../llm
+PROJECT_DIR = BASE_DIR.parent # project root
 CONTEXT_DIR = PROJECT_DIR / "context"
 RUNTIME_DIR = CONTEXT_DIR / "runtime"
 OSM_DIR = RUNTIME_DIR / "osm"
-UPLOAD_FOLDER = BASE_DIR / "uploaded_brief"
-for d in (RUNTIME_DIR, OSM_DIR, UPLOAD_FOLDER):
+KNOWLEDGE_DIR = PROJECT_DIR / "knowledge"
+BRIEFS_DIR = KNOWLEDGE_DIR / "briefs" # unified briefs folder
+
+for d in (RUNTIME_DIR, OSM_DIR, BRIEFS_DIR):
     os.makedirs(d, exist_ok=True)
 
 # Serve runtime files at /files/*
 app.mount("/files", StaticFiles(directory=str(RUNTIME_DIR)), name="files")
 
-# In-memory job registry (simple)
+# In-memory job registry
 JOBS: Dict[str, Dict] = {}
 
+# In-memory context for brief
+stored_brief: str = ""
+
+# ----------------------------
+# Small helpers
+# ----------------------------
 def _python_exe():
     # Use the same interpreter that runs FastAPI
     return sys.executable
@@ -50,80 +60,73 @@ def _job_dir(job_id):
     return OSM_DIR / job_id
 
 def _write_json(path, payload):
-    with open(path, "w") as f:
-        json.dump(payload, f, indent=2)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, ensure_ascii=False)
 
 def _read_json(path):
     try:
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return None
 
+
 # ============================
 # GREETING endpoint
 # ============================
-
-# In‑memory context for brief
-stored_brief = ""
-
-# Files path
-BASE_DIR = Path(__file__).resolve().parent # .../llm sub-folder
-ROOT_DIR = BASE_DIR.parent # project root
-KNOWLEDGE_DIR = ROOT_DIR / "knowledge" # ../knowledge sub-folder
-UPLOAD_FOLDER = KNOWLEDGE_DIR / "briefs" # ../knowledge/brief_upload sub-folder
-UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
-
-# === START SERVER ===
-def run_llm(reload=False):
-    print("[LLM] Starting the server for LLM access ...\n")
-    uvicorn.run(
-        "llm:app",
-        host="127.0.0.1",
-        port=8000,
-        reload=reload,
-        reload_dirs=[str(BASE_DIR)],
-        reload_includes=["*.py"],
-    )
-
-# === GREETING endpoint ===
 @app.get("/initial_greeting")
 async def initial_greeting(test: bool = False):
     if test:
         return {"dynamic": True}
 
-    prompt_messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are a friendly, professional urban design project copilot. "
-                f"Your name is {copilot_name}. "
-                "Greet the user naturally and warmly, in one short sentence. "
-                "Make the greeting vary each time, avoid repeating the exact same words, "
-                "and keep it concise."
-            )
-        }
-    ]
+    sys_msg = (
+        "You are a friendly, professional urban design project copilot. "
+        f"Your name is {copilot_name}. "
+        "Greet the user in ONE short sentence (6–14 words), warm and proactive, "
+        "and make it clearly about design work (e.g., masterplan, context, brief, site, or graph). "
+        "Output ONLY the sentence—no labels, no instructions, no emojis."
+    )
 
     try:
         res = requests.post(
             LM_STUDIO_URL,
             json={
                 "model": "lmstudio",
-                "messages": prompt_messages,
-                "temperature": 0.9,
-                "max_tokens": 30
+                "messages": [
+                    {"role": "system", "content": sys_msg},
+                    {"role": "user", "content": "Please greet me now."},
+                ],
+                "temperature": 0.8,
+                "top_p": 0.95,
+                "max_tokens": 250,
+                "stream": False
             },
-            timeout=10
+            timeout=10,
         )
         res.raise_for_status()
         greeting = res.json()["choices"][0]["message"]["content"].strip()
-    except Exception as e:
-        greeting = f"Hello! I’m {copilot_name}. Ready to start?"
+
+        bad_bits = ("use", "need", "instruction", "one sentence", "at least one", "output only")
+        if len(greeting.split()) < 4 or any(b in greeting.lower() for b in bad_bits):
+            import random
+            fallbacks = [
+                f"Let’s dive into your masterplan—I’m {copilot_name}, ready to help.",
+                f"Share your site or brief and I’ll start mapping the graph.",
+                f"Ready to explore the context and grow your masterplan graph?",
+                f"I’m {copilot_name}—shall we sketch the site context and program?",
+                f"Drop your brief and I’ll turn it into a project graph.",
+                f"Tell me about the site; I’ll outline the masterplan steps.",
+            ]
+            greeting = random.choice(fallbacks)
+    except Exception:
+        greeting = f"Let’s dive into your masterplan—I’m {copilot_name}, ready to help."
 
     return {"response": greeting}
 
-# === CHAT endpoint ===
+
+# ============================
+# CHAT endpoint
+# ============================
 @app.post("/chat")
 async def chat(request: Request):
     data = await request.json()
@@ -131,18 +134,22 @@ async def chat(request: Request):
 
     messages = [
         {"role": "system", "content": """
-        You are Graph Copilot for an urban design project.\n"SCOPE & ROLE\n
-        - Support across phases: set CITY context; read PROJECT BRIEF; build SEMANTIC graph;
-        build TOPOLOGICAL graph from 3D massing; MERGE the two; INSERT into the GLOBAL CITY graph; EVALUATE and advise.\n
-        - Stay on project. If asked off‑topic, say it’s out of scope.\n\n
-        INTERACTION STYLE\n
-        - Default to short, human‑friendly answers (1–5 bullets or a short paragraph).\n
-        - Only produce structured JSON or code when the user asks for it.\n
-        - Don’t restate the full brief; surface only what’s needed now.\n
-        - If something is missing, ask ONE precise question and stop. Don’t invent data or IDs.\n\n
-        GUARDRAILS\n
-        - Do not reveal internal chain‑of‑thought. Provide final reasoning only.
-        When helpful, format replies in Markdown (bold, lists, short headings).
+You are Graph Copilot for an urban design project.
+
+SCOPE & ROLE
+- Support across phases: set CITY context; read PROJECT BRIEF; build SEMANTIC graph;
+  build TOPOLOGICAL graph from 3D massing; MERGE the two; INSERT into the GLOBAL CITY graph; EVALUATE and advise.
+- Stay on project. If asked off-topic, say it’s out of scope.
+
+INTERACTION STYLE
+- Default to short, human-friendly answers (1–5 bullets or a short paragraph).
+- Only produce structured JSON or code when the user asks for it.
+- Don’t restate the full brief; surface only what’s needed now.
+- If something is missing, ask ONE precise question and stop. Don’t invent data or IDs.
+
+GUARDRAILS
+- Do not reveal internal chain-of-thought. Provide final reasoning only.
+When helpful, format replies in Markdown (bold, lists, short headings).
         """}
     ]
 
@@ -159,8 +166,10 @@ async def chat(request: Request):
             "model": "lmstudio",
             "messages": messages,
             "stream": False,
-            "temperature": 0.3, # less blabla
-            "max_tokens": 500 # 150 = concise
+            "temperature": 0.3,  # concise
+            "top_p": 0.9,
+            "max_tokens": 500,
+            "stop": ["User:", "Assistant:", "System:"],
         }
 
         res = requests.post(LM_STUDIO_URL, json=lmstudio_payload, timeout=30)
@@ -173,16 +182,18 @@ async def chat(request: Request):
     except Exception as e:
         return {"error": str(e), "response": "Failed to reach LM Studio."}
 
-# === BRIEF upload endpoint ===
+# ============================
+# BRIEF upload endpoint
+# ============================
 @app.post("/upload_brief")
 async def upload_brief(file: UploadFile = File(None), text: str = Form(None)):
     global stored_brief
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_dir = UPLOAD_FOLDER / f"brief_{timestamp}"
+    out_dir = BRIEFS_DIR / f"brief_{timestamp}"
 
     # Clean previous briefs (folders + stray PDFs)
-    for p in UPLOAD_FOLDER.glob("brief_*"):
+    for p in BRIEFS_DIR.glob("brief_*"):
         try:
             if p.is_dir():
                 shutil.rmtree(p)
@@ -225,7 +236,7 @@ async def upload_brief(file: UploadFile = File(None), text: str = Form(None)):
             "graph": None
         }
 
-    # Save JSON in PDF folder
+    # Save JSON in brief folder
     out_dir.mkdir(parents=True, exist_ok=True)
     graph_json_path = out_dir / "brief_graph.json"
     with open(graph_json_path, "w", encoding="utf-8") as f:
@@ -267,9 +278,9 @@ def extract_project_name(brief_text: str, original_filename: str | None) -> str:
 
 @app.get("/brief")
 async def get_brief():
-    return {"brief": stored_brief[:1000] + "..."}
+    return {"brief": (stored_brief[:1000] + "...") if stored_brief else ""}
 
-# === BRIEF to JSON ??????????? ===
+# === BRIEF to JSON extraction ===
 def extract_first_json(text: str) -> str | None:
     fenced = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", text, flags=re.I)
     if fenced:
@@ -307,15 +318,16 @@ Extract a buildable program graph.
 - For "contains" use "mode": [].
 
 Brief:
-\"\"\"{brief_text}\"\"\"
-"""
+\"\"\"{brief_text}\"\"\""""
     payload = {
         "model": "lmstudio",
         "messages": [{"role": "system", "content": system},
                      {"role": "user", "content": user}],
         "temperature": 0.2,
+        "top_p": 0.9,
         "max_tokens": 1200,
-        "stream": False
+        "stream": False,
+        "stop": ["User:", "Assistant:", "System:"],
     }
     r = requests.post(LM_STUDIO_URL, json=payload, timeout=60)
     r.raise_for_status()
@@ -323,7 +335,6 @@ Brief:
     txt = extract_first_json(raw) or raw
     data = json.loads(txt)
     return clean_graph_schema(data)
-
 
 # ============================
 # OSM endpoints (silent responses)
@@ -343,7 +354,7 @@ async def osm_run(payload: dict):
         return {"ok": False, "error": "Invalid lat/lon/radius_km"}
 
     job_id = str(uuid.uuid4())
-    out_dir = OSM_DIR / job_id
+    out_dir = _job_dir(job_id)
     os.makedirs(out_dir, exist_ok=True)
 
     env = os.environ.copy()
@@ -354,15 +365,14 @@ async def osm_run(payload: dict):
 
     worker = PROJECT_DIR / "context" / "osm_worker.py"
     if not worker.exists():
-        return {"ok": False, "error": "Worker not found: {}".format(worker)}
+        return {"ok": False, "error": f"Worker not found: {worker}"}
 
     try:
         subprocess.Popen([_python_exe(), str(worker)], cwd=str(PROJECT_DIR), env=env)
-        # No mensajes “narrativos” para la UI: solo status
+        # UI gets status via /osm/status
         return {"ok": True, "job_id": job_id}
     except Exception as e:
         return {"ok": False, "error": str(e)}
-
 
 @app.get("/osm/status/{job_id}")
 async def osm_status(job_id: str):
@@ -391,7 +401,6 @@ async def osm_status(job_id: str):
 
     info["status"] = status
     return {"ok": True, "status": status, "out_dir": out_dir}
-
 
 # ============================
 # EVALUATION endpoint
@@ -428,7 +437,7 @@ UI_STATE_PATH = RUNTIME_DIR / "ui_state.json"
 def _read_ui_state():
     if UI_STATE_PATH.exists():
         try:
-            with open(UI_STATE_PATH, "r") as f:
+            with open(UI_STATE_PATH, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             pass
@@ -437,7 +446,7 @@ def _read_ui_state():
 
 def _write_ui_state(state):
     UI_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(UI_STATE_PATH, "w") as f:
+    with open(UI_STATE_PATH, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)
 
 @app.get("/preview/state")

@@ -8,7 +8,6 @@
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const $ = (sel) => document.querySelector(sel);
 
-
   /* ---------------- Loading chip helpers ---------------- */
   const chip = () => document.getElementById("graph-loading");
   const chipLabel = () => {
@@ -35,17 +34,37 @@
   }
 
   /* ---------------- Chat rendering ---------------- */
-  function appendMessage(role, content) {
-    const wrapper = document.getElementById("chat-history");
-    const box = wrapper.querySelector(".history-content") || wrapper;
-
+  // Main: #chat-history receives .message ROLE
+  function appendMessageMain(role, content) {
     const chat = document.getElementById("chat-history");
+    if (!chat) return;
     const el = document.createElement("div");
     el.className = "message " + role;
     const html = DOMPurify.sanitize(marked.parse(content));
     el.innerHTML = html;
     chat.appendChild(el);
-    chat.parentElement.scrollTop = chat.parentElement.scrollHeight;
+    if (chat.parentElement) chat.parentElement.scrollTop = chat.parentElement.scrollHeight;
+  }
+
+  // Legacy: uses #chat-history .history-content and strips outer <p>
+  function appendMessageLegacy(role, content) {
+    const wrapper = document.getElementById("chat-history");
+    if (!wrapper) return;
+    const box = wrapper.querySelector(".history-content") || wrapper;
+
+    const el = document.createElement("div");
+    el.className = `msg ${role}`;
+    el.innerHTML = DOMPurify.sanitize(
+      marked.parse(content).replace(/^<p>|<\/p>$/g, "")
+    );
+    box.appendChild(el);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  // Dispatcher: prefer legacy when .history-content exists
+  function appendMessage(role, content) {
+    const hasLegacyBox = !!document.querySelector("#chat-history .history-content");
+    return hasLegacyBox ? appendMessageLegacy(role, content) : appendMessageMain(role, content);
   }
 
   function setStatus(text) {
@@ -54,15 +73,23 @@
     else console.log("[status]", text);
   }
 
-    const el = document.createElement("div");
-    el.className = `msg ${role}`;
-    el.innerHTML = DOMPurify.sanitize(
-      marked.parse(content).replace(/^<p>|<\/p>$/g, "")
+  // Strip accidental meta prefixes from LLM greetings
+  function cleanGreeting(t) {
+    if (!t) return t;
+    t = t.replace(/^```(?:\w+)?\s*|\s*```$/g, "");
+    t = t.replace(
+      /^\s*(?:need\b.*?greet\w*|greeting|assistant|system|note|meta)\s*[:\-.\]]*\s*/i,
+      ""
     );
-    box.appendChild(el);
+    if (/^need\b/i.test(t)) {
+      const m = t.match(/\.\s*([\s\S]+)$/);
+      if (m) t = m[1];
+    }
 
-    // handle stays pinned
-    box.scrollTop = box.scrollHeight;
+    t = t.replace(/\s+(?:User:|Assistant:|System:).*/i, "");
+
+    const m2 = t.match(/^(.+?[.!?])(\s|$)/s);
+    return (m2 ? m2[1] : t).trim();
   }
 
   /* ---------------- Server health ---------------- */
@@ -111,12 +138,12 @@
       else open();
     });
 
-    // Keep open when interacting inside
+    // Keep open while interacting inside
     dropdown.addEventListener("click", (e) => e.stopPropagation());
     dropdown.addEventListener("mousedown", (e) => e.stopPropagation());
-    dropdown.addEventListener("focusin", open); // stays open while inputs focused
+    dropdown.addEventListener("focusin", open);
 
-    // Close only when clicking OUTSIDE pill+dropdown
+    // Close on outside click
     document.addEventListener("click", (e) => {
       const outside = !pill.contains(e.target) && !dropdown.contains(e.target);
       if (outside) {
@@ -170,7 +197,7 @@
       formData.append("file", file);
 
       // UX: immediate feedback
-      appendMessage("bot", "Reading brief… extracting entities… building graph.");
+      appendMessage("assistant", "Reading brief… extracting entities… building graph.");
       showLoading("Reading brief…");
 
       // simple messages while waiting
@@ -190,7 +217,7 @@
           uploadPill.setAttribute("data-filename", file.name);
         }
 
-        if (data.chat_notice) appendMessage("bot", data.chat_notice);
+        if (data.chat_notice) appendMessage("assistant", data.chat_notice);
         uploadLabel.textContent = "Brief uploaded";
         console.log("Uploaded:", data);
 
@@ -205,7 +232,7 @@
       } catch (err) {
         console.error("Upload failed", err);
         uploadLabel.textContent = "Upload failed";
-        appendMessage("bot", "Hmm, that failed to process. Try again?");
+        appendMessage("assistant", "Hmm, that failed to process. Try again?");
       } finally {
         // clear staged timers & hide chip
         stageTimers.forEach(t => clearTimeout(t));
@@ -226,7 +253,6 @@
     if (tPlot) {
       tPlot.addEventListener("change", () => {
         console.log("[Rhino] Plot graph:", tPlot.checked);
-        // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @CESAR
         // TODO: fetch("/rhino/plot_graph", { method:"POST", headers:{'Content-Type':'application/json'}, body: JSON.stringify({ enabled: tPlot.checked }) })
       });
     }
@@ -234,7 +260,6 @@
     if (tCtx) {
       tCtx.addEventListener("change", () => {
         console.log("[Rhino] Context graph:", tCtx.checked);
-        // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @CESAR
         // TODO: fetch("/rhino/context_graph", { method:"POST", headers:{'Content-Type':'application/json'}, body: JSON.stringify({ enabled: tCtx.checked }) })
       });
     }
@@ -242,19 +267,20 @@
     if (bake) {
       bake.addEventListener("click", async () => {
         appendMessage("user", "Bake masterplan");
-        appendMessage("bot", "Starting bake…");
+        appendMessage("assistant", "Starting bake…");
         try {
-          // Example placeholder; replace with real endpoint: <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @CESAR
-          // const res = await fetch("http://localhost:8000/rhino/bake_masterplan", { method: "POST" });
+          // Example placeholder; replace with real endpoint
+          // const res = await fetch(`${API}/rhino/bake_masterplan`, { method: "POST" });
           // const json = await res.json();
-          // appendMessage("bot", json?.status || "Bake complete.");
-          appendMessage("bot", "Bake complete.");
+          // appendMessage("assistant", json?.status || "Bake complete.");
+          appendMessage("assistant", "Bake complete.");
         } catch (e) {
-          appendMessage("bot", "Bake failed.");
+          appendMessage("assistant", "Bake failed.");
         }
-      )}
+      });
+    }
   }
-  
+
   // ---------- OSM run + polling (silent to chat) ----------
   function toNumber(val) {
     var n = parseFloat((val || "").toString().trim());
@@ -333,91 +359,141 @@
     }
   }
 
-  /* ---------------- Chat send ---------------- */
+  /* ---------------- Sync preview from server ---------------- */
   async function syncPreviewTogglesFromServer() {
     const st = await fetchPreviewState();
     if (!st) return;
     const { contextGraph, plotGraph } = getParamTogglesByLabel();
     if (contextGraph) contextGraph.checked = !!st.context_preview;
-    if (plotGraph) plotGraph.checked = !!st.plot_preview;
+    if (plotGraph)   plotGraph.checked   = !!st.plot_preview;
   }
 
-  // ---------- Chat controls ----------
+  // ---------- Chat controls (merged) ----------
   function initChatControls() {
-    document.getElementById("sendBtn").addEventListener("click", sendMessage);
-    document.getElementById("chatInput").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") sendMessage();
-    });
+    // Support both ID schemes
+    const sendBtnA = document.getElementById("sendBtn");
+    const inputA   = document.getElementById("chatInput");
+    const sendBtnB = document.getElementById("chat-send");
+    const inputB   = document.getElementById("chat-input");
+
+    if (sendBtnA) sendBtnA.addEventListener("click", sendMessage);
+    if (inputA)   inputA.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage(); });
+
+    if (sendBtnB) sendBtnB.addEventListener("click", sendMessage);
+    if (inputB) {
+      inputB.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+      });
+    }
 
     // Context setter -> Start OSM job and poll status (NO chat messages)
-    document.getElementById("saveContextBtn").addEventListener("click", function () {
-      var lat = toNumber(document.getElementById("latInput").value);
-      var lon = toNumber(document.getElementById("longInput").value);
-      var radius = toNumber(document.getElementById("radiusInput").value);
+    const saveBtn = document.getElementById("saveContextBtn");
+    if (saveBtn) {
+      saveBtn.addEventListener("click", function () {
+        var lat = toNumber(document.getElementById("latInput").value);
+        var lon = toNumber(document.getElementById("longInput").value);
+        var radius = toNumber(document.getElementById("radiusInput").value);
 
-      if (lat === null || lon === null || radius === null) {
-        alert("Please enter valid numbers for Lat, Long and Radius.");
-        return;
-      }
-      if (lat < -90 || lat > 90 || lon < -180 || lon > 180 || radius <= 0) {
-        alert("Lat must be [-90,90], Long [-180,180], Radius > 0.");
-        return;
-      }
-
-      setStatus("Starting OSM job...");
-      startOsm(lat, lon, radius).then(function (resp) {
-        if (!resp.ok) {
-          setStatus("OSM job failed: " + (resp.error || "unknown error"));
+        if (lat === null || lon === null || radius === null) {
+          alert("Please enter valid numbers for Lat, Long and Radius.");
           return;
         }
-        var jobId = resp.job_id;
-        try { localStorage.setItem("latest_osm_job", jobId); } catch (e) {}
-        setStatus("OSM job running...");
+        if (lat < -90 || lat > 90 || lon < -180 || lon > 180 || radius <= 0) {
+          alert("Lat must be [-90,90], Long [-180,180], Radius > 0.");
+          return;
+        }
 
-        var intv = setInterval(function () {
-          pollStatus(jobId).then(function (st) {
-            if (!st.ok) {
+        setStatus("Starting OSM job...");
+        startOsm(lat, lon, radius).then(function (resp) {
+          if (!resp.ok) {
+            setStatus("OSM job failed: " + (resp.error || "unknown error"));
+            return;
+          }
+          var jobId = resp.job_id;
+          try { localStorage.setItem("latest_osm_job", jobId); } catch (e) {}
+          setStatus("OSM job running...");
+
+          var intv = setInterval(function () {
+            pollStatus(jobId).then(function (st) {
+              if (!st.ok) {
+                clearInterval(intv);
+                setStatus("Status error: " + (st.error || "unknown"));
+                return;
+              }
+              if (st.status === "finished") {
+                clearInterval(intv);
+                setStatus("OSM job finished. Importing into Rhino...");
+              } else if (st.status === "failed") {
+                clearInterval(intv);
+                setStatus("OSM job failed. See FAILED.txt");
+              }
+            }).catch(function (err) {
               clearInterval(intv);
-              setStatus("Status error: " + (st.error || "unknown"));
-              return;
-            }
-            if (st.status === "finished") {
-              clearInterval(intv);
-              setStatus("OSM job finished. Importing into Rhino...");
-            } else if (st.status === "failed") {
-              clearInterval(intv);
-              setStatus("OSM job failed. See FAILED.txt");
-            }
-          }).catch(function (err) {
-            clearInterval(intv);
-            setStatus("Error checking job: " + err);
-          });
-        }, 3000);
-      }).catch(function (err) {
-        setStatus("Error starting OSM job: " + err);
+              setStatus("Error checking job: " + err);
+            });
+          }, 3000);
+        }).catch(function (err) {
+          setStatus("Error starting OSM job: " + err);
+        });
       });
-    });
-
-    setupStickyDropdown("contextPill", "contextForm");
-    setupStickyDropdown("paramPill", "paramForm");
-
-    initParamToggles();
+    }
   }
 
+  /* ---------------- Graph3D fullscreen helpers ---------------- */
+  function ensureGraph3DFullscreen() {
+    const mount = document.getElementById("graph3d");
+    if (!mount) return;
+
+    const parent = mount.parentElement || document.body;
+    const parentStyle = getComputedStyle(parent);
+    if (parentStyle.position === "static") parent.style.position = "relative";
+
+    // Try to fill parent; if parent is too small, fallback to viewport
+    const parentRect = parent.getBoundingClientRect();
+    const parentTooSmall = (parentRect.width < 400 || parentRect.height < 300);
+
+    if (parentTooSmall && parent === document.body) {
+      mount.style.position = "fixed";
+      mount.style.inset = "0";
+    } else {
+      mount.style.position = "absolute";
+      mount.style.inset = "0";
+    }
+    mount.style.width = "100%";
+    mount.style.height = "100%";
+    mount.style.zIndex = "0"; // keep UI above; raise if you need interactions
+  }
+
+  function resizeGraph3D() {
+    const mount = document.getElementById("graph3d");
+    if (!mount || !window.Graph3DInstance) return;
+    const w = mount.clientWidth  || window.innerWidth;
+    const h = mount.clientHeight || window.innerHeight;
+    try { window.Graph3DInstance.width(w).height(h); } catch {}
+  }
+
+  /* ---------------- Chat send ---------------- */
   async function sendMessage() {
-    const input = document.getElementById("chat-input");
+    const input = document.getElementById("chat-input") || document.getElementById("chatInput");
     const text = (input?.value || "").trim();
     if (!text) return;
 
     appendMessage("user", text);
-    input.value = "";
+    if (input) input.value = "";
 
-    // placeholder
-    const box = document.querySelector("#chat-history .history-content");
-    appendMessage("bot", "...");
-    // Temporary typing indicator
-    appendMessage("assistant", "…");
-    const chatbox = document.getElementById("chat-history"); // need to choose which one here
+    // typing indicator placeholder
+    const hasLegacyBox = !!document.querySelector("#chat-history .history-content");
+    let placeholder = null;
+    if (hasLegacyBox) {
+      const box = document.querySelector("#chat-history .history-content");
+      placeholder = document.createElement("div");
+      placeholder.className = "msg assistant";
+      placeholder.textContent = "…";
+      box.appendChild(placeholder);
+      box.scrollTop = box.scrollHeight;
+    } else {
+      appendMessage("assistant", "…");
+    }
 
     try {
       const res = await fetch(`${API}/chat`, {
@@ -427,25 +503,12 @@
       });
       const json = await res.json();
 
-      // remove placeholder
-      if (box?.lastElementChild) box.removeChild(box.lastElementChild);
-      appendMessage("bot", json.response || "No reply.");
+      if (placeholder?.parentElement) placeholder.parentElement.removeChild(placeholder);
+      appendMessage("assistant", json.response || "No reply.");
     } catch (err) {
       console.error(err);
-      if (box?.lastElementChild) box.removeChild(box.lastElementChild);
-      appendMessage("bot", "Error contacting the assistant.");
-    }
-  }
-
-  function initChatControls() {
-    const sendBtn = document.getElementById("chat-send");
-    const inputEl = document.getElementById("chat-input");
-
-    if (sendBtn) sendBtn.addEventListener("click", sendMessage);
-    if (inputEl) {
-      inputEl.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-      });
+      if (placeholder?.parentElement) placeholder.parentElement.removeChild(placeholder);
+      appendMessage("assistant", "Error contacting the assistant.");
     }
   }
 
@@ -455,7 +518,7 @@
     const hc = document.querySelector("#chat-history .history-content");
     if (hc) hc.innerHTML = "";
 
-    appendMessage("bot", "Connecting...");
+    appendMessage("assistant", "Connecting...");
     let serverReady = false;
     for (let i = 0; i < 10; i++) {
       serverReady = await checkServer();
@@ -463,26 +526,27 @@
       await sleep(800);
     }
 
-    // remove the last "Connecting..." line in chat
+    // remove the last "Connecting..." line in chat (legacy UI)
     if (hc?.lastElementChild) hc.removeChild(hc.lastElementChild);
 
-    document.getElementById("chat-history").innerHTML = "";
+    // If no legacy box, clear the simple container
+    if (!document.querySelector("#chat-history .history-content")) {
+      const ch = document.getElementById("chat-history");
+      if (ch) ch.innerHTML = "";
+    }
 
     // Only show LLM greeting if available
     if (serverReady) {
       try {
         const res = await fetch(`${API}/initial_greeting`);
         const json = await res.json();
-        appendMessage("bot", json.response);
-      } catch {
-        appendMessage("bot", "Couldn't fetch greeting, but the server seems up.");
-      }
-    } else {
-      appendMessage("bot", "Couldn't connect to the assistant.");
-        if (json && json.response) appendMessage("assistant", json.response);
+        appendMessage("assistant", json.response);
       } catch (e) {
         console.log("[greeting] failed", e);
+        appendMessage("assistant", "Couldn't fetch greeting, but the server seems up.");
       }
+    } else {
+      appendMessage("assistant", "Couldn't connect to the assistant.");
     }
 
     initChatControls();
@@ -491,15 +555,22 @@
     setupStickyDropdown("paramPill", "paramForm");
     setupStickyDropdown("rhinoPill", "rhinoForm");
     bindRhinoPanel();
+    initParamToggles();
+
+    // Try to sync preview toggles with server state (if backend exposes it)
+    if (serverReady) {
+      syncPreviewTogglesFromServer();
+    }
   });
 
-  
   /* ---------------- 3D Graph (background, interactive) ---------------- */
   // Expose helpers globally so app.js tab logic can call them
   window.showGraph3DBackground = function showGraph3DBackground(dataGraph) {
     if (typeof ForceGraph3D !== "function") return;
     const mount = document.getElementById("graph3d");
     if (!mount) return;
+
+    ensureGraph3DFullscreen();
 
     const nodes = (dataGraph.nodes || []).map(n => ({
       id: n.id,
@@ -518,22 +589,27 @@
     });
 
     if (!window.Graph3DInstance) {
-      // IMPORTANT: allow interaction; nothing overlays the empty areas
+      // allow interaction; nothing overlays the empty areas
       window.Graph3DInstance = ForceGraph3D()(mount)
         .backgroundColor("#f0f0f0")
-        .cooldownTicks(500) // finite settle
+        .cooldownTicks(500)
         .d3VelocityDecay(0.12)
         .nodeRelSize(8)
         .nodeOpacity(1)
         .nodeLabel(n => `${n.name}${n.typology ? " • " + n.typology : ""}`)
         .nodeColor(() => "#000000ff")
         .linkColor(() => "rgba(138, 138, 138, 1)")
-        .enableNodeDrag(true) // drag nodes
-        .showNavInfo(false) // cleaner look
-        .warmupTicks(60); // quicker initial layout
+        .enableNodeDrag(true)
+        .showNavInfo(false)
+        .warmupTicks(60);
     }
 
     window.Graph3DInstance.graphData({ nodes, links });
+    resizeGraph3D();
+    if (!window._graph3dResizeBound) {
+      window.addEventListener("resize", resizeGraph3D);
+      window._graph3dResizeBound = true;
+    }
 
     requestAnimationFrame(() => {
       const charge = window.Graph3DInstance.d3Force('charge');
@@ -558,7 +634,7 @@
         window.Graph3DInstance.zoomToFit(600, 8); // ms, paddingPx
         const controls = window.Graph3DInstance.controls?.();
         if (controls && typeof controls.dollyIn === "function") {
-          controls.dollyIn(1.2); // move camera closer
+          controls.dollyIn(1.2);
           controls.update();
         }
       } catch {}
@@ -570,10 +646,4 @@
       window.Graph3DInstance.graphData({ nodes: [], links: [] });
     }
   };
-
-    // Try to sync preview toggles with server state (if backend exposes it)
-    if (serverReady) {
-      syncPreviewTogglesFromServer();
-    }
-  });
 })();
