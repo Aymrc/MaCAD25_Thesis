@@ -401,7 +401,8 @@
       saveBtn.addEventListener("click", function () {
         var lat = toNumber(document.getElementById("latInput").value);
         var lon = toNumber(document.getElementById("longInput").value);
-        var radius = toNumber(document.getElementById("radiusInput").value);
+        var radiusMeters = toNumber(document.getElementById("radiusInput").value);
+        var radius = (radiusMeters === null ? null : radiusMeters / 1000);
 
         if (lat === null || lon === null || radius === null) {
           alert("Please enter valid numbers for Lat, Long and Radius.");
