@@ -8,6 +8,7 @@ import sys
 import threading
 import time
 import json  # for HTTP POST payloads
+import re
 
 import Rhino
 import scriptcontext as sc
@@ -44,7 +45,7 @@ WATCHER_STARTED_AT = None  # epoch seconds to ignore old DONE.txt
 THIS_DIR = os.path.dirname(__file__)
 PROJECT_DIR = os.path.dirname(THIS_DIR)
 
-# NEW: knowledge directory (all live state goes here)
+# knowledge directory (all live state goes here)
 KNOWLEDGE_DIR = os.path.join(PROJECT_DIR, "knowledge")
 OSM_DIR = os.path.join(KNOWLEDGE_DIR, "osm")  # OSM jobs root
 
@@ -58,7 +59,7 @@ except Exception as _e:
     except Exception:
         pass
 
-# UI state JSON now lives inside knowledge/osm
+# UI state JSON lives inside knowledge/osm
 UI_STATE_PATH = os.path.join(OSM_DIR, "ui_state.json")
 
 # Keep importer dir (module lives in /context)
@@ -129,7 +130,7 @@ def is_on_target_layer(rh_obj):
     return _layer_matches(_layer_name_from_event_obj(rh_obj), TARGET_LAYER_NAME)
 
 
-# === NEW: current-layer protection ===
+# === current-layer protection ===
 def _save_current_layer_index():
     """Remember the user's current layer index."""
     try:
@@ -221,8 +222,6 @@ def _apply_ui_preview_state():
             Rhino.RhinoApp.WriteLine("[rhino_listener] No active job_dir to apply UI state.")
             return
 
-        # Do NOT touch current layer here.
-
         # Context Graph
         try:
             if st.get("context_preview"):
@@ -246,7 +245,7 @@ def _apply_ui_preview_state():
         except:
             pass
 
-        # Log context toggle status (optional)
+        # Log context toggle status
         try:
             Rhino.RhinoApp.WriteLine("[rhino_listener] Context preview: {0}".format(
                 "ENABLED" if st.get("context_preview") else "DISABLED"))
@@ -431,6 +430,65 @@ def _try_evaluation_preview(job_dir):
     except Exception as e:
         Rhino.RhinoApp.WriteLine("[rhino_listener] Eval preview error: {0}".format(e))
     return False
+
+
+# ===========================
+# Job folder renaming (timestamped)
+# ===========================
+def _is_timestamped_job_name(name):
+    """Return True if name matches osm_YYYYMMDD_HHMMSS or osm_YYYYMMDD_HHMMSS_N."""
+    try:
+        return bool(re.match(r"^osm_\d{8}_\d{6}(?:_\d+)?$", name or ""))
+    except:
+        return False
+
+
+def _format_ts_from_epoch(ts):
+    try:
+        return time.strftime("%Y%m%d_%H%M%S", time.localtime(float(ts)))
+    except:
+        return time.strftime("%Y%m%d_%H%M%S")
+
+
+def _rename_job_dir_to_timestamp(job_dir):
+    """Rename a finished job folder to osm_YYYYMMDD_HHMMSS[_N] based on DONE.txt mtime."""
+    try:
+        base = os.path.basename(job_dir.rstrip("\\/"))
+        if _is_timestamped_job_name(base):
+            return job_dir  # already formatted
+
+        done_flag = os.path.join(job_dir, "DONE.txt")
+        if os.path.exists(done_flag):
+            try:
+                ts = os.path.getmtime(done_flag)
+            except:
+                ts = time.time()
+        else:
+            ts = time.time()
+
+        new_base = "osm_" + _format_ts_from_epoch(ts)
+        parent = os.path.dirname(job_dir)
+        candidate = os.path.join(parent, new_base)
+
+        if os.path.exists(candidate):
+            i = 2
+            while True:
+                alt = os.path.join(parent, "{}_{}".format(new_base, i))
+                if not os.path.exists(alt):
+                    candidate = alt
+                    break
+                i += 1
+
+        try:
+            os.rename(job_dir, candidate)
+            Rhino.RhinoApp.WriteLine("[rhino_listener] Renamed job:\n  {0}\n-> {1}".format(job_dir, candidate))
+            return candidate
+        except Exception as e:
+            Rhino.RhinoApp.WriteLine("[rhino_listener] Rename failed ({0}); keeping original.".format(e))
+            return job_dir
+    except Exception as e:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] _rename_job_dir_to_timestamp error: {0}".format(e))
+        return job_dir
 
 
 # ===========================
@@ -670,6 +728,13 @@ def _try_import_finished_job():
                 continue
 
         Rhino.RhinoApp.WriteLine("[rhino_listener] OSM job {0} finished. Queuing import...".format(job_id))
+
+        # Rename job folder to timestamp format before importing
+        renamed_dir = _rename_job_dir_to_timestamp(job_dir)
+        if renamed_dir != job_dir:
+            job_dir = renamed_dir
+            job_id = os.path.basename(job_dir.rstrip("\\/"))
+
         _import_job_on_ui(job_dir, job_id, imported)
         # Handle one job per tick
         break
