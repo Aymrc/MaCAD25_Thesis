@@ -246,40 +246,49 @@
 
   /* ---------------- Rhino toggles + bake ---------------- */
   function bindRhinoPanel() {
+    const API  = "http://localhost:8000";
     const tPlot = document.getElementById("togglePlot");
     const tCtx  = document.getElementById("toggleContext");
     const bake  = document.getElementById("bakeBtn");
 
+    async function postPreview(kind, enabled) {
+      // kind: "context" | "plot"
+      try {
+        const res = await fetch(`${API}/preview/${kind}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled: !!enabled })
+        });
+        const j = await res.json();
+        if (!j.ok) console.warn(`[preview] ${kind} -> backend said not ok`, j);
+      } catch (e) {
+        console.warn(`[preview] ${kind} toggle failed (server not ready?)`, e);
+      }
+    }
+
     if (tPlot) {
       tPlot.addEventListener("change", () => {
-        console.log("[Rhino] Plot graph:", tPlot.checked);
-        // TODO: fetch("/rhino/plot_graph", { method:"POST", headers:{'Content-Type':'application/json'}, body: JSON.stringify({ enabled: tPlot.checked }) })
+        postPreview("plot", tPlot.checked);   // <-- antes solo hacía console.log
       });
     }
 
     if (tCtx) {
       tCtx.addEventListener("change", () => {
-        console.log("[Rhino] Context graph:", tCtx.checked);
-        // TODO: fetch("/rhino/context_graph", { method:"POST", headers:{'Content-Type':'application/json'}, body: JSON.stringify({ enabled: tCtx.checked }) })
+        postPreview("context", tCtx.checked); // <-- antes solo hacía console.log
       });
     }
 
     if (bake) {
       bake.addEventListener("click", async () => {
-        appendMessage("user", "Bake masterplan");
-        appendMessage("assistant", "Starting bake…");
         try {
-          // Example placeholder; replace with real endpoint
-          // const res = await fetch(`${API}/rhino/bake_masterplan`, { method: "POST" });
-          // const json = await res.json();
-          // appendMessage("assistant", json?.status || "Bake complete.");
-          appendMessage("assistant", "Bake complete.");
+          await fetch(`${API}/rhino/bake_masterplan`, { method: "POST" });
         } catch (e) {
-          appendMessage("assistant", "Bake failed.");
+          console.warn("[Rhino] bake failed", e);
         }
       });
     }
   }
+
 
   // ---------- OSM run + polling (silent to chat) ----------
   function toNumber(val) {
@@ -555,6 +564,7 @@
     setupStickyDropdown("paramPill", "paramForm");
     setupStickyDropdown("rhinoPill", "rhinoForm");
     bindRhinoPanel();
+    syncPreviewTogglesFromServer();
     initParamToggles();
 
     // Try to sync preview toggles with server state (if backend exposes it)
