@@ -5,6 +5,7 @@ import os
 import sys
 import json
 import math
+import time
 from typing import List, Tuple, Dict, Any
 
 import networkx as nx
@@ -116,23 +117,42 @@ def build_graph(streets_json: Dict, buildings_json: Dict, greens_json: Dict) -> 
         return (best_sid, math.sqrt(best_d2)) if best_sid is not None else (None, float("inf"))
 
     def add_pois(src_json: Dict, prefix: str, node_type: str):
-        if not street_nodes:
+        if not src_json:
             return
+        # If there are no streets, keep old behavior (skip attaching if none)
         idx = 0
         for feat in src_json.get("features", []):
             try:
                 geom = shape(feat.get("geometry"))
+                if geom.is_empty:
+                    continue
                 c = geom.centroid
                 x, y = float(c.x), float(c.y)
             except Exception:
                 continue
-            node_id = "{}_{}".format(prefix, idx); idx += 1
-            G.add_node(node_id, x=x, y=y, type=node_type)
-            sid, dist = _nearest_street(x, y)
-            if sid is None:
-                continue
-            sx, sy = G.nodes[sid]["x"], G.nodes[sid]["y"]
-            G.add_edge(node_id, sid, type="access", line=[(x, y), (sx, sy)], distance=float(dist))
+
+            # Copy properties and remove keys that collide with our node schema
+            props = dict(feat.get("properties", {}) or {})
+            props.pop("type", None)   # <-- avoid collision with our 'type=node_type'
+            props.pop("id", None)     # (optional) we already use our own node_id
+
+            node_id = f"{prefix}_{idx}"
+            idx += 1
+
+            # Store node with our canonical 'type' plus remaining properties
+            G.add_node(node_id, x=x, y=y, type=node_type, **props)
+
+            # Optional access edge to nearest street
+            if street_nodes:
+                sid, dist = _nearest_street(x, y)
+                if sid is not None:
+                    sx, sy = G.nodes[sid]["x"], G.nodes[sid]["y"]
+                    G.add_edge(
+                        node_id, sid,
+                        type="access",
+                        line=[(x, y), (sx, sy)],
+                        distance=float(dist)
+                    )
 
     add_pois(buildings_json, "building", "building")
     add_pois(greens_json, "green", "green")
@@ -142,7 +162,14 @@ def build_graph(streets_json: Dict, buildings_json: Dict, greens_json: Dict) -> 
 def export_graph_json(G: nx.Graph, out_path: str):
     data = {
         "nodes": [
-            {"id": n, "x": d.get("x"), "y": d.get("y"), "type": d.get("type")}
+            {
+                "id": n,
+                "x": d.get("x"),
+                "y": d.get("y"),
+                "type": d.get("type"),
+                # export all other attributes for categorization
+                **{k: v for k, v in d.items() if k not in ("x", "y", "type")}
+            }
             for n, d in G.nodes(data=True)
             if "x" in d and "y" in d
         ],
@@ -152,16 +179,23 @@ def export_graph_json(G: nx.Graph, out_path: str):
             if "line" in d
         ]
     }
-    with open(out_path, "w") as f:
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    with open(out_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
+    print("[graph_builder] Wrote graph.json: nodes={}, edges={}".format(len(data["nodes"]), len(data["edges"])))
 
 def _resolve_out_dir() -> str:
-    """Priority: CLI arg > OUT_DIR env > latest folder under knowledge/osm."""
+    """
+    Priority: CLI arg > OUT_DIR env > newest folder under knowledge/osm
+    that already contains the three required GeoJSON files OR a DONE.txt sentinel.
+    This avoids racing a half-written job folder.
+    """
     if len(sys.argv) >= 2 and sys.argv[1]:
         return os.path.abspath(sys.argv[1])
     env_dir = os.environ.get("OUT_DIR")
     if env_dir:
         return os.path.abspath(env_dir)
+
     here = os.path.dirname(__file__)
     project_root = os.path.abspath(os.path.join(here, ".."))
     base_dir = os.path.join(project_root, "knowledge", "osm")
@@ -169,6 +203,20 @@ def _resolve_out_dir() -> str:
                if os.path.isdir(os.path.join(base_dir, d))]
     if not subdirs:
         raise IOError("No OSM job folders found under {}".format(base_dir))
+
+    REQUIRED = {"streets.geojson", "buildings.geojson", "greens.geojson"}
+
+    # prefer newest dir that looks complete
+    complete = []
+    for d in subdirs:
+        files = set(os.listdir(d))
+        if REQUIRED.issubset(files) or "DONE.txt" in files:
+            complete.append(d)
+
+    if complete:
+        return max(complete, key=os.path.getmtime)
+
+    # fallback: newest dir, even if incomplete
     return max(subdirs, key=os.path.getmtime)
 
 def main():
@@ -178,6 +226,11 @@ def main():
     streets_p   = os.path.join(out_dir, "streets.geojson")
     buildings_p = os.path.join(out_dir, "buildings.geojson")
     greens_p    = os.path.join(out_dir, "greens.geojson")
+
+    # Simple wait loop in case files are being written right now
+    deadline = time.time() + 30.0  # up to 30s
+    while time.time() < deadline and not all(os.path.exists(p) for p in (streets_p, buildings_p, greens_p)):
+        time.sleep(0.5)
 
     missing = [p for p in (streets_p, buildings_p, greens_p) if not os.path.exists(p)]
     if missing:
@@ -190,7 +243,7 @@ def main():
     G = build_graph(streets, buildings, greens)
     export_graph_json(G, os.path.join(out_dir, "graph.json"))
 
-    with open(os.path.join(out_dir, "GRAPH_DONE.txt"), "w") as f:
+    with open(os.path.join(out_dir, "GRAPH_DONE.txt"), "w", encoding="utf-8") as f:
         f.write("ok")
 
 if __name__ == "__main__":
