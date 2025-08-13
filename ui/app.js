@@ -1,21 +1,90 @@
 // Visual 
 
+// --- API base (same as chat.js) ---
+const API_BASE = "http://localhost:8000";
+
+// --- Massing polling state ---
+let _massingPoll = null;
+let _massingLastMtime = 0;
+
+async function loadMassingGraphOnce() {
+  try {
+    const res = await fetch(`${API_BASE}/graph/massing`, { cache: "no-store" });
+    const data = await res.json();
+    const adapted = {
+      nodes: data.nodes || [],
+      // chat.js expects .edges; normalize both keys
+      edges: data.links || data.edges || [],
+      links: data.links || data.edges || [],
+      meta:  data.meta  || {}
+    };
+    if (typeof window.showGraph3DBackground === "function") {
+      window.showGraph3DBackground(adapted);
+    }
+  } catch (e) {
+    console.warn("[UI] Could not fetch massing graph:", e);
+    if (typeof window.clearGraph === "function") window.clearGraph();
+  }
+}
+
+async function startMassingPolling() {
+  stopMassingPolling();
+  // seed mtime to current state to avoid double fetch
+  try {
+    const r0 = await fetch(`${API_BASE}/graph/massing/mtime`, { cache: "no-store" });
+    const j0 = await r0.json();
+    _massingLastMtime = j0?.mtime || 0;
+  } catch {}
+
+  _massingPoll = setInterval(async () => {
+    try {
+      const r = await fetch(`${API_BASE}/graph/massing/mtime`, { cache: "no-store" });
+      const { mtime } = await r.json();
+      if (mtime && mtime !== _massingLastMtime) {
+        _massingLastMtime = mtime;
+        await loadMassingGraphOnce();
+      }
+    } catch {
+      // silent; keep polling
+    }
+  }, 2500);
+}
+
+function stopMassingPolling() {
+  if (_massingPoll) {
+    clearInterval(_massingPoll);
+    _massingPoll = null;
+  }
+}
+
 // === Tab switching (visual) ===
 document.querySelectorAll(".tab button").forEach(btn => {
-  btn.addEventListener("click", () => {
+  btn.addEventListener("click", async () => {
     document.querySelectorAll(".tab button").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
 
     const tab = btn.dataset.tab;
+
     if (tab === "brief") {
+      stopMassingPolling();
       // show brief graph if we have one
       if (window._briefGraph && typeof window.showGraph3DBackground === "function") {
         window.showGraph3DBackground(window._briefGraph);
+      } else if (typeof window.clearGraph === "function") {
+        window.clearGraph();
       }
-    } else {
-      // other tabs (empty for now !!! WIP) // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @AYMERIC
-      if (typeof window.clearGraph === "function") window.clearGraph();
+      return;
     }
+
+    if (tab === "massing") {
+      await loadMassingGraphOnce();
+      startMassingPolling();
+      return;
+    }
+
+    // masterplan or others: clear + stop any massing poll
+    stopMassingPolling();
+    if (typeof window.clearGraph === "function") window.clearGraph(); // <<<<<<<<< to update with massing graph later 
   });
 });
 
@@ -53,3 +122,25 @@ if (resizeHandle && chatHistory) {
     document.body.style.cursor = "";
   });
 }
+
+// --- boot: load the correct tab state on first paint ---
+document.addEventListener("DOMContentLoaded", async () => {
+  const activeBtn = document.querySelector('.tab button.active');
+  const activeTab = activeBtn?.dataset?.tab;
+
+  if (activeTab === "massing") {
+    await loadMassingGraphOnce();
+    startMassingPolling();
+  } else if (activeTab === "brief") {
+    if (window._briefGraph && typeof window.showGraph3DBackground === "function") {
+      window.showGraph3DBackground(window._briefGraph);
+    } else if (typeof window.clearGraph === "function") {
+      window.clearGraph();
+    }
+  }
+});
+
+// --- cleanup: stop polling when leaving page ---
+window.addEventListener("beforeunload", () => {
+  stopMassingPolling();
+});

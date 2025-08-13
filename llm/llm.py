@@ -7,6 +7,7 @@ from typing import Dict
 from fastapi import FastAPI, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 
 # ---- Project config ----
 sys.path.append(str(Path(__file__).resolve().parent.parent))
@@ -39,6 +40,10 @@ BRIEFS_DIR = KNOWLEDGE_DIR / "briefs" # unified briefs folder
 
 for d in (RUNTIME_DIR, OSM_DIR, BRIEFS_DIR):
     os.makedirs(d, exist_ok=True)
+
+# --- Massing graph endpoints ---
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+GRAPH_PATH = os.path.join(REPO_ROOT, "knowledge", "massing_graph.json")
 
 # Serve runtime files at /files/*
 app.mount("/files", StaticFiles(directory=str(RUNTIME_DIR)), name="files")
@@ -468,6 +473,34 @@ async def set_plot_preview(payload: dict):
     st["plot_preview"] = enabled
     _write_ui_state(st)
     return {"ok": True, "plot_preview": enabled}
+
+# ============================
+# Massing graph endpoints
+# ============================
+def _read_graph():
+    if not os.path.exists(GRAPH_PATH):
+        return {"nodes": [], "links": [], "edges": [], "meta": {}}
+    with open(GRAPH_PATH, "r") as f:
+        data = json.load(f)
+    links = data.get("links", data.get("edges", []))
+    return {
+        "nodes": data.get("nodes", []),
+        "links": links,
+        "edges": links,
+        "meta": data.get("meta", {})
+    }
+
+@app.get("/graph/massing")
+def get_massing_graph():
+    return JSONResponse(_read_graph())
+
+@app.get("/graph/massing/mtime")
+def get_massing_mtime():
+    try:
+        return {"mtime": os.path.getmtime(GRAPH_PATH)}
+    except:
+        return {"mtime": 0.0}
+
 
 # ============================
 # Server entry point

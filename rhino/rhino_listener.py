@@ -3,11 +3,7 @@
 # Listen to the opened Rhino window, auto-import finished OSM jobs, export a boundary
 # from the PLOT layer, trigger evaluation, and enable evaluation preview (UI-thread safe).
 
-import os
-import sys
-import threading
-import time
-import json  # for HTTP POST payloads
+import os, sys, threading, time, json
 
 import Rhino
 import scriptcontext as sc
@@ -22,8 +18,8 @@ from config import layer_name  # project variables from config.py
 # ===========================
 # Settings / Globals
 # ===========================
-TARGET_LAYER_NAME = layer_name           # e.g. "MASSING"
-PLOT_LAYER_NAME = "PLOT"                 # boundary layer to watch
+TARGET_LAYER_NAME = layer_name # e.g. "MASSING"
+PLOT_LAYER_NAME = "PLOT" # boundary layer to watch
 DEBOUNCE_SECONDS = 1.5
 
 listener_active = True
@@ -35,8 +31,9 @@ STICKY_IMPORTED = "macad_imported_jobs"
 STICKY_ACTIVE_JOB = "active_job_dir"
 STICKY_PLOT_DIRTY = "plot_dirty"
 STICKY_PLOT_LAST = "plot_last_candidate"
-STICKY_EVAL_PREVIEW_MTIME = "eval_preview_mtime"  # track last previewed evaluation.json mtime
+STICKY_EVAL_PREVIEW_MTIME = "eval_preview_mtime" # track last previewed evaluation.json mtime
 STICKY_UI_STATE_MTIME = "ui_state_mtime"
+STICKY_MASSING_DIRTY = "massing_dirty"
 
 WATCHER_STARTED_AT = None  # epoch seconds to ignore old DONE.txt
 
@@ -72,6 +69,17 @@ try:
 except Exception:
     EP = None
 
+# Massing graph exporter (knowledge/massing_graph.json)
+save_graph = None
+try:
+    if THIS_DIR not in sys.path:
+        sys.path.append(THIS_DIR)
+    from massing_graph import save_graph  # provides save_graph()
+    Rhino.RhinoApp.WriteLine("[rhino_listener] massing_graph loaded.")
+except Exception as _e:
+    Rhino.RhinoApp.WriteLine("[rhino_listener] Warning: could not import massing_graph: {0}".format(_e))
+    save_graph = None
+
 try:
     import osm_importer  # from context/osm_importer.py
     Rhino.RhinoApp.WriteLine("[rhino_listener] osm_importer loaded from: {0}".format(IMPORTER_DIR))
@@ -84,33 +92,36 @@ except Exception as _e:
 # Layer helpers (robust)
 # ===========================
 def _layer_name_from_event_obj(ev_obj):
-    """Return layer name from a RhinoDoc event object (RhinoObject)."""
+    """Return best-guess layer name for the event object (prefer full path, fallback to rs.ObjectLayer)."""
     try:
         attrs = getattr(ev_obj, "Attributes", None) or getattr(ev_obj, "ObjectAttributes", None)
-        if not attrs:
-            return None
-        idx = attrs.LayerIndex
-        if idx is None or idx < 0:
-            return None
-        layer = sc.doc.Layers[idx]
-        return layer.Name if layer else None
+        if attrs is not None and getattr(attrs, "LayerIndex", -1) >= 0:
+            layer = sc.doc.Layers[attrs.LayerIndex]
+            if layer:
+                full = getattr(layer, "FullPath", None)
+                return full if full else layer.Name
+    except:
+        pass
+    # Fallback: query by GUID (works right after creation)
+    try:
+        return rs.ObjectLayer(ev_obj.Id)
     except:
         return None
 
-
 def _layer_matches(lname, target_name):
-    """Match exact name or parent::child suffix."""
-    if not lname:
+    """Exact match or parent::child suffix (case-insensitive)."""
+    if not lname or not target_name:
         return False
-    return (lname == target_name) or lname.endswith("::" + target_name)
-
+    ln = lname.strip().lower()
+    tn = target_name.strip().lower()
+    return (ln == tn) or ln.endswith("::" + tn)
 
 def _is_object_on_layer(ev_obj, target_name):
     return _layer_matches(_layer_name_from_event_obj(ev_obj), target_name)
 
-
 def is_on_target_layer(rh_obj):
-    return _layer_matches(_layer_name_from_event_obj(rh_obj), TARGET_LAYER_NAME)
+    return _is_object_on_layer(rh_obj, TARGET_LAYER_NAME)
+
 
 
 # ===========================
@@ -334,6 +345,31 @@ def _mark_plot_dirty(guid=None):
 
 
 # ===========================
+# MASSING graph helpers
+# ===========================
+def _mark_massing_dirty():
+    sc.sticky[STICKY_MASSING_DIRTY] = True
+
+
+def _export_massing_graph_now():
+    """Build and save massing_graph.json on the UI thread (safe)."""
+    if not save_graph:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] massing_graph exporter not available.")
+        return
+    def _do():
+        try:
+            save_graph()  # writes knowledge/massing_graph.json
+            Rhino.RhinoApp.WriteLine("[rhino_listener] Massing graph exported for UI.")
+        except Exception as e:
+            Rhino.RhinoApp.WriteLine("[rhino_listener] Massing graph export failed: {0}".format(e))
+    try:
+        Rhino.RhinoApp.InvokeOnUiThread(Action(_do))
+    except Exception as e:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] UI invoke failed ({0}); running inline.".format(e))
+        _do()
+
+
+# ===========================
 # HTTP helpers / evaluation trigger
 # ===========================
 def _http_post_json(url, payload):
@@ -408,6 +444,11 @@ def handle_layer_change():
             if job_dir and os.path.isdir(job_dir):
                 wrote = _export_plot_boundary_to_job(job_dir, candidate_id=None) or False
 
+        # 2b) MASSING → graph (only when MASSING changed)
+        if sc.sticky.get(STICKY_MASSING_DIRTY):
+            sc.sticky[STICKY_MASSING_DIRTY] = False
+            _export_massing_graph_now()
+
         # 3) Try to enable evaluation preview if results are ready/updated
         job_dir = sc.sticky.get(STICKY_ACTIVE_JOB)
         if job_dir:
@@ -446,11 +487,16 @@ def debounce_trigger():
 def on_add(sender, e):
     _debug_event_layer(e.Object, "on_add")
 
-    # MASSING (target layer)
-    if listener_active and is_on_target_layer(e.Object):
+    if listener_active:
+        # Prefer detection, but export even if the layer read is flaky
+        if is_on_target_layer(e.Object):
+            Rhino.RhinoApp.WriteLine("[rhino_listener] MASSING add detected → export scheduled.")
+        else:
+            Rhino.RhinoApp.WriteLine("[rhino_listener] Add event (layer uncertain) → export scheduled as fallback.")
+        _mark_massing_dirty()
         debounce_trigger()
 
-    # PLOT
+    # PLOT (unchanged)
     try:
         if listener_active and _is_object_on_layer(e.Object, PLOT_LAYER_NAME):
             _mark_plot_dirty(e.Object.Id)
@@ -460,10 +506,12 @@ def on_add(sender, e):
         pass
 
 
+
 def on_modify(sender, e):
     _debug_event_layer(e.Object, "on_modify")
 
     if listener_active and is_on_target_layer(e.Object):
+        _mark_massing_dirty()
         debounce_trigger()
     try:
         if listener_active and _is_object_on_layer(e.Object, PLOT_LAYER_NAME):
@@ -478,6 +526,7 @@ def on_replace(sender, e):
     _debug_event_layer(e.NewObject, "on_replace")
 
     if listener_active and is_on_target_layer(e.NewObject):
+        _mark_massing_dirty()
         debounce_trigger()
     try:
         if listener_active and _is_object_on_layer(e.NewObject, PLOT_LAYER_NAME):
@@ -494,6 +543,7 @@ def on_delete(sender, e):
     except:
         pass
     # Cannot reliably check layer on delete -> may trigger for any delete
+    _mark_massing_dirty()
     debounce_trigger()
 
 
@@ -599,7 +649,7 @@ def _try_import_finished_job():
             continue
 
         if not os.path.exists(done_flag):
-            continue  # not finished yet
+            continue # not finished yet
 
         # Ignore DONE older than watcher start
         try:
@@ -679,7 +729,7 @@ def setup_layer_listener():
 
     _start_watcher_thread()
 
-    # If there is no active job yet (e.g., listener started after a job finished), seed it.
+    # If there is no active job yet (e.g., listener started after a job finished), seed it
     _seed_active_job_dir_from_latest_done()
 
     # Apply current UI toggles on boot
