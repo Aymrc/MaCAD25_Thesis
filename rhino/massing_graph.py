@@ -32,6 +32,12 @@ DEBOUNCE_SECONDS = 1.0
 # Sticky keys (for internal state)
 STK_LISTENER_ON   = "massing_graph_listener_on"
 STK_DEBOUNCE_FLAG = "massing_graph_debounce_flag"
+
+# Clean IDs like "D-L01" instead of "D|L01|c78adb"
+USE_CLEAN_NODE_IDS = True
+INCLUDE_RANDOM_UID = False # set True later if needed
+
+
 # =========================
 
 
@@ -157,19 +163,39 @@ def build_graph_from_active_doc(floor_h, tol):
     node_id = {}
     for bl, levels_dict in per_building_levels.items():
         for lvl, rec in levels_dict.items():
-            if rec["area"] <= 0.0: continue
+            if rec["area"] <= 0.0:
+                continue
             cx = rec["cx"]/rec["area"]; cy = rec["cy"]/rec["area"]; cz = rec["cz"]/rec["area"]
             bb = rec["bbox"]
-            nid = "{}|L{:02d}|{}".format(bl, int(lvl), uuid.uuid4().hex[:6])
-            nodes.append({
-                "id": nid, "type": "level", "building_id": bl, "level": int(lvl),
+
+            # --- Clean ID ---
+            clean_id = f"{bl}-L{int(lvl):02d}"
+
+            # short random uid (not in the main id)
+            short_uid = uuid.uuid4().hex[:6] if INCLUDE_RANDOM_UID else None
+
+            nid = clean_id if USE_CLEAN_NODE_IDS else f"{bl}|L{int(lvl):02d}|{uuid.uuid4().hex[:6]}"
+
+            node_obj = {
+                "id": nid,
+                "type": "level",
+                "building_id": bl,
+                "level": int(lvl),
                 "z_span": [float(rec["z0"]), float(rec["z1"])],
                 "centroid": [float(cx), float(cy), float(cz)],
                 "bbox": [float(bb.Min.X), float(bb.Min.Y), float(bb.Min.Z),
-                         float(bb.Max.X), float(bb.Max.Y), float(bb.Max.Z)],
-                "area": float(rec["area"])
-            })
+                        float(bb.Max.X), float(bb.Max.Y), float(bb.Max.Z)],
+                "area": float(rec["area"]),
+                # --- extras for UI/clarity ---
+                "label": f"{bl} • L{int(lvl):02d}",
+                "clean_id": clean_id
+            }
+            if short_uid:
+                node_obj["uid"] = short_uid
+
+            nodes.append(node_obj)
             node_id[(bl, int(lvl))] = nid
+
 
     # vertical edges
     for bl, levels_dict in per_building_levels.items():
