@@ -13,6 +13,8 @@ import subprocess  # moved to top-level to avoid local shadowing
 import osmnx as ox
 from osmnx.projection import project_gdf
 import geopandas as gpd
+from datetime import datetime
+
 
 def getenv_float(name, default):
     try:
@@ -24,10 +26,18 @@ def main():
     lat = getenv_float("LAT", 41.3874)
     lon = getenv_float("LON", 2.1686)
     radius_km = getenv_float("RADIUS_KM", 0.5)
-    default_runtime = os.path.abspath(os.path.join(os.path.dirname(__file__), "runtime", "osm", "_tmp"))
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    knowledge_dir = os.path.join(project_root, "knowledge")
+    # Create a timestamp-based folder name in knowledge/osm/
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    default_runtime = os.path.abspath(os.path.join(knowledge_dir, "osm", f"osm_{timestamp}"))
+
+    # If OUT_DIR is set, respect it; otherwise use our timestamp folder
     out_dir = os.environ.get("OUT_DIR", default_runtime)
 
+    # Ensure directory exists
     os.makedirs(out_dir, exist_ok=True)
+
 
     # Configure OSMnx cache to speed up repeated queries
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -136,10 +146,27 @@ def main():
             env = os.environ.copy()
             env["OUT_DIR"] = out_dir
             graph_script = os.path.join(os.path.dirname(__file__), "graph_builder.py")
-            subprocess.check_call([sys.executable, graph_script], cwd=os.path.dirname(__file__), env=env)
-            print("Graph built successfully.", flush=True)
+
+            log_out = os.path.join(out_dir, "graph_builder_stdout.log")
+            log_err = os.path.join(out_dir, "graph_builder_stderr.log")
+
+            with open(log_out, "w") as fout, open(log_err, "w") as ferr:
+                proc = subprocess.Popen(
+                    [sys.executable, "-u", graph_script],
+                    cwd=os.path.dirname(__file__),
+                    env=env,
+                    stdout=fout,
+                    stderr=ferr
+                )
+                ret = proc.wait()
+
+            if ret == 0 and os.path.exists(os.path.join(out_dir, "graph.json")):
+                print("Graph built successfully.", flush=True)
+            else:
+                print("Graph build failed. See logs:", log_out, log_err, flush=True)
+
         except Exception as _e:
-            print("Graph build failed: {0}".format(_e), flush=True)
+            print("Graph build failed (exception): {0}".format(_e), flush=True)
 
         with open(os.path.join(out_dir, "DONE.txt"), "w") as f:
             f.write("ok")

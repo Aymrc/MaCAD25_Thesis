@@ -7,6 +7,7 @@
 
 import os, sys, threading, time, json, imp
 
+
 import Rhino
 import scriptcontext as sc
 import rhinoscriptsyntax as rs
@@ -43,10 +44,27 @@ WATCHER_STARTED_AT = None  # epoch seconds to ignore old DONE.txt
 # ---- Paths (project structure aware) ----
 THIS_DIR = os.path.dirname(__file__)
 PROJECT_DIR = os.path.dirname(THIS_DIR)
+
+# knowledge directory (all live state goes here)
+KNOWLEDGE_DIR = os.path.join(PROJECT_DIR, "knowledge")
+OSM_DIR = os.path.join(KNOWLEDGE_DIR, "osm")  # OSM jobs root
+
+# Ensure destination exists
+try:
+    if not os.path.exists(OSM_DIR):
+        os.makedirs(OSM_DIR)
+except Exception as _e:
+    try:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] Could not create OSM_DIR: {0}".format(_e))
+    except Exception:
+        pass
+
+# UI state JSON lives inside knowledge/osm
+UI_STATE_PATH = os.path.join(OSM_DIR, "ui_state.json")
+
+# Keep importer dir (module lives in /context)
 CONTEXT_DIR = os.path.join(PROJECT_DIR, "context")
-OSM_DIR = os.path.join(CONTEXT_DIR, "runtime", "osm")
 IMPORTER_DIR = os.path.join(PROJECT_DIR, "context")
-UI_STATE_PATH = os.path.join(CONTEXT_DIR, "runtime", "ui_state.json")
 
 # Ensure importer is importable
 if IMPORTER_DIR not in sys.path:
@@ -117,7 +135,6 @@ except Exception as _e:
     osm_importer = None
     Rhino.RhinoApp.WriteLine("[rhino_listener] Warning: could not import osm_importer: {0}".format(_e))
 
-
 # ===========================
 # Layer helpers (robust)
 # ===========================
@@ -152,6 +169,26 @@ def _is_object_on_layer(ev_obj, target_name):
 def is_on_target_layer(rh_obj):
     return _is_object_on_layer(rh_obj, TARGET_LAYER_NAME)
 
+
+
+# === current-layer protection ===
+def _save_current_layer_index():
+    """Remember the user's current layer index."""
+    try:
+        return sc.doc.Layers.CurrentLayerIndex
+    except:
+        return None
+
+
+def _restore_current_layer_index(idx):
+    """Restore the user's current layer index if still valid."""
+    try:
+        if idx is None:
+            return
+        if 0 <= idx < sc.doc.Layers.Count:
+            sc.doc.Layers.SetCurrentLayerIndex(idx, True)
+    except:
+        pass
 
 
 # ===========================
@@ -218,12 +255,14 @@ def _read_ui_state():
 
 
 def _apply_ui_preview_state():
-    """Enable/disable conduits according to ui_state.json."""
+    """Enable/disable conduits according to ui_state.json without changing the current layer."""
     try:
         st = _read_ui_state()
         job_dir = _get_active_job_dir()
         if not job_dir or not os.path.isdir(job_dir):
+            Rhino.RhinoApp.WriteLine("[rhino_listener] No active job_dir to apply UI state.")
             return
+
         # Context Graph
         try:
             if st.get("context_preview"):
@@ -234,15 +273,26 @@ def _apply_ui_preview_state():
                     stop_preview()
         except:
             pass
+
         # Plot Graph
         try:
             if st.get("plot_preview") and EP:
                 EP.start_evaluation_preview(job_dir)
+                Rhino.RhinoApp.WriteLine("[rhino_listener] Plot preview: ENABLED")
             else:
                 if EP:
                     EP.stop_evaluation_preview()
+                    Rhino.RhinoApp.WriteLine("[rhino_listener] Plot preview: DISABLED")
         except:
             pass
+
+        # Log context toggle status
+        try:
+            Rhino.RhinoApp.WriteLine("[rhino_listener] Context preview: {0}".format(
+                "ENABLED" if st.get("context_preview") else "DISABLED"))
+        except:
+            pass
+
     except Exception as e:
         Rhino.RhinoApp.WriteLine("[rhino_listener] apply_ui_preview_state error: {0}".format(e))
 
@@ -469,6 +519,65 @@ def _try_evaluation_preview(job_dir):
 
 
 # ===========================
+# Job folder renaming (timestamped)
+# ===========================
+def _is_timestamped_job_name(name):
+    """Return True if name matches osm_YYYYMMDD_HHMMSS or osm_YYYYMMDD_HHMMSS_N."""
+    try:
+        return bool(re.match(r"^osm_\d{8}_\d{6}(?:_\d+)?$", name or ""))
+    except:
+        return False
+
+
+def _format_ts_from_epoch(ts):
+    try:
+        return time.strftime("%Y%m%d_%H%M%S", time.localtime(float(ts)))
+    except:
+        return time.strftime("%Y%m%d_%H%M%S")
+
+
+def _rename_job_dir_to_timestamp(job_dir):
+    """Rename a finished job folder to osm_YYYYMMDD_HHMMSS[_N] based on DONE.txt mtime."""
+    try:
+        base = os.path.basename(job_dir.rstrip("\\/"))
+        if _is_timestamped_job_name(base):
+            return job_dir  # already formatted
+
+        done_flag = os.path.join(job_dir, "DONE.txt")
+        if os.path.exists(done_flag):
+            try:
+                ts = os.path.getmtime(done_flag)
+            except:
+                ts = time.time()
+        else:
+            ts = time.time()
+
+        new_base = "osm_" + _format_ts_from_epoch(ts)
+        parent = os.path.dirname(job_dir)
+        candidate = os.path.join(parent, new_base)
+
+        if os.path.exists(candidate):
+            i = 2
+            while True:
+                alt = os.path.join(parent, "{}_{}".format(new_base, i))
+                if not os.path.exists(alt):
+                    candidate = alt
+                    break
+                i += 1
+
+        try:
+            os.rename(job_dir, candidate)
+            Rhino.RhinoApp.WriteLine("[rhino_listener] Renamed job:\n  {0}\n-> {1}".format(job_dir, candidate))
+            return candidate
+        except Exception as e:
+            Rhino.RhinoApp.WriteLine("[rhino_listener] Rename failed ({0}); keeping original.".format(e))
+            return job_dir
+    except Exception as e:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] _rename_job_dir_to_timestamp error: {0}".format(e))
+        return job_dir
+
+
+# ===========================
 # Main change handler + debounce
 # ===========================
 def handle_layer_change():
@@ -630,6 +739,8 @@ def _job_id_from_path(p):
 
 def _import_job_on_ui(job_dir, job_id, imported_registry):
     def _do_import():
+        # Save current layer before any operation that might change it
+        saved_layer_idx = _save_current_layer_index()
         try:
             Rhino.RhinoApp.WriteLine("[rhino_listener] Importing job {0} on UI thread...".format(job_id))
             try:
@@ -637,6 +748,7 @@ def _import_job_on_ui(job_dir, job_id, imported_registry):
             except:
                 pass
 
+            # Import/bake OSM content; this may change the current layer internally
             total = osm_importer.import_osm_folder(job_dir)
             Rhino.RhinoApp.WriteLine("[rhino_listener] OSM import complete ({0} elements).".format(total))
 
@@ -644,10 +756,10 @@ def _import_job_on_ui(job_dir, job_id, imported_registry):
             _set_active_job_dir(job_dir)
             sc.sticky[STICKY_EVAL_PREVIEW_MTIME] = None
 
-            # Apply current UI preview state for this graph
+            # Apply current UI preview state for this graph (does not touch current layer)
             _apply_ui_preview_state_if_changed()
 
-            # Try to start graph preview if available (and if UI toggle says so)
+            # Graph preview info
             try:
                 gjson = os.path.join(job_dir, "graph.json")
                 if start_preview and os.path.exists(gjson):
@@ -661,6 +773,8 @@ def _import_job_on_ui(job_dir, job_id, imported_registry):
         except Exception as e:
             Rhino.RhinoApp.WriteLine("[rhino_listener] Import error for job {0}: {1}".format(job_id, e))
         finally:
+            # Always restore user's current layer
+            _restore_current_layer_index(saved_layer_idx)
             try:
                 rs.EnableRedraw(True)
             except:
@@ -735,6 +849,13 @@ def _try_import_finished_job():
                 continue
 
         Rhino.RhinoApp.WriteLine("[rhino_listener] OSM job {0} finished. Queuing import...".format(job_id))
+
+        # Rename job folder to timestamp format before importing
+        renamed_dir = _rename_job_dir_to_timestamp(job_dir)
+        if renamed_dir != job_dir:
+            job_dir = renamed_dir
+            job_id = os.path.basename(job_dir.rstrip("\\/"))
+
         _import_job_on_ui(job_dir, job_id, imported)
         # Handle one job per tick
         break
@@ -749,7 +870,7 @@ def _watcher_loop():
             job_dir = _get_active_job_dir()
             if job_dir:
                 _try_evaluation_preview(job_dir)
-            # and reflect UI toggles if they changed
+            # and reflect UI toggles if they changed (does not change current layer)
             _apply_ui_preview_state_if_changed()
         except Exception as e:
             Rhino.RhinoApp.WriteLine("[rhino_listener] Watcher error: {0}".format(e))
@@ -778,11 +899,16 @@ def setup_layer_listener():
 
     json_path = os.path.join(os.path.dirname(__file__), "layers.json")
     Rhino.RhinoApp.WriteLine("[rhino_listener] Creating layers from: {0}".format(json_path))
+
+    # Protect user's current layer during layer creation
+    saved_layer_idx = _save_current_layer_index()
     try:
         create_layers_from_json(json_path)
         Rhino.RhinoApp.WriteLine("[rhino_listener] Layers created.")
     except Exception as e:
         Rhino.RhinoApp.WriteLine("[rhino_listener] Failed to create layers: {0}".format(e))
+    finally:
+        _restore_current_layer_index(saved_layer_idx)
 
     Rhino.RhinoDoc.AddRhinoObject += on_add
     Rhino.RhinoDoc.ModifyObjectAttributes += on_modify
@@ -803,7 +929,7 @@ def setup_layer_listener():
     # If there is no active job yet (e.g., listener started after a job finished), seed it
     _seed_active_job_dir_from_latest_done()
 
-    # Apply current UI toggles on boot
+    # Apply current UI toggles on boot (does not change current layer)
     _apply_ui_preview_state_if_changed()
 
 

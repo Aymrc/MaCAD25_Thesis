@@ -5,6 +5,6 @@ cache/
 llm/__pycache__/*
 
 # --- Project runtime ---
-context/runtime/osm/
+knowledge/osm/
 lib/*
 knowledge/briefs/
