@@ -576,6 +576,8 @@
 
   /* ---------------- 3D Graph (background, interactive) ---------------- */
   // Expose helpers globally so app.js tab logic can call them
+  /* ---------------- 3D Graph (background, interactive) ---------------- */
+  // Expose helpers globally so app.js tab logic can call them
   window.showGraph3DBackground = function showGraph3DBackground(dataGraph) {
     if (typeof ForceGraph3D !== "function") return;
     const mount = document.getElementById("graph3d");
@@ -583,15 +585,38 @@
 
     ensureGraph3DFullscreen();
 
-    const nodes = (dataGraph.nodes || []).map(n => ({
-      id: n.id,
-      name: n.label || n.id,
-      typology: n.typology || "",
-      footprint: n.footprint || 0
+    const nodes = (dataGraph.nodes || []).map(n => {
+      const buildingId = n.building_id || (typeof n.id === "string" ? n.id.split("|")[0] : "");
+      return {
+        id: n.id,
+        name: n.label || n.clean_id || n.id, // prefer clean label if present
+        typology: n.typology || "",
+        footprint: n.footprint || 0,
+        buildingId,
+        kind: n.type || "",
+        area: Number.isFinite(n.area) ? n.area : null,
+        level: Number.isFinite(n.level) ? n.level : null
+      };
+    });
+
+    const links = (dataGraph.edges || dataGraph.links || []).map(e => ({
+      source: e.source,
+      target: e.target,
+      type: e.type || "adjacent"
     }));
-    const links = (dataGraph.edges || []).map(e => ({
-      source: e.source, target: e.target, type: e.type || "adjacent"
-    }));
+
+    // --- Build monochrome gradient per building (light grey -> black) ---
+    const uniqueBuildings = Array.from(new Set(
+      nodes.map(n => n.buildingId).filter(Boolean).sort()
+    ));
+
+    const colorMap = {};
+    uniqueBuildings.forEach((bid, idx) => {
+      const t = idx / Math.max(1, uniqueBuildings.length - 1); // 0..1
+      const shade = Math.round(238 - t * 238); // 238 -> 0
+      const hex = shade.toString(16).padStart(2, "0");
+      colorMap[bid] = `#${hex}${hex}${hex}`;
+    });
 
     const deg = new Map(nodes.map(n => [n.id, 0]));
     links.forEach(l => {
@@ -600,20 +625,39 @@
     });
 
     if (!window.Graph3DInstance) {
-      // allow interaction; nothing overlays the empty areas
       window.Graph3DInstance = ForceGraph3D()(mount)
         .backgroundColor("#f0f0f0")
         .cooldownTicks(500)
         .d3VelocityDecay(0.12)
-        .nodeRelSize(8)
+        .nodeRelSize(15)
         .nodeOpacity(1)
-        .nodeLabel(n => `${n.name}${n.typology ? " • " + n.typology : ""}`)
-        .nodeColor(() => "#000000ff")
-        .linkColor(() => "rgba(138, 138, 138, 1)")
+        .nodeLabel(n => {
+          if (n.id === "PLOT" || n.kind === "plot") return "Plot";
+          const parts = [];
+
+          if (n.buildingId) parts.push(`<b>Building:</b> ${n.buildingId}`);
+          parts.push(`<b>Name:</b> ${n.name}`);
+          if (Number.isFinite(n.level)) parts.push(`<b>Level:</b> ${n.level}`);
+
+          if (Number.isFinite(n.area)) {
+            const rounded = Math.round(n.area);
+            parts.push(`<b>Area:</b> ${rounded.toLocaleString()} m²`);
+          }
+          
+          if (n.typology) parts.push(`<b>Typology:</b> ${n.typology}`);
+          return parts.join("<br>"); // multi-line
+        })
         .enableNodeDrag(true)
         .showNavInfo(false)
         .warmupTicks(60);
     }
+
+    window.Graph3DInstance
+      .nodeColor(n => {
+        if (n.id === "PLOT" || n.kind === "plot") return "#ff0000"; // plot node in red
+        return colorMap[n.buildingId] || "#000000";
+      })
+      .linkColor(() => "rgba(138, 138, 138, 1)");
 
     window.Graph3DInstance.graphData({ nodes, links });
     resizeGraph3D();
@@ -642,15 +686,15 @@
 
     setTimeout(() => {
       try {
-        window.Graph3DInstance.zoomToFit(600, 8); // ms, paddingPx
+        window.Graph3DInstance.zoomToFit(600, 8);
         const controls = window.Graph3DInstance.controls?.();
-        if (controls && typeof controls.dollyIn === "function") {
-          controls.dollyIn(1.2);
-          controls.update();
-        }
+        if (controls?.dollyIn) { controls.dollyIn(1.2); controls.update(); }
       } catch {}
     }, 150);
   };
+
+
+
 
   window.clearGraph = function clearGraph() {
     if (window.Graph3DInstance) {

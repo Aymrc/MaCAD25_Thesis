@@ -43,29 +43,8 @@ def get_universal_python_path():
     - If Rhino is running with IronPython, this will be an external executable.
     - Avoid using shutil.which (not available in IronPython 2.7).
     """
-    # 1) If sys.executable points to something valid and is NOT IronPython, use it.
-    if sys.executable and os.path.exists(sys.executable):
-        v = ""
-        try:
-            v = sys.version
-        except:
-            v = ""
-        if "IronPython" not in v:
-            _safe_print("Using current Python: {}".format(sys.executable))
-            return sys.executable
 
-    # 2) Search in PATH using distutils.spawn (available in IronPython 2.7)
-    try:
-        import distutils.spawn
-        for candidate in ('python', 'python3', 'py'):
-            path = distutils.spawn.find_executable(candidate)
-            if path and os.path.exists(path):
-                _safe_print("Found Python in PATH: {}".format(path))
-                return path
-    except Exception as e:
-        _safe_print("PATH lookup failed: {}".format(e))
-
-    # 3) Known paths (includes those from config.py if set)
+    # 1) Known paths (includes those from config.py if set)
     username = os.getenv("USERNAME") or ""
     possible_paths = [
         python_exe_AB,
@@ -86,6 +65,28 @@ def get_universal_python_path():
         if path and os.path.exists(path):
             _safe_print("Found fallback Python: {}".format(path))
             return path
+        
+    # 2) If sys.executable points to something valid and is NOT IronPython, use it.
+    if sys.executable and os.path.exists(sys.executable):
+        v = ""
+        try:
+            v = sys.version
+        except:
+            v = ""
+        if "IronPython" not in v:
+            _safe_print("Using current Python: {}".format(sys.executable))
+            return sys.executable
+
+    # 3) Search in PATH using distutils.spawn (available in IronPython 2.7)
+    try:
+        import distutils.spawn
+        for candidate in ('python', 'python3', 'py'):
+            path = distutils.spawn.find_executable(candidate)
+            if path and os.path.exists(path):
+                _safe_print("Found Python in PATH: {}".format(path))
+                return path
+    except Exception as e:
+        _safe_print("PATH lookup failed: {}".format(e))
 
     _safe_print("No valid Python interpreter found.")
     return None
