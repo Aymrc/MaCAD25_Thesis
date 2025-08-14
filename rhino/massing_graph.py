@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-# massing_graph_export.py
+# massing_graph.py
+
 # Build a graph (nodes + links) from Rhino geometry on MASSING/PLOT layers and save to JSON.
 # - No conduit / no viewport preview
 # - Can run once (manual) or attach a debounced listener to auto-export on changes.
@@ -7,7 +8,7 @@
 import os, uuid, json, time, string
 import Rhino
 import Rhino.Geometry as rg
-import Rhino.Geometry.Intersect as rgi  # kept in case you later re-add sections
+import Rhino.Geometry.Intersect as rgi  # kept for future use
 import scriptcontext as sc
 import rhinoscriptsyntax as rs
 
@@ -15,18 +16,19 @@ import rhinoscriptsyntax as rs
 # CONFIG
 # =========================
 LAYER_MASSING_ROOT = "MASSING"
-LAYER_PLOT         = "PLOT"
+LAYER_PLOT = "PLOT"
 
-FLOOR_HEIGHT       = 3.0
-TOL                = sc.doc.ModelAbsoluteTolerance or 0.001
-MIN_PIECE_AREA     = 0.0
+FLOOR_HEIGHT = 3.0
+TOL = sc.doc.ModelAbsoluteTolerance or 0.001
+MIN_PIECE_AREA = 0.0
 
 # Where to write the JSON graph
-REPO_ROOT      = r"C:\Users\broue\Documents\IAAC MaCAD\Master_Thesis\MaCAD25_Thesis"
-KNOWLEDGE_PATH = os.path.join(REPO_ROOT, "knowledge", "massing_graph.json")
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(CURRENT_DIR) # parent of /rhino
+KNOWLEDGE_PATH = os.path.join(PROJECT_DIR, "knowledge", "massing_graph.json")
 
 # Listener settings
-ENABLE_LISTENER  = False     # <- set True to auto-export on geometry changes
+ENABLE_LISTENER  = False # <- set True to auto-export on geometry changes
 DEBOUNCE_SECONDS = 1.0
 
 # Sticky keys (for internal state)
@@ -45,17 +47,27 @@ INCLUDE_RANDOM_UID = False # set True later if needed
 def _ensure_dir(path):
     d = os.path.dirname(path)
     if d and not os.path.exists(d):
-        os.makedirs(d)
+        try:
+            os.makedirs(d)
+        except Exception as e:
+            Rhino.RhinoApp.WriteLine("[massing_graph_export] Could not create folder: {0}".format(d))
 
 def _to_brep(g):
     if isinstance(g, rg.Brep): return g
-    if isinstance(g, rg.Extrusion): return g.ToBrep(True)
+    if isinstance(g, rg.Extrusion):
+        try:
+            return g.ToBrep(True)
+        except:
+            return None
     return None
 
 def _bbox_union(bb, other):
     if bb is None: return other
     if other is None: return bb
-    return rg.BoundingBox.Union(bb, other)
+    try:
+        return rg.BoundingBox.Union(bb, other)
+    except:
+        return bb
 
 def _bbox_z(b):
     bb = b.GetBoundingBox(True)
@@ -86,31 +98,43 @@ def _iter_massing_breps():
     idxs = _layer_indices_under(LAYER_MASSING_ROOT)
     if not idxs: return
     for obj in sc.doc.Objects:
-        if obj.Attributes.LayerIndex in idxs:
-            b = _to_brep(obj.Geometry)
-            if b: yield b
+        try:
+            if obj.Attributes.LayerIndex in idxs:
+                b = _to_brep(obj.Geometry)
+                if b: 
+                    yield b
+        except:
+            pass
 
 def _get_plot_center():
     idxs = _layer_indices_under(LAYER_PLOT)
     if not idxs: return None
     pts = []
     for obj in sc.doc.Objects:
-        if obj.Attributes.LayerIndex in idxs:
-            try:
+        try:
+            if obj.Attributes.LayerIndex in idxs:
                 bb = obj.Geometry.GetBoundingBox(True)
                 pts.append(bb.Center)
-            except: pass
+        except:
+            pass
     if not pts: return None
     sx = sum(pt.X for pt in pts); sy = sum(pt.Y for pt in pts); sz = sum(pt.Z for pt in pts)
     return rg.Point3d(sx/len(pts), sy/len(pts), sz/len(pts))
 
 def _area_of_brep(b):
-    amp = rg.AreaMassProperties.Compute(b)
-    return amp.Area if amp else 0.0
+    try:
+        amp = rg.AreaMassProperties.Compute(b)
+        return amp.Area if amp else 0.0
+    except:
+        return 0.0
 
 def _centroid_of_brep(b):
-    amp = rg.AreaMassProperties.Compute(b)
-    return amp.Centroid if amp else b.GetBoundingBox(True).Center
+    try:
+        amp = rg.AreaMassProperties.Compute(b)
+        return amp.Centroid if amp else b.GetBoundingBox(True).Center
+    except:
+        bb = b.GetBoundingBox(True)
+        return bb.Center
 
 
 # -------- geometry → graph --------
@@ -124,8 +148,16 @@ def build_graph_from_active_doc(floor_h, tol):
     letters = iter(string.ascii_uppercase)
     b_letter = {}
     for b in breps:
-        try: b_letter[id(b)] = next(letters)
-        except StopIteration: b_letter[id(b)] = "X"
+        try:
+            b_letter[id(b)] = next(letters)
+        except StopIteration:
+            b_letter[id(b)] = "X"
+        except TypeError:
+            # IronPython 2.7 doesn't have next(...) as a builtin for iterators created this way
+            try:
+                b_letter[id(b)] = letters.next()
+            except StopIteration:
+                b_letter[id(b)] = "X"
 
     # slicers (levels)
     zmins, zmaxs = [], []
@@ -138,12 +170,16 @@ def build_graph_from_active_doc(floor_h, tol):
     per_building_levels = {}
     for b in breps:
         bl = b_letter[id(b)]
-        parts = rg.Brep.CreateBooleanSplit([b], splitters, tol) if splitters else [b]
+        try:
+            parts = rg.Brep.CreateBooleanSplit([b], splitters, tol) if splitters else [b]
+        except:
+            parts = [b]
         parts = list(parts) if parts else [b]
         accum = {}
         for p in parts:
             a = _area_of_brep(p)
-            if MIN_PIECE_AREA > 0.0 and a < MIN_PIECE_AREA: continue
+            if MIN_PIECE_AREA > 0.0 and a < MIN_PIECE_AREA: 
+                continue
             z0,z1,bb = _bbox_z(p)
             zc = 0.5*(z0+z1)
             lvl = int((zc - z_min)//float(floor_h))
@@ -165,16 +201,18 @@ def build_graph_from_active_doc(floor_h, tol):
         for lvl, rec in levels_dict.items():
             if rec["area"] <= 0.0:
                 continue
-            cx = rec["cx"]/rec["area"]; cy = rec["cy"]/rec["area"]; cz = rec["cz"]/rec["area"]
+            # guard divide-by-zero
+            area = rec["area"] if rec["area"] != 0 else 1.0
+            cx = rec["cx"]/area; cy = rec["cy"]/area; cz = rec["cz"]/area
             bb = rec["bbox"]
 
             # --- Clean ID ---
-            clean_id = f"{bl}-L{int(lvl):02d}"
+            clean_id = "{}-L{:02d}".format(bl, int(lvl))
 
             # short random uid (not in the main id)
             short_uid = uuid.uuid4().hex[:6] if INCLUDE_RANDOM_UID else None
 
-            nid = clean_id if USE_CLEAN_NODE_IDS else f"{bl}|L{int(lvl):02d}|{uuid.uuid4().hex[:6]}"
+            nid = clean_id if USE_CLEAN_NODE_IDS else "{}|L{:02d}|{}".format(bl, int(lvl), uuid.uuid4().hex[:6])
 
             node_obj = {
                 "id": nid,
@@ -187,7 +225,7 @@ def build_graph_from_active_doc(floor_h, tol):
                         float(bb.Max.X), float(bb.Max.Y), float(bb.Max.Z)],
                 "area": float(rec["area"]),
                 # --- extras for UI/clarity ---
-                "label": f"{bl} • L{int(lvl):02d}",
+                "label": "{} • L{:02d}".format(bl, int(lvl)),
                 "clean_id": clean_id
             }
             if short_uid:
@@ -231,12 +269,15 @@ def build_graph_from_active_doc(floor_h, tol):
 
 # -------- save --------
 def save_graph(path=KNOWLEDGE_PATH, floor_h=FLOOR_HEIGHT, tol=TOL):
-    data = build_graph_from_active_doc(floor_h, tol)
-    _ensure_dir(path)
-    with open(path, "w") as f:
-        json.dump({"nodes": data["nodes"], "links": data["links"], "meta": data["meta"]}, f, indent=2)
-    Rhino.RhinoApp.WriteLine("[massing_graph_export] Saved graph to: {0}".format(path))
-    Rhino.RhinoApp.WriteLine("[massing_graph_export] Nodes: {0}, Edges: {1}".format(len(data["nodes"]), len(data["links"])))
+    try:
+        data = build_graph_from_active_doc(floor_h, tol)
+        _ensure_dir(path)
+        with open(path, "w") as f:
+            json.dump({"nodes": data["nodes"], "links": data["links"], "meta": data["meta"]}, f, indent=2)
+        Rhino.RhinoApp.WriteLine("[massing_graph_export] Saved graph to: {0}".format(path))
+        Rhino.RhinoApp.WriteLine("[massing_graph_export] Nodes: {0}, Edges: {1}".format(len(data["nodes"]), len(data["links"])))
+    except Exception as e:
+        Rhino.RhinoApp.WriteLine("[massing_graph_export] Save error: {0}".format(e))
 
 
 # -------- minimal listener (optional) --------
@@ -284,15 +325,34 @@ def _is_on_watched_layer(ev_obj):
     return _layer_matches(lname, LAYER_MASSING_ROOT) or _layer_matches(lname, LAYER_PLOT)
 
 def _on_add(sender, e):
-    if ENABLE_LISTENER and _is_on_watched_layer(e.Object):
+    if not ENABLE_LISTENER: 
+        return
+    try:
+        lname = _layer_name_from_event_obj(e.Object)
+        if lname is None or _is_on_watched_layer(e.Object):
+            _debounce_trigger()
+    except:
         _debounce_trigger()
 
 def _on_modify(sender, e):
-    if ENABLE_LISTENER and _is_on_watched_layer(e.Object):
+    if not ENABLE_LISTENER: 
+        return
+    try:
+        lname = _layer_name_from_event_obj(e.Object)
+        if lname is None or _is_on_watched_layer(e.Object):
+            _debounce_trigger()
+    except:
         _debounce_trigger()
 
 def _on_replace(sender, e):
-    if ENABLE_LISTENER and _is_on_watched_layer(e.NewObject):
+    if not ENABLE_LISTENER: 
+        return
+    try:
+        target = e.NewObject if hasattr(e, "NewObject") else e.Object
+        lname = _layer_name_from_event_obj(target)
+        if lname is None or _is_on_watched_layer(target):
+            _debounce_trigger()
+    except:
         _debounce_trigger()
 
 def _on_delete(sender, e):

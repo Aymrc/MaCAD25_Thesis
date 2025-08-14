@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
+
 # rhino_listener.py
+
 # Listen to the opened Rhino window, auto-import finished OSM jobs, export a boundary
 # from the PLOT layer, trigger evaluation, and enable evaluation preview (UI-thread safe).
 
-import os, sys, threading, time, json
+import os, sys, threading, time, json, imp
 
 import Rhino
 import scriptcontext as sc
 import rhinoscriptsyntax as rs
+import Rhino.Geometry as rg
 
 import System
 from System import Action
@@ -70,15 +73,42 @@ except Exception:
     EP = None
 
 # Massing graph exporter (knowledge/massing_graph.json)
+# save_graph = None
+# try:
+#     THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+
+#     MG_FILENAME = "massing_graph.py"
+#     MG_PATH = os.path.join(THIS_DIR, MG_FILENAME)
+
+#     if not os.path.exists(MG_PATH):
+#         Rhino.RhinoApp.WriteLine("[rhino_listener] ERROR: exporter file not found: {0}".format(MG_PATH))
+#     else:
+#         mod = imp.load_source("massing_graph", MG_PATH)
+#         save_graph = getattr(mod, "save_graph", None)
+#         Rhino.RhinoApp.WriteLine("[rhino_listener] Loaded {0}; save_graph callable? {1}".format(MG_PATH, callable(save_graph)))
+# except Exception as _e:
+#     Rhino.RhinoApp.WriteLine("[rhino_listener] ERROR importing exporter: {0}".format(_e))
+#     save_graph = None
 save_graph = None
-try:
-    if THIS_DIR not in sys.path:
-        sys.path.append(THIS_DIR)
-    from massing_graph import save_graph  # provides save_graph()
-    Rhino.RhinoApp.WriteLine("[rhino_listener] massing_graph loaded.")
-except Exception as _e:
-    Rhino.RhinoApp.WriteLine("[rhino_listener] Warning: could not import massing_graph: {0}".format(_e))
-    save_graph = None
+
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+MG_FILENAME = "massing_graph.py"
+MG_PATH = os.path.join(THIS_DIR, MG_FILENAME)
+
+def _load_exporter():
+    """Load/Reload the massing exporter; return callable save_graph or None."""
+    try:
+        if not os.path.exists(MG_PATH):
+            Rhino.RhinoApp.WriteLine("[rhino_listener] ERROR: exporter not found: {0}".format(MG_PATH))
+            return None
+        mod = imp.load_source("massing_graph", MG_PATH)
+        fn = getattr(mod, "save_graph", None)
+        Rhino.RhinoApp.WriteLine("[rhino_listener] Exporter loaded from {0}; save_graph callable? {1}".format(MG_PATH, callable(fn)))
+        return fn if callable(fn) else None
+    except Exception as _e:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] ERROR importing exporter: {0}".format(_e))
+        return None
+save_graph = _load_exporter()
 
 try:
     import osm_importer  # from context/osm_importer.py
@@ -351,15 +381,35 @@ def _mark_massing_dirty():
     sc.sticky[STICKY_MASSING_DIRTY] = True
 
 
+# def _export_massing_graph_now():
+#     """Build and save massing_graph.json on the UI thread (safe)."""
+#     if not save_graph:
+#         Rhino.RhinoApp.WriteLine("[rhino_listener] massing_graph exporter not available.")
+#         return
+#     def _do():
+#         try:
+#             save_graph()  # writes knowledge/massing_graph.json
+#             Rhino.RhinoApp.WriteLine("[rhino_listener] Massing graph exported for UI.")
+#         except Exception as e:
+#             Rhino.RhinoApp.WriteLine("[rhino_listener] Massing graph export failed: {0}".format(e))
+#     try:
+#         Rhino.RhinoApp.InvokeOnUiThread(Action(_do))
+#     except Exception as e:
+#         Rhino.RhinoApp.WriteLine("[rhino_listener] UI invoke failed ({0}); running inline.".format(e))
+#         _do()
 def _export_massing_graph_now():
     """Build and save massing_graph.json on the UI thread (safe)."""
-    if not save_graph:
-        Rhino.RhinoApp.WriteLine("[rhino_listener] massing_graph exporter not available.")
-        return
     def _do():
+        global save_graph
         try:
-            save_graph()  # writes knowledge/massing_graph.json
-            Rhino.RhinoApp.WriteLine("[rhino_listener] Massing graph exported for UI.")
+            if not callable(save_graph):
+                # Try to (re)load once right before exporting
+                save_graph = _load_exporter()
+            if callable(save_graph):
+                save_graph()  # writes knowledge/massing_graph.json
+                Rhino.RhinoApp.WriteLine("[rhino_listener] Massing graph exported for UI.")
+            else:
+                Rhino.RhinoApp.WriteLine("[rhino_listener] massing_graph exporter not available (still None).")
         except Exception as e:
             Rhino.RhinoApp.WriteLine("[rhino_listener] Massing graph export failed: {0}".format(e))
     try:
@@ -462,6 +512,23 @@ def handle_layer_change():
         is_running = False
 
 
+# def debounce_trigger():
+#     global debounce_timer
+#     if debounce_timer and debounce_timer.is_alive():
+#         return
+
+#     def delayed():
+#         time.sleep(DEBOUNCE_SECONDS)
+#         if not listener_active:
+#             return
+#         handle_layer_change()
+
+#     debounce_timer = threading.Thread(target=delayed)
+#     try:
+#         debounce_timer.setDaemon(True)
+#     except:
+#         pass
+#     debounce_timer.start()
 def debounce_trigger():
     global debounce_timer
     if debounce_timer and debounce_timer.is_alive():
@@ -471,7 +538,12 @@ def debounce_trigger():
         time.sleep(DEBOUNCE_SECONDS)
         if not listener_active:
             return
-        handle_layer_change()
+        try:
+            # Run the whole handler on the UI thread so Rhino/rs calls are safe
+            Rhino.RhinoApp.InvokeOnUiThread(Action(handle_layer_change))
+        except Exception:
+            # If UI invoke fails for any reason, fall back (still do *something*)
+            handle_layer_change()
 
     debounce_timer = threading.Thread(target=delayed)
     try:
@@ -548,7 +620,7 @@ def on_delete(sender, e):
 
 # ===========================
 # Import finished OSM jobs
-# ===========================
+# =========================== 
 def _job_id_from_path(p):
     try:
         return os.path.basename(p.rstrip("\\/"))
