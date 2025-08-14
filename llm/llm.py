@@ -416,7 +416,7 @@ async def evaluate_run(payload: dict):
         if not job_dir or not os.path.isdir(job_dir):
             return {"ok": False, "error": "invalid job_dir"}
 
-        worker = PROJECT_DIR / "4_evaluation" / "eval_worker.py"
+        worker = PROJECT_DIR / "evaluation" / "eval_worker.py"
         if not worker.exists():
             return {"ok": False, "error": f"Worker not found: {worker}"}
 
