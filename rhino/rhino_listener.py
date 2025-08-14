@@ -506,7 +506,6 @@ def on_add(sender, e):
         pass
 
 
-
 def on_modify(sender, e):
     _debug_event_layer(e.Object, "on_modify")
 
