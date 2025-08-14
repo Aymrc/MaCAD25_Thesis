@@ -13,6 +13,8 @@ import subprocess  # moved to top-level to avoid local shadowing
 import osmnx as ox
 from osmnx.projection import project_gdf
 import geopandas as gpd
+from datetime import datetime
+
 
 def getenv_float(name, default):
     try:
@@ -26,10 +28,16 @@ def main():
     radius_km = getenv_float("RADIUS_KM", 0.5)
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     knowledge_dir = os.path.join(project_root, "knowledge")
-    default_runtime = os.path.abspath(os.path.join(knowledge_dir, "osm", "_tmp"))
+    # Create a timestamp-based folder name in knowledge/osm/
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    default_runtime = os.path.abspath(os.path.join(knowledge_dir, "osm", f"osm_{timestamp}"))
 
+    # If OUT_DIR is set, respect it; otherwise use our timestamp folder
     out_dir = os.environ.get("OUT_DIR", default_runtime)
+
+    # Ensure directory exists
     os.makedirs(out_dir, exist_ok=True)
+
 
     # Configure OSMnx cache to speed up repeated queries
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

@@ -8,7 +8,7 @@ import json
 import math
 import time
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 
 import networkx as nx
 
@@ -37,13 +37,30 @@ CUTOFF_M = 3000.0
 BANDS = {
     "low": 0.8,    # below -> LOW
     "ok":  1.0,    # 1.0–2.0 -> ACCEPTABLE
-    "good":2.0,    # 2.0–3.0 -> GOOD
+    "good": 2.0,   # 2.0–3.0 -> GOOD
     "great": 3.0   # >3.0    -> EXCEPTIONAL
 }
 
 # Stability guards: if typed sample is too small or sparse, fall back to "typed" method
 MIN_TYPED = 50
 MIN_TYPED_PER_KM2 = 25
+
+# =============================
+# Reference scores for normalization (from batch_cities)
+# These are on the x1000 scale (same as score_x1000 below)
+# =============================
+REFERENCE_SCORES = {
+    "NewYork_US":     2.738,
+    "Barcelona_ES":   2.468,
+    "Tokyo_JP":       2.331,
+    "Madrid_ES":      2.314,
+    "Paris_FR":       2.081,
+    "Copenhagen_DK":  2.013,
+    "MexicoCity_MX":  1.941,
+    "Amsterdam_NL":   1.920,
+    "London_UK":      1.468,
+    "Singapore_SG":   0.792,
+}
 
 
 # -----------------------------
@@ -165,8 +182,8 @@ def _compute_kpi_typed(G: nx.Graph, typed_map: dict, cutoff_m: float):
         if len(comp_typed) < 2:
             continue
         H = G.subgraph(comp)
+        # Single-source shortest path lengths with cutoff
         for i, u in enumerate(comp_typed):
-            # Single-source shortest path lengths with cutoff
             lengths = nx.single_source_dijkstra_path_length(H, u, weight="distance", cutoff=cutoff_m)
             for v in comp_typed[i+1:]:
                 d = lengths.get(v)
@@ -253,6 +270,17 @@ def _compute_kpi_street_anchor(G: nx.Graph, typed_map: dict, cutoff_m: float):
 
 
 # -----------------------------
+# Normalization helpers (1–100)
+# -----------------------------
+def _scale_1_100(value, vmin, vmax):
+    """Affine map to [1,100] with clamping."""
+    if vmax <= vmin:
+        return 50.0
+    scaled = 1 + (value - vmin) * (99.0 / (vmax - vmin))
+    return float(round(max(1.0, min(100.0, scaled)), 1))
+
+
+# -----------------------------
 # Main
 # -----------------------------
 def main():
@@ -303,9 +331,25 @@ def main():
     score_x1000 = avg * 1000.0
     verdict = _classify(score_x1000)
 
+    # ---- Normalize to 1–100 against reference table ----
+    ref_min = min(REFERENCE_SCORES.values())
+    ref_max = max(REFERENCE_SCORES.values())
+    score_scaled_1_100 = _scale_1_100(score_x1000, ref_min, ref_max)
+    reference_scores_scaled = {
+        city: _scale_1_100(val, ref_min, ref_max) for city, val in REFERENCE_SCORES.items()
+    }
+
+    # Optional coarse rating on normalized scale
+    if score_scaled_1_100 >= 70:
+        rating_norm = "high"
+    elif score_scaled_1_100 >= 40:
+        rating_norm = "medium"
+    else:
+        rating_norm = "low"
+
     out = {
         "job_dir": job_dir,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "method": method_used,
         "fallback_used": fallback_used,
         "cutoff_m": CUTOFF_M,
@@ -324,6 +368,12 @@ def main():
             "avg_per_pair": avg,
             "x1000": score_x1000,
             "verdict": verdict,
+            "scaled_1_100": score_scaled_1_100,
+            "scaled_rating": rating_norm,
+            "reference": {
+                "raw_x1000": REFERENCE_SCORES,
+                "scaled_1_100": reference_scores_scaled
+            }
         },
         "elapsed_s": elapsed,
         "elapsed_total_s": time.time() - t_all0,
@@ -332,6 +382,13 @@ def main():
     _save_json(os.path.join(job_dir, "evaluation.json"), out)
     with open(os.path.join(job_dir, "EVAL_DONE.txt"), "w", encoding="utf-8") as f:
         f.write("ok\n")
+
+    # Console hint (useful in logs)
+    try:
+        print(f"[evaluation] Score: {score_x1000:.3f}  ({score_scaled_1_100}/100 → {rating_norm.upper()})")
+    except Exception:
+        pass
+
 
 if __name__ == "__main__":
     try:

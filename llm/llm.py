@@ -29,18 +29,18 @@ app.add_middleware(
 # ----------------------------
 LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
 
-BASE_DIR = Path(__file__).resolve().parent # .../llm
-PROJECT_DIR = BASE_DIR.parent # project root
+BASE_DIR = Path(__file__).resolve().parent  # .../llm
+PROJECT_DIR = BASE_DIR.parent               # project root
 CONTEXT_DIR = PROJECT_DIR / "context"
 RUNTIME_DIR = CONTEXT_DIR / "runtime"
 KNOWLEDGE_DIR = PROJECT_DIR / "knowledge"
 OSM_DIR = KNOWLEDGE_DIR / "osm"
-BRIEFS_DIR = KNOWLEDGE_DIR / "briefs" # unified briefs folder
+BRIEFS_DIR = KNOWLEDGE_DIR / "briefs"       # unified briefs folder
 
 for d in (RUNTIME_DIR, OSM_DIR, BRIEFS_DIR):
     os.makedirs(d, exist_ok=True)
 
-# (Optional) Serve files at /files/* from knowledge/osm for debugging
+# Serve files at /files/* from knowledge/osm for debugging (optional)
 app.mount("/files", StaticFiles(directory=str(OSM_DIR)), name="files")
 
 # In-memory job registry
@@ -48,6 +48,9 @@ JOBS: Dict[str, Dict] = {}
 
 # In-memory context for brief
 stored_brief: str = ""
+
+# Track last OSM workspace so we can purge it before creating a new one
+LAST_JOB_MARK = OSM_DIR / "_last_job.txt"
 
 # ----------------------------
 # Small helpers
@@ -69,6 +72,69 @@ def _read_json(path):
             return json.load(f)
     except Exception:
         return None
+
+def _delete_folder(p: Path) -> bool:
+    """Best-effort recursive directory delete with rename fallback."""
+    try:
+        shutil.rmtree(str(p), ignore_errors=True)
+        return True
+    except Exception:
+        try:
+            trash = p.parent / (p.name + "_trash")
+            os.rename(str(p), str(trash))
+            shutil.rmtree(str(trash), ignore_errors=True)
+            return True
+        except Exception:
+            return False
+
+UUID_RX = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
+
+def _looks_like_uuid(name: str) -> bool:
+    return bool(UUID_RX.match(name))
+
+def _job_candidates() -> list[Path]:
+    """All subfolders in OSM_DIR that look like jobs: 'osm_*' or UUID."""
+    try:
+        items = [p for p in OSM_DIR.iterdir() if p.is_dir()]
+    except Exception:
+        return []
+    out = []
+    for p in items:
+        n = p.name
+        if n.startswith("osm_") or _looks_like_uuid(n):
+            out.append(p)
+    return out
+
+def _purge_previous_osm_workspace():
+    """
+    Elimina *todas* las carpetas de job previas en knowledge/osm antes de crear una nueva.
+    Borra tanto 'osm_*' (renombradas por Rhino) como carpetas con nombre UUID.
+    También limpia el legado 'knowledge/osm/_tmp' si existe.
+    """
+    try:
+        # 1) Si el marcador apunta a una ruta existente, bórrala
+        if LAST_JOB_MARK.exists():
+            prev_txt = LAST_JOB_MARK.read_text(encoding="utf-8").strip()
+            if prev_txt:
+                prev = Path(prev_txt)
+                if prev.exists() and prev.is_dir():
+                    _delete_folder(prev)
+
+        # 2) Borra todas las carpetas de job detectadas (osm_* o UUID)
+        cands = _job_candidates()
+        # Ordenamos por mtime descendente solo para log/depuración; igual se borran todas
+        cands.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        for p in cands:
+            _delete_folder(p)
+
+        # 3) Limpieza de carpeta temporal antigua
+        legacy_tmp = OSM_DIR / "_tmp"
+        if legacy_tmp.exists() and legacy_tmp.is_dir():
+            _delete_folder(legacy_tmp)
+
+    except Exception:
+        # silencioso: la limpieza no debe romper /osm/run
+        pass
 
 
 # ============================
@@ -122,7 +188,6 @@ async def initial_greeting(test: bool = False):
         greeting = f"Let’s dive into your masterplan—I’m {copilot_name}, ready to help."
 
     return {"response": greeting}
-
 
 # ============================
 # CHAT endpoint
@@ -353,9 +418,18 @@ async def osm_run(payload: dict):
     except Exception:
         return {"ok": False, "error": "Invalid lat/lon/radius_km"}
 
+    # NEW: remove previous workspace before creating the new one
+    _purge_previous_osm_workspace()
+
     job_id = str(uuid.uuid4())
     out_dir = _job_dir(job_id)
     os.makedirs(out_dir, exist_ok=True)
+
+    # Record this as the last job to be purged on next run
+    try:
+        LAST_JOB_MARK.write_text(str(out_dir), encoding="utf-8")
+    except Exception:
+        pass
 
     env = os.environ.copy()
     env["LAT"] = str(lat)
@@ -416,7 +490,7 @@ async def evaluate_run(payload: dict):
         if not job_dir or not os.path.isdir(job_dir):
             return {"ok": False, "error": "invalid job_dir"}
 
-        worker = PROJECT_DIR / "4_evaluation" / "eval_worker.py"
+        worker = PROJECT_DIR / "evaluation" / "eval_worker.py"
         if not worker.exists():
             return {"ok": False, "error": f"Worker not found: {worker}"}
 
