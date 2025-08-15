@@ -576,7 +576,9 @@
 
   /* ---------------- 3D Graph (background, interactive) ---------------- */
   // Expose helpers globally so app.js tab logic can call them
-  window.showGraph3DBackground = function showGraph3DBackground(dataGraph) {
+  /* ---------------- 3D Graph (background, interactive) ---------------- */
+  // Expose helpers globally so app.js tab logic can call them
+  window.showGraph3DBackground = function showGraph3DBackground(dataGraph) { 
     if (typeof ForceGraph3D !== "function") return;
     const mount = document.getElementById("graph3d");
     if (!mount) return;
@@ -607,18 +609,27 @@
     // Build a fast lookup of valid ids
     const nodeIdSet = new Set(nodes.map(n => n.id));
 
-    // --- Links: accept ids OR {id}, coerce to strings, drop invalids
+    // --- Links: accept {source,target} OR {u,v}; also accept {source:{id}} shapes; coerce to strings; drop invalids
     const rawEdges = Array.isArray(dataGraph?.edges) ? dataGraph.edges
                     : Array.isArray(dataGraph?.links) ? dataGraph.links
                     : [];
     const links = [];
     let dropped = 0;
+
     for (const e of rawEdges) {
-      const srcRaw = (e && typeof e.source === "object") ? (e.source?.id ?? e.source) : e?.source;
-      const tgtRaw = (e && typeof e.target === "object") ? (e.target?.id ?? e.target) : e?.target;
+      // prefer source/target; fallback to u/v (context graph)
+      let srcRaw = (e && 'source' in e) ? e.source : e?.u;
+      let tgtRaw = (e && 'target' in e) ? e.target : e?.v;
+
+      // support object forms {source:{id:".."}}
+      if (srcRaw && typeof srcRaw === "object") srcRaw = srcRaw.id ?? srcRaw;
+      if (tgtRaw && typeof tgtRaw === "object") tgtRaw = tgtRaw.id ?? tgtRaw;
+
       const src = (srcRaw === 0 || srcRaw) ? String(srcRaw) : undefined;
       const tgt = (tgtRaw === 0 || tgtRaw) ? String(tgtRaw) : undefined;
+
       if (!src || !tgt || !nodeIdSet.has(src) || !nodeIdSet.has(tgt)) { dropped++; continue; }
+
       links.push({ source: src, target: tgt, type: e?.type || "adjacent" });
     }
 
@@ -714,6 +725,7 @@
     console.log("[Graph3D] nodes:", nodes.length, nodes[0]);
     console.log("[Graph3D] links (kept):", links.length);
   };
+
 
 
 
