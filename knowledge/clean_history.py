@@ -1,38 +1,119 @@
 # clean_history.py
+# Run with Python 3 (launched by main.py via an external interpreter).
+# - Deletes knowledge/massing_graph.json
+# - Purges knowledge/osm temporary workspaces:
+#     * folders named "_tmp"
+#     * folders starting with "osm_"
+#     * folders whose names look like UUIDs
+# - Removes knowledge/osm/_last_job.txt marker if present
 
+import os
+import re
+import stat
+import shutil
 from pathlib import Path
-import shutil, os, stat
+from typing import Iterable
 
-def _make_writable(p: Path):
+# -------- Helpers --------
+
+UUID_RX = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
+
+def is_uuid_name(name: str) -> bool:
+    return bool(UUID_RX.match(name))
+
+def make_writable(p: Path) -> None:
+    """Ensure a path is writable (helps on Windows when removing read-only files)."""
     try:
         os.chmod(str(p), os.stat(str(p)).st_mode | stat.S_IWRITE)
-    except: # stay silent
+    except Exception:
         pass
 
-def _on_rm_error(func, path, exc_info):
+def on_rm_error(func, path, exc_info):
+    """shutil.rmtree callback to handle read-only files."""
     try:
-        _make_writable(Path(path))
+        make_writable(Path(path))
         func(path)
-    except:
+    except Exception:
         pass
 
-def main(): # @César
-    base = Path(__file__).resolve().parent  # .../knowledge
-    targets = [
-        base / "massing_graph.json", # file
-        # base / "osm/", # dir
-        # add more files here if needed
-    ]
+def safe_remove_file(p: Path) -> bool:
+    try:
+        if p.exists() and p.is_file():
+            make_writable(p)
+            p.unlink()
+            print("[CLEAN] Removed file:", p)
+        return True
+    except Exception as e:
+        print("[CLEAN] Failed to remove file:", p, "-", e)
+        return False
 
-    for t in targets:
+def safe_rmtree(p: Path) -> bool:
+    """Best-effort recursive delete with rename fallback."""
+    try:
+        if p.exists() and p.is_dir():
+            shutil.rmtree(str(p), onerror=on_rm_error)
+            print("[CLEAN] Removed folder:", p)
+        return True
+    except Exception:
+        # Try rename-to-trash fallback, then delete
         try:
-            if t.is_file():
-                _make_writable(t)
-                t.unlink()
-            elif t.is_dir():
-                shutil.rmtree(str(t), onerror=_on_rm_error)
-        except:
-            pass
+            trash = p.with_name(p.name + "_trash")
+            p.rename(trash)
+            shutil.rmtree(str(trash), onerror=on_rm_error)
+            print("[CLEAN] Removed folder via fallback:", p)
+            return True
+        except Exception as e2:
+            print("[CLEAN] Failed to remove folder:", p, "-", e2)
+            return False
+
+# -------- Targeted cleanup --------
+
+def purge_osm_workspaces(osm_dir: Path) -> None:
+    """
+    Remove temp OSM workspaces in knowledge/osm:
+      - '_tmp'
+      - 'osm_*'
+      - UUID-looking folder names
+    Also remove the marker file '_last_job.txt' if present.
+    """
+    if not osm_dir.exists() or not osm_dir.is_dir():
+        return
+
+    # Remove marker
+    last_job_mark = osm_dir / "_last_job.txt"
+    if last_job_mark.exists():
+        safe_remove_file(last_job_mark)
+
+    # Collect candidate folders
+    try:
+        entries: Iterable[Path] = [p for p in osm_dir.iterdir() if p.is_dir()]
+    except Exception:
+        entries = []
+
+    for p in entries:
+        name = p.name
+        if name == "_tmp" or name.startswith("osm_") or is_uuid_name(name):
+            safe_rmtree(p)
+
+def remove_known_files(knowledge_dir: Path) -> None:
+    """Remove individual files that should not persist across sessions."""
+    targets = [
+        knowledge_dir / "massing_graph.json",
+        # Add more single-file artifacts here if needed
+    ]
+    for t in targets:
+        if t.exists() and t.is_file():
+            safe_remove_file(t)
+
+# -------- Entry point --------
+
+def main():
+    # This script lives at: <project_root>/knowledge/clean_history.py
+    knowledge_dir = Path(__file__).resolve().parent
+    osm_dir = knowledge_dir / "osm"
+
+    remove_known_files(knowledge_dir)
+    purge_osm_workspaces(osm_dir)
 
 if __name__ == "__main__":
     main()
