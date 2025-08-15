@@ -1,5 +1,7 @@
 import os, sys, io, re, json, csv, glob, uuid, shutil, subprocess
 import requests, PyPDF2, uvicorn
+
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Dict
@@ -233,7 +235,12 @@ When helpful, format replies in Markdown (bold, lists, short headings).
         })
     
     # Add massing graph context if present
-    massing_txt = _massing_context_text()
+    try:
+        massing_txt = _massing_context_text()
+    except Exception as e:
+        print("Error building massing context:", e)
+        massing_txt = ""
+    
     if massing_txt:
         messages.append({
             "role": "system",
@@ -490,6 +497,25 @@ async def osm_status(job_id: str):
 
     info["status"] = status
     return {"ok": True, "status": status, "out_dir": out_dir}
+
+# ============================
+# MASSING graph endpoint
+# ============================
+@app.get("/graph/context")
+def get_context_graph():
+    path = KNOWLEDGE_DIR / "osm" / "graph_context.json"
+    if not path.exists():
+        return JSONResponse({"nodes": [], "edges": [], "meta": {}}, status_code=404)
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    links = data.get("links", data.get("edges", []))
+    return {
+        "nodes": data.get("nodes", []),
+        "links": links,
+        "edges": links,
+        "meta": data.get("meta", {})
+    }
+
 
 # ============================
 # EVALUATION endpoint

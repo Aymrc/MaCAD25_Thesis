@@ -2,7 +2,8 @@
 
 // --- API base (same as chat.js) ---
 const API_BASE = "http://localhost:8000";
-const CONTEXT_GRAPH_PATH = "../knowledge/osm/graph_context.json";
+const CONTEXT_GRAPH_PATH = `${API_BASE}/graph/context`;
+
 
 // --- Massing polling state ---
 let _massingPoll = null;
