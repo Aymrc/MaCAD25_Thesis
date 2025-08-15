@@ -2,6 +2,7 @@
 
 // --- API base (same as chat.js) ---
 const API_BASE = "http://localhost:8000";
+const CONTEXT_GRAPH_PATH = "../knowledge/osm/graph_context.json";
 
 // --- Massing polling state ---
 let _massingPoll = null;
@@ -57,6 +58,26 @@ function stopMassingPolling() {
   }
 }
 
+/* === Context Graph loader === */
+async function loadContextGraphOnce() {
+  try {
+    const res = await fetch(CONTEXT_GRAPH_PATH, { cache: "no-store" });
+    const data = await res.json();
+    const adapted = {
+      nodes: data.nodes || [],
+      edges: data.links || data.edges || [],
+      links: data.links || data.edges || [],
+      meta:  data.meta  || {}
+    };
+    if (typeof window.showGraph3DBackground === "function") {
+      window.showGraph3DBackground(adapted);
+    }
+  } catch (e) {
+    console.warn("[UI] Could not fetch context graph:", e);
+    if (typeof window.clearGraph === "function") window.clearGraph();
+  }
+}
+
 // === Tab switching (visual) ===
 document.querySelectorAll(".tab button").forEach(btn => {
   btn.addEventListener("click", async () => {
@@ -64,6 +85,13 @@ document.querySelectorAll(".tab button").forEach(btn => {
     btn.classList.add("active");
 
     const tab = btn.dataset.tab;
+
+    if (tab === "context") {
+      // show static context graph from knowledge/osm/graph_context.json
+      stopMassingPolling();
+      await loadContextGraphOnce();
+      return;
+    }
 
     if (tab === "brief") {
       stopMassingPolling();
@@ -84,7 +112,7 @@ document.querySelectorAll(".tab button").forEach(btn => {
 
     // masterplan or others: clear + stop any massing poll
     stopMassingPolling();
-    if (typeof window.clearGraph === "function") window.clearGraph(); // <<<<<<<<< to update with massing graph later 
+    if (typeof window.clearGraph === "function") window.clearGraph(); // <<<<<<<<< to update with masterplan graph later 
   });
 });
 
@@ -131,12 +159,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (activeTab === "massing") {
     await loadMassingGraphOnce();
     startMassingPolling();
+  } else if (activeTab === "context") {
+    // initial load if Context tab is active by default
+    await loadContextGraphOnce();
   } else if (activeTab === "brief") {
     if (window._briefGraph && typeof window.showGraph3DBackground === "function") {
       window.showGraph3DBackground(window._briefGraph);
     } else if (typeof window.clearGraph === "function") {
       window.clearGraph();
     }
+  } else {
+    // anything else → clear and make sure no stray polling runs
+    stopMassingPolling();
+    if (typeof window.clearGraph === "function") window.clearGraph();
   }
 });
 
