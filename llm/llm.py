@@ -1,5 +1,7 @@
 import os, sys, io, re, json, csv, glob, uuid, shutil, subprocess
 import requests, PyPDF2, uvicorn
+
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Dict
@@ -211,7 +213,8 @@ SCOPE & ROLE
 - Support across phases: set CITY context; read PROJECT BRIEF; build SEMANTIC graph;
   build TOPOLOGICAL graph from 3D massing; MERGE the two; INSERT into the GLOBAL CITY graph; EVALUATE and advise.
 - Stay on project. If asked off-topic, say it’s out of scope.
-
+- Use the project brief and massing graph (json) as context if present.
+         
 INTERACTION STYLE
 - Default to short, human-friendly answers (1–5 bullets or a short paragraph).
 - Only produce structured JSON or code when the user asks for it.
@@ -224,12 +227,25 @@ When helpful, format replies in Markdown (bold, lists, short headings).
         """}
     ]
 
+    # Add brief graph
     if stored_brief:
         messages.append({
             "role": "system",
             "content": f"PROJECT BRIEF (context):\n{stored_brief[:4000]}"
         })
-
+    
+    # Add massing graph context if present
+    try:
+        massing_txt = _massing_context_text()
+    except Exception as e:
+        print("Error building massing context:", e)
+        massing_txt = ""
+    
+    if massing_txt:
+        messages.append({
+            "role": "system",
+            "content": massing_txt[:6000]
+        })
     messages.append({"role": "user", "content": user_message})
 
     try:
@@ -237,7 +253,7 @@ When helpful, format replies in Markdown (bold, lists, short headings).
             "model": "lmstudio",
             "messages": messages,
             "stream": False,
-            "temperature": 0.3,  # concise
+            "temperature": 0.3, # concise
             "top_p": 0.9,
             "max_tokens": 500,
             "stop": ["User:", "Assistant:", "System:"],
@@ -483,6 +499,25 @@ async def osm_status(job_id: str):
     return {"ok": True, "status": status, "out_dir": out_dir}
 
 # ============================
+# MASSING graph endpoint
+# ============================
+@app.get("/graph/context")
+def get_context_graph():
+    path = KNOWLEDGE_DIR / "osm" / "graph_context.json"
+    if not path.exists():
+        return JSONResponse({"nodes": [], "edges": [], "meta": {}}, status_code=404)
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    links = data.get("links", data.get("edges", []))
+    return {
+        "nodes": data.get("nodes", []),
+        "links": links,
+        "edges": links,
+        "meta": data.get("meta", {})
+    }
+
+
+# ============================
 # EVALUATION endpoint
 # ============================
 @app.post("/evaluate/run")
@@ -575,6 +610,103 @@ def get_massing_mtime():
         return {"mtime": os.path.getmtime(GRAPH_PATH)}
     except:
         return {"mtime": 0.0}
+
+# ---- Massing context condenser ----
+def _massing_context_text(max_nodes: int = 200, max_edges: int = 200, include_stats: bool = True) -> str:
+    """
+    Returns a concise, LLM-friendly text summary of the massing graph, aligned to the actual schema.
+    Truncates to avoid blowing the token budget.
+    """
+    try:
+        with open(GRAPH_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return ""
+
+    nodes = data.get("nodes", []) or []
+    edges = data.get("links", data.get("edges", [])) or []
+    meta  = data.get("meta", {}) or {}
+
+    # ---- Per-building stats (levels are nodes) ----
+    # Only treat nodes with type == "level" as floors that belong to a building.
+    by_bldg = defaultdict(lambda: {"levels": 0, "total_area": 0.0, "levels_list": []})
+    for n in nodes:
+        if (n.get("type") == "level") and ("building_id" in n):
+            b = by_bldg[n["building_id"]]
+            b["levels"] += 1
+            b["total_area"] += float(n.get("area", 0.0) or 0.0)
+            b["levels_list"].append(int(n.get("level", -1)))
+
+    # Sort buildings alphanumerically for stable output
+    building_ids = sorted(by_bldg.keys(), key=lambda x: (str(x)))
+    buildings_total = len(building_ids)
+
+    # ---- Light truncation (stable order) ----
+    n_show = nodes[:max_nodes]
+    e_show = edges[:max_edges]
+
+    # ---- Node lines (aligned with your schema) ----
+    node_lines = []
+    for n in n_show:
+        node_lines.append(
+            f"{n.get('id','?')}|{n.get('label','')}|{n.get('building_id','')}|{n.get('level','')}|{n.get('area','')}|{n.get('type','')}"
+        )
+
+    # ---- Edge lines ----
+    edge_lines = []
+    for e in e_show:
+        edge_lines.append(
+            f"{e.get('source','?')}->{e.get('target','?')}|{e.get('type', e.get('relation',''))}"
+        )
+
+    # ---- Building stats lines ----
+    stats_lines = []
+    if include_stats and buildings_total > 0:
+        stats_lines.append(f"buildings_total={buildings_total}")
+        stats_lines.append("building_id|levels_count|total_area_sqm|min_level|max_level")
+        for bid in building_ids:
+            info = by_bldg[bid]
+            lvls = sorted(x for x in info["levels_list"] if isinstance(x, int))
+            min_lvl = lvls[0] if lvls else ""
+            max_lvl = lvls[-1] if lvls else ""
+            stats_lines.append(f"{bid}|{info['levels']}|{round(info['total_area'], 2)}|{min_lvl}|{max_lvl}")
+
+    # ---- Meta lines (optional, helpful for floor height) ----
+    meta_lines = []
+    if meta:
+        fh = meta.get("floor_height", "")
+        flo = meta.get("floor_levels", [])
+        if fh != "":
+            meta_lines.append(f"floor_height={fh}")
+        if flo:
+            meta_lines.append(f"floor_levels={flo}")
+
+    # ---- Guidance note so the LLM counts buildings correctly ----
+    guidance = [
+        "DATA NOTE: Nodes with type=='level' represent FLOORS, not buildings.",
+        "To count buildings, group nodes by 'building_id'. To compute GFA, sum 'area' per building_id.",
+    ]
+
+    # ---- Final assembled summary ----
+    summary = [
+        "MASSING GRAPH SUMMARY (LLM CONTEXT):",
+        *guidance,
+    ]
+    if meta_lines:
+        summary += ["META:", *meta_lines]
+
+    summary += [
+        f"nodes_total={len(nodes)}, edges_total={len(edges)}",
+        "nodes_shown=id|label|building_id|level|area|type",
+        *node_lines,
+        "edges_shown=source->target|type",
+        *edge_lines,
+    ]
+
+    if stats_lines:
+        summary += ["BUILDING STATS:", *stats_lines]
+
+    return "\n".join(summary)
 
 
 # ============================
