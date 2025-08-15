@@ -6,7 +6,7 @@
 # ! _-RunPythonScript "C:\Users\broue\Documents\IAAC MaCAD\Master_Thesis\MaCAD25_Thesis\main.py"
 # _-RunPythonScript "C:\Users\broue\Documents\IAAC MaCAD\Master_Thesis\MaCAD25_Thesis\rhino\rhino_listener.py"
 
-import os, sys, subprocess, webbrowser, shutil, re
+import os, sys, subprocess, webbrowser, shutil, re, stat
 
 # Import project variables
 try:
@@ -86,7 +86,7 @@ def get_universal_python_path():
     - Avoid using shutil.which (not available in IronPython 2.7).
     """
 
-    # 1) Known paths (includes those from config.py if set)
+    # Known paths (includes those from config.py if set)
     username = os.getenv("USERNAME") or ""
     possible_paths = [
         python_exe_AB,
@@ -105,10 +105,10 @@ def get_universal_python_path():
     ]
     for path in possible_paths:
         if path and os.path.exists(path):
-            _safe_print("Found fallback Python: {}".format(path))
+            _safe_print("[{}] Found fallback Python: {}".format(copilot_name, path))
             return path
         
-    # 2) If sys.executable points to something valid and is NOT IronPython, use it.
+    # If sys.executable points to something valid and is NOT IronPython, use it.
     if sys.executable and os.path.exists(sys.executable):
         v = ""
         try:
@@ -119,7 +119,7 @@ def get_universal_python_path():
             _safe_print("Using current Python: {}".format(sys.executable))
             return sys.executable
 
-    # 3) Search in PATH using distutils.spawn (available in IronPython 2.7)
+    # Search in PATH using distutils.spawn (available in IronPython 2.7)
     try:
         import distutils.spawn
         for candidate in ('python', 'python3', 'py'):
@@ -182,12 +182,12 @@ def start_llm():
             cmd = [python_exe, llm_script]
 
         subprocess.Popen(cmd, cwd=LLM_DIR, creationflags=0)
-        _safe_print("[LLM] Backend launched at http://127.0.0.1:8000")
+        # _safe_print("[LLM] Backend launched at http://127.0.0.1:8000")
     except Exception as e:
         _safe_print("[LLM] Failed to launch backend: {}".format(e))
 
 def start_ui():
-    _safe_print("Opening interface...")
+    _safe_print("[UI] Opening interface...")
     ui_path = os.path.join(UI_DIR, "index.html")
     if os.path.exists(ui_path):
         file_url = "file:///" + ui_path.replace("\\", "/")
@@ -199,23 +199,37 @@ def start_ui():
     else:
         _safe_print("[UI] landing.html not found at: {}".format(ui_path))
 
+def clean_history(py):
+    script = os.path.join(CURRENT_DIR, "knowledge", "clean_history.py")
+    if not os.path.exists(script) or not (py and os.path.exists(py)):
+        return
+    try:
+        if os.path.basename(py).lower() == "py.exe":
+            cmd = [py, "-3", script]
+        else:
+            cmd = [py, script]
+        subprocess.check_call(cmd, cwd=CURRENT_DIR)
+        print("[{}] Cleaned previous versions.".format(copilot_name))
+    except:
+        pass
+
 def copilot_start():
     py = get_universal_python_path()
     if py:
         install_requirements(py)
+        clean_history(py)
     else:
         _safe_print("[SETUP] Skipping requirements installation: no external Python 3 found.")
-
     _safe_print("=" * 50)
-    _safe_print("Starting '{}'".format(copilot_name))
+    _safe_print("[{}] Starting {}".format(copilot_name, copilot_name))
     _safe_print("=" * 50)
     purge_osm_temp_dirs()
 
     start_llm()
 
-    _safe_print("Copilot ready. Listening to geometry changes on '{}' layer.".format(layer_name))
+    _safe_print("{} ready. Listening to geometry changes on '{}' layer.".format(copilot_name, layer_name))
     start_ui()
-    _safe_print("Interface is now visible.")
+    # _safe_print("Interface is now visible.")
 
 if __name__ == "__main__":
     copilot_start()
