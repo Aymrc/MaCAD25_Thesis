@@ -179,20 +179,19 @@ def export_graph_json(G: nx.Graph, out_path: str):
             if "line" in d
         ]
     }
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
-    # Write main graph.json
+    job_dir = os.path.dirname(out_path)  # .../knowledge/osm/<job>
+    os.makedirs(job_dir, exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
-    # Also write graph_context.json in the same folder
-    context_path = os.path.join(os.path.dirname(out_path), "graph_context.json")
+    osm_root = os.path.dirname(job_dir)  # .../knowledge/osm
+    context_path = os.path.join(osm_root, "graph_context.json")
     with open(context_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
-    print("[graph_builder] Wrote graph.json and graph_context.json: nodes={}, edges={}".format(
-        len(data["nodes"]), len(data["edges"])
-    ))
+    print("[graph_builder] Wrote graph.json (job) and graph_context.json (osm root): "
+          "nodes={}, edges={}".format(len(data["nodes"]), len(data["edges"])))
 
 def _resolve_out_dir() -> str:
     """
