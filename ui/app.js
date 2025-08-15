@@ -5,6 +5,46 @@ const API_BASE = "http://localhost:8000";
 const CONTEXT_GRAPH_PATH = `${API_BASE}/graph/context`;
 
 
+// --- Graph adapter (rules) ---
+
+function adaptGraph(raw) {
+  // Normalize input containers
+  const inNodes = Array.isArray(raw?.nodes) ? raw.nodes : [];
+  const inEdges = Array.isArray(raw?.links) ? raw.links
+                 : Array.isArray(raw?.edges) ? raw.edges
+                 : [];
+  // Rule 1: drop x/y from nodes if present
+  // Nodes: explicitly strip x/y to avoid interfering with ForceGraph3D internals
+  const nodes = inNodes.map(n => {
+    const { x, y, ...rest } = (n || {});
+    return rest;
+  });
+
+  // Rule 2: map u/v -> source/target on edges, without duplicating keys
+  // Edges: rename u/v to source/target if those are missing
+  const edges = inEdges
+    .map(e => {
+      if (!e) return null;
+      const hasUV = (e.u != null && e.v != null);
+      const source = (e.source != null) ? e.source : (hasUV ? e.u : undefined);
+      const target = (e.target != null) ? e.target : (hasUV ? e.v : undefined);
+      if (source == null || target == null) return null;
+
+      // Remove u/v to avoid ambiguity and keep a clean shape
+      const { u, v, ...rest } = e;
+      return { ...rest, source, target };
+    })
+    .filter(Boolean);
+
+  return {
+    nodes,
+    edges,
+    links: edges,           // keep both keys for downstream compatibility
+    meta: raw?.meta || {}
+  };
+}
+
+
 // --- Massing polling state ---
 let _massingPoll = null;
 let _massingLastMtime = 0;
@@ -13,13 +53,7 @@ async function loadMassingGraphOnce() {
   try {
     const res = await fetch(`${API_BASE}/graph/massing`, { cache: "no-store" });
     const data = await res.json();
-    const adapted = {
-      nodes: data.nodes || [],
-      // chat.js expects .edges; normalize both keys
-      edges: data.links || data.edges || [],
-      links: data.links || data.edges || [],
-      meta:  data.meta  || {}
-    };
+    const adapted = adaptGraph(data); // ← apply rules
     if (typeof window.showGraph3DBackground === "function") {
       window.showGraph3DBackground(adapted);
     }
@@ -64,12 +98,7 @@ async function loadContextGraphOnce() {
   try {
     const res = await fetch(CONTEXT_GRAPH_PATH, { cache: "no-store" });
     const data = await res.json();
-    const adapted = {
-      nodes: data.nodes || [],
-      edges: data.links || data.edges || [],
-      links: data.links || data.edges || [],
-      meta:  data.meta  || {}
-    };
+    const adapted = adaptGraph(data); // ← apply rules
     if (typeof window.showGraph3DBackground === "function") {
       window.showGraph3DBackground(adapted);
     }

@@ -578,6 +578,121 @@
   // Expose helpers globally so app.js tab logic can call them
   /* ---------------- 3D Graph (background, interactive) ---------------- */
   // Expose helpers globally so app.js tab logic can call them
+  // window.showGraph3DBackground = function showGraph3DBackground(dataGraph) {
+  //   if (typeof ForceGraph3D !== "function") return;
+  //   const mount = document.getElementById("graph3d");
+  //   if (!mount) return;
+
+  //   ensureGraph3DFullscreen();
+
+  //   const nodes = (dataGraph.nodes || []).map(n => {
+  //     const buildingId = n.building_id || (typeof n.id === "string" ? n.id.split("|")[0] : "");
+  //     return {
+  //       id: n.id,
+  //       name: n.label || n.clean_id || n.id, // prefer clean label if present
+  //       typology: n.typology || "",
+  //       footprint: n.footprint || 0,
+  //       buildingId,
+  //       kind: n.type || "",
+  //       area: Number.isFinite(n.area) ? n.area : null,
+  //       level: Number.isFinite(n.level) ? n.level : null
+  //     };
+  //   });
+
+  //   const links = (dataGraph.edges || dataGraph.links || []).map(e => ({
+  //     source: e.source,
+  //     target: e.target,
+  //     type: e.type || "adjacent"
+  //   }));
+
+  //   // --- Build monochrome gradient per building (light grey -> black) ---
+  //   const uniqueBuildings = Array.from(new Set(
+  //     nodes.map(n => n.buildingId).filter(Boolean).sort()
+  //   ));
+
+  //   const colorMap = {};
+  //   uniqueBuildings.forEach((bid, idx) => {
+  //     const t = idx / Math.max(1, uniqueBuildings.length - 1); // 0..1
+  //     const shade = Math.round(238 - t * 238); // 238 -> 0
+  //     const hex = shade.toString(16).padStart(2, "0");
+  //     colorMap[bid] = `#${hex}${hex}${hex}`;
+  //   });
+
+  //   const deg = new Map(nodes.map(n => [n.id, 0]));
+  //   links.forEach(l => {
+  //     deg.set(l.source, (deg.get(l.source) || 0) + 1);
+  //     deg.set(l.target, (deg.get(l.target) || 0) + 1);
+  //   });
+
+  //   if (!window.Graph3DInstance) {
+  //     window.Graph3DInstance = ForceGraph3D()(mount)
+  //       .backgroundColor("#f0f0f0")
+  //       .cooldownTicks(500)
+  //       .d3VelocityDecay(0.12)
+  //       .nodeRelSize(15)
+  //       .nodeOpacity(1)
+  //       .nodeLabel(n => {
+  //         if (n.id === "PLOT" || n.kind === "plot") return "Plot";
+  //         const parts = [];
+
+  //         if (n.buildingId) parts.push(`<b>Building:</b> ${n.buildingId}`);
+  //         parts.push(`<b>Name:</b> ${n.name}`);
+  //         if (Number.isFinite(n.level)) parts.push(`<b>Level:</b> ${n.level}`);
+
+  //         if (Number.isFinite(n.area)) {
+  //           const rounded = Math.round(n.area);
+  //           parts.push(`<b>Area:</b> ${rounded.toLocaleString()} m²`);
+  //         }
+          
+  //         if (n.typology) parts.push(`<b>Typology:</b> ${n.typology}`);
+  //         return parts.join("<br>"); // multi-line
+  //       })
+  //       .enableNodeDrag(true)
+  //       .showNavInfo(false)
+  //       .warmupTicks(60);
+  //   }
+
+  //   window.Graph3DInstance
+  //     .nodeColor(n => {
+  //       if (n.id === "PLOT" || n.kind === "plot") return "#ff0000"; // plot node in red
+  //       return colorMap[n.buildingId] || "#000000";
+  //     })
+  //     .linkColor(() => "rgba(138, 138, 138, 1)");
+
+  //   window.Graph3DInstance.graphData({ nodes, links });
+  //   resizeGraph3D();
+  //   if (!window._graph3dResizeBound) {
+  //     window.addEventListener("resize", resizeGraph3D);
+  //     window._graph3dResizeBound = true;
+  //   }
+
+  //   requestAnimationFrame(() => {
+  //     const charge = window.Graph3DInstance.d3Force('charge');
+  //     if (charge?.strength) charge.strength(-160);
+
+  //     const link = window.Graph3DInstance.d3Force('link');
+  //     if (link?.distance && link?.strength) {
+  //       link
+  //         .distance(l => {
+  //           const s = l.source.id || l.source;
+  //           const t = l.target.id || l.target;
+  //           const d = (deg.get(s) || 0) + (deg.get(t) || 0);
+  //           return 40 + 8 * Math.sqrt(d);
+  //         })
+  //         .strength(0.04);
+  //     }
+  //     try { window.Graph3DInstance.d3ReheatSimulation(); } catch {}
+  //   });
+
+  //   setTimeout(() => {
+  //     try {
+  //       window.Graph3DInstance.zoomToFit(600, 8);
+  //       const controls = window.Graph3DInstance.controls?.();
+  //       if (controls?.dollyIn) { controls.dollyIn(1.2); controls.update(); }
+  //     } catch {}
+  //   }, 150);
+  // };
+
   window.showGraph3DBackground = function showGraph3DBackground(dataGraph) {
     if (typeof ForceGraph3D !== "function") return;
     const mount = document.getElementById("graph3d");
@@ -585,17 +700,100 @@
 
     ensureGraph3DFullscreen();
 
+    // ---- Category color palette (hex; mirrors your FromArgb) ----
+    const CAT_COLORS = {
+      Residential: "#DC2D46", // (220,45,70)
+      Office:      "#0070B8", // (0,112,184)
+      Leisure:     "#00AA46", // (0,170,70)
+      Cultural:    "#8C008C", // (140,0,140)
+      Green:       "#50B478"  // (80,180,120)
+    };
+
+    // ---- Edge color palette ----
+    const EDGE_COLORS = {
+      street: "#8A8A8A", // (138,138,138)
+      access: "#8A8A8A"  // (138,138,138)
+    };
+
+    // ---- JS port of your categorize_node(attrs) heuristic ----
+    function categorizeNode(attrs) {
+      try {
+        const tags = {};
+        for (const [k, v] of Object.entries(attrs || {})) {
+          try { tags[String(k).toLowerCase()] = String(v).toLowerCase(); } catch {}
+        }
+
+        const b = tags["building"];
+
+        const residential = new Set([
+          "apartments","house","residential","semidetached_house",
+          "terrace","bungalow","detached","dormitory"
+        ]);
+        const office = new Set([
+          "office","commercial","industrial","retail","manufacture",
+          "warehouse","service"
+        ]);
+        const cultural = new Set([
+          "college","school","kindergarten","government","civic",
+          "church","fire_station","prison"
+        ]);
+        const leisure = new Set(["hotel","boathouse","houseboat","bridge"]);
+        const green   = new Set(["greenhouse","allotment_house"]);
+
+        if (b === "yes") return "Residential";
+        if (residential.has(b)) return "Residential";
+        if (office.has(b)) return "Office";
+        if (cultural.has(b)) return "Cultural";
+        if (leisure.has(b)) return "Leisure";
+        if (green.has(b)) return "Green";
+
+        const amen = tags["amenity"] || "";
+        if (amen.includes("museum") || amen.includes("theatre") || amen.includes("gallery")) {
+          return "Cultural";
+        }
+
+        const leis = tags["leisure"] || "";
+        if (leis.includes("park") || leis.includes("recreation") || leis.includes("garden")) {
+          return "Leisure";
+        }
+
+        if ((tags["landuse"] === "grass" || tags["landuse"] === "meadow") ||
+            (tags["type"] || "").includes("green")) {
+          return "Green";
+        }
+
+        return null;
+      } catch { return null; }
+    }
+
+    // ---- Try multiple hints to guess category ----
+    function pickCategory(n) {
+      const byAttrs = categorizeNode(n.attrs || {});
+      if (byAttrs) return byAttrs;
+
+      const hint = (n.typology || n.kind || "").toLowerCase();
+      if (!hint) return null;
+      if (/(res|housing|living|residential)/.test(hint)) return "Residential";
+      if (/(office|commercial|retail|work)/.test(hint))    return "Office";
+      if (/(museum|theatre|gallery|school|college|civic|gov|cultural)/.test(hint)) return "Cultural";
+      if (/(leisure|hotel|park|garden|recreation)/.test(hint)) return "Leisure";
+      if (/(green|grass|meadow|landscape)/.test(hint)) return "Green";
+      return null;
+    }
+
+    // ---- Build nodes/links, preserving original attrs for categorization ----
     const nodes = (dataGraph.nodes || []).map(n => {
       const buildingId = n.building_id || (typeof n.id === "string" ? n.id.split("|")[0] : "");
       return {
         id: n.id,
-        name: n.label || n.clean_id || n.id, // prefer clean label if present
+        name: n.label || n.clean_id || n.id,
         typology: n.typology || "",
         footprint: n.footprint || 0,
         buildingId,
-        kind: n.type || "",
+        kind: n.type || n.kind || "",
         area: Number.isFinite(n.area) ? n.area : null,
-        level: Number.isFinite(n.level) ? n.level : null
+        level: Number.isFinite(n.level) ? n.level : null,
+        attrs: n // keep raw attributes for categorizeNode
       };
     });
 
@@ -605,60 +803,80 @@
       type: e.type || "adjacent"
     }));
 
-    // --- Build monochrome gradient per building (light grey -> black) ---
+    // ---- Fallback monochrome per-building (used only if no category) ----
     const uniqueBuildings = Array.from(new Set(
       nodes.map(n => n.buildingId).filter(Boolean).sort()
     ));
-
-    const colorMap = {};
+    const monoColorMap = {};
     uniqueBuildings.forEach((bid, idx) => {
-      const t = idx / Math.max(1, uniqueBuildings.length - 1); // 0..1
+      const t = idx / Math.max(1, uniqueBuildings.length - 1);
       const shade = Math.round(238 - t * 238); // 238 -> 0
       const hex = shade.toString(16).padStart(2, "0");
-      colorMap[bid] = `#${hex}${hex}${hex}`;
+      monoColorMap[bid] = `#${hex}${hex}${hex}`;
     });
 
+    // ---- Degree cache for distance heuristic ----
     const deg = new Map(nodes.map(n => [n.id, 0]));
     links.forEach(l => {
       deg.set(l.source, (deg.get(l.source) || 0) + 1);
       deg.set(l.target, (deg.get(l.target) || 0) + 1);
     });
 
+    // ---- Init ForceGraph3D once ----
     if (!window.Graph3DInstance) {
       window.Graph3DInstance = ForceGraph3D()(mount)
         .backgroundColor("#f0f0f0")
         .cooldownTicks(500)
         .d3VelocityDecay(0.12)
-        .nodeRelSize(15)
+        .nodeRelSize(30)
         .nodeOpacity(1)
         .nodeLabel(n => {
           if (n.id === "PLOT" || n.kind === "plot") return "Plot";
           const parts = [];
-
           if (n.buildingId) parts.push(`<b>Building:</b> ${n.buildingId}`);
           parts.push(`<b>Name:</b> ${n.name}`);
           if (Number.isFinite(n.level)) parts.push(`<b>Level:</b> ${n.level}`);
-
           if (Number.isFinite(n.area)) {
             const rounded = Math.round(n.area);
             parts.push(`<b>Area:</b> ${rounded.toLocaleString()} m²`);
           }
-          
+          const cat = pickCategory(n);
+          if (cat) parts.push(`<b>Category:</b> ${cat}`);
           if (n.typology) parts.push(`<b>Typology:</b> ${n.typology}`);
-          return parts.join("<br>"); // multi-line
+          return parts.join("<br>");
         })
         .enableNodeDrag(true)
         .showNavInfo(false)
         .warmupTicks(60);
     }
 
+    // ---- Color rules for nodes and edges ----
     window.Graph3DInstance
       .nodeColor(n => {
-        if (n.id === "PLOT" || n.kind === "plot") return "#ff0000"; // plot node in red
-        return colorMap[n.buildingId] || "#000000";
+        if (n.id === "PLOT" || n.kind === "plot") return "#ff0000";
+        const cat = pickCategory(n);
+        if (cat && CAT_COLORS[cat]) return CAT_COLORS[cat];
+        return monoColorMap[n.buildingId] || "#000000";
       })
-      .linkColor(() => "rgba(138, 138, 138, 1)");
+      .linkColor(l => {
+        const t = (l.type || "").toString().toLowerCase();
+        return EDGE_COLORS[t] || "#8A8A8A";
+      })
+      .nodeVal(n => {
+        // Smaller for streets
+        if ((n.kind || "").toLowerCase() === "street") return 2;
 
+        // Larger for buildings/parks categories
+        const cat = pickCategory(n);
+        if (cat && ["Residential","Office","Leisure","Cultural","Green"].includes(cat)) {
+          return 12;
+        }
+
+        // Default size
+        return 6;
+      });
+
+    // ---- Push data & forces ----
     window.Graph3DInstance.graphData({ nodes, links });
     resizeGraph3D();
     if (!window._graph3dResizeBound) {
@@ -692,7 +910,6 @@
       } catch {}
     }, 150);
   };
-
 
 
 
