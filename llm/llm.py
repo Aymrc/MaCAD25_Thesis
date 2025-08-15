@@ -582,7 +582,10 @@ def get_massing_mtime():
 # ============================
 def run_llm(reload=False):
     print("[LLM] Starting the server for LLM access ...")
-    uvicorn.run("llm:app", host="127.0.0.1", port=8000, reload=reload)
+    uvicorn.run("llm:app",
+                host="127.0.0.1",
+                port=8000,
+                reload=reload)
 
 if __name__ == "__main__":
     try:

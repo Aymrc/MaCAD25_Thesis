@@ -12,6 +12,8 @@ import Rhino
 import scriptcontext as sc
 import rhinoscriptsyntax as rs
 import Rhino.Geometry as rg
+from Rhino.Commands import Command
+
 
 import System
 from System import Action
@@ -47,7 +49,7 @@ PROJECT_DIR = os.path.dirname(THIS_DIR)
 
 # knowledge directory (all live state goes here)
 KNOWLEDGE_DIR = os.path.join(PROJECT_DIR, "knowledge")
-OSM_DIR = os.path.join(KNOWLEDGE_DIR, "osm")  # OSM jobs root
+OSM_DIR = os.path.join(KNOWLEDGE_DIR, "osm") # OSM jobs root
 
 # Ensure destination exists
 try:
@@ -90,23 +92,6 @@ try:
 except Exception:
     EP = None
 
-# Massing graph exporter (knowledge/massing_graph.json)
-# save_graph = None
-# try:
-#     THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-
-#     MG_FILENAME = "massing_graph.py"
-#     MG_PATH = os.path.join(THIS_DIR, MG_FILENAME)
-
-#     if not os.path.exists(MG_PATH):
-#         Rhino.RhinoApp.WriteLine("[rhino_listener] ERROR: exporter file not found: {0}".format(MG_PATH))
-#     else:
-#         mod = imp.load_source("massing_graph", MG_PATH)
-#         save_graph = getattr(mod, "save_graph", None)
-#         Rhino.RhinoApp.WriteLine("[rhino_listener] Loaded {0}; save_graph callable? {1}".format(MG_PATH, callable(save_graph)))
-# except Exception as _e:
-#     Rhino.RhinoApp.WriteLine("[rhino_listener] ERROR importing exporter: {0}".format(_e))
-#     save_graph = None
 save_graph = None
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -367,11 +352,11 @@ def _export_plot_boundary_to_job(job_dir, candidate_id=None):
 
         chosen_curve = None
 
-        # 1) Try candidate first (last event object)
+        # Try candidate first (last event object)
         if candidate_id and candidate_id in guids and _guid_is_closed_planar(candidate_id):
             chosen_curve = rs.coercecurve(candidate_id)
 
-        # 2) Fallback: largest-area among valid closed planar curves
+        # Fallback: largest-area among valid closed planar curves
         if chosen_curve is None:
             best_area = -1.0
             for g in guids:
@@ -430,30 +415,13 @@ def _mark_plot_dirty(guid=None):
 def _mark_massing_dirty():
     sc.sticky[STICKY_MASSING_DIRTY] = True
 
-
-# def _export_massing_graph_now():
-#     """Build and save massing_graph.json on the UI thread (safe)."""
-#     if not save_graph:
-#         Rhino.RhinoApp.WriteLine("[rhino_listener] massing_graph exporter not available.")
-#         return
-#     def _do():
-#         try:
-#             save_graph()  # writes knowledge/massing_graph.json
-#             Rhino.RhinoApp.WriteLine("[rhino_listener] Massing graph exported for UI.")
-#         except Exception as e:
-#             Rhino.RhinoApp.WriteLine("[rhino_listener] Massing graph export failed: {0}".format(e))
-#     try:
-#         Rhino.RhinoApp.InvokeOnUiThread(Action(_do))
-#     except Exception as e:
-#         Rhino.RhinoApp.WriteLine("[rhino_listener] UI invoke failed ({0}); running inline.".format(e))
-#         _do()
 def _export_massing_graph_now():
     """Build and save massing_graph.json on the UI thread (safe)."""
     def _do():
         global save_graph
         try:
             if not callable(save_graph):
-                # Try to (re)load once right before exporting
+                # Try to load right before exporting
                 save_graph = _load_exporter()
             if callable(save_graph):
                 save_graph()  # writes knowledge/massing_graph.json
@@ -588,7 +556,7 @@ def handle_layer_change():
     try:
         wrote = False
 
-        # 1) If PLOT is marked dirty, export with candidate preference
+        # If PLOT is marked dirty, export with candidate preference
         if sc.sticky.get(STICKY_PLOT_DIRTY):
             sc.sticky[STICKY_PLOT_DIRTY] = False
             job_dir = sc.sticky.get(STICKY_ACTIVE_JOB)
@@ -597,23 +565,23 @@ def handle_layer_change():
             if not wrote:
                 Rhino.RhinoApp.WriteLine("[rhino_listener] PLOT changed but boundary export failed.")
 
-        # 2) Passive fallback: try exporting any valid PLOT boundary if nothing written
+        # Passive fallback: try exporting any valid PLOT boundary if nothing written
         if not wrote:
             job_dir = sc.sticky.get(STICKY_ACTIVE_JOB)
             if job_dir and os.path.isdir(job_dir):
                 wrote = _export_plot_boundary_to_job(job_dir, candidate_id=None) or False
 
-        # 2b) MASSING → graph (only when MASSING changed)
+        # MASSING → graph (only when MASSING changed)
         if sc.sticky.get(STICKY_MASSING_DIRTY):
             sc.sticky[STICKY_MASSING_DIRTY] = False
             _export_massing_graph_now()
 
-        # 3) Try to enable evaluation preview if results are ready/updated
+        # Try to enable evaluation preview if results are ready/updated
         job_dir = sc.sticky.get(STICKY_ACTIVE_JOB)
         if job_dir:
             _try_evaluation_preview(job_dir)
 
-        # 4) Apply UI preview toggles
+        # Apply UI preview toggles
         _apply_ui_preview_state_if_changed()
 
         Rhino.RhinoApp.WriteLine("[rhino_listener] Debounced change processed.")
@@ -621,23 +589,6 @@ def handle_layer_change():
         is_running = False
 
 
-# def debounce_trigger():
-#     global debounce_timer
-#     if debounce_timer and debounce_timer.is_alive():
-#         return
-
-#     def delayed():
-#         time.sleep(DEBOUNCE_SECONDS)
-#         if not listener_active:
-#             return
-#         handle_layer_change()
-
-#     debounce_timer = threading.Thread(target=delayed)
-#     try:
-#         debounce_timer.setDaemon(True)
-#     except:
-#         pass
-#     debounce_timer.start()
 def debounce_trigger():
     global debounce_timer
     if debounce_timer and debounce_timer.is_alive():
@@ -689,10 +640,11 @@ def on_add(sender, e):
 
 def on_modify(sender, e):
     _debug_event_layer(e.Object, "on_modify")
-
-    if listener_active and is_on_target_layer(e.Object):
+    # Always schedule export (layer lookups can be unreliable right after transforms)
+    if listener_active:
         _mark_massing_dirty()
         debounce_trigger()
+    # Keep PLOT logic as-is
     try:
         if listener_active and _is_object_on_layer(e.Object, PLOT_LAYER_NAME):
             _mark_plot_dirty(e.Object.Id)
@@ -704,10 +656,11 @@ def on_modify(sender, e):
 
 def on_replace(sender, e):
     _debug_event_layer(e.NewObject, "on_replace")
-
-    if listener_active and is_on_target_layer(e.NewObject):
+    # Always schedule export
+    if listener_active:
         _mark_massing_dirty()
         debounce_trigger()
+    # Keep PLOT logic as-is
     try:
         if listener_active and _is_object_on_layer(e.NewObject, PLOT_LAYER_NAME):
             _mark_plot_dirty(e.NewObject.Id)
@@ -717,14 +670,42 @@ def on_replace(sender, e):
         pass
 
 
+
 def on_delete(sender, e):
     try:
         _debug_event_layer(e.Object, "on_delete")
     except:
         pass
-    # Cannot reliably check layer on delete -> may trigger for any delete
     _mark_massing_dirty()
     debounce_trigger()
+
+# --- Command-end fallback ---
+_CHANGE_COMMANDS = set([
+    # creation / solids
+    "Box","Cylinder","Cone","Sphere","ExtrudeCrv","ExtrudeCrvTapered","ExtrudeSrf","Loft","Sweep1","Sweep2","Cap",
+    # transforms / edits
+    "Copy","Paste","Move","Rotate","Rotate3D","Scale","Scale1D","Scale2D","Scale3D","ScaleNU",
+    "Align","SetPt","RemapCPlane",
+    # arrays
+    "Array","ArrayLinear","ArrayPolar","ArrayCrv","ArraySrf",
+    # booleans & surf ops
+    "BooleanUnion","BooleanDifference","BooleanIntersection","Split","MergeAllFaces","Join","Explode","OffsetSrf",
+    # gumball ops
+    "GumballMove","GumballRotate","GumballScale",
+    # delete
+    "Delete"
+])
+
+def on_end_command(sender, e):
+    try:
+        name = e.CommandEnglishName if hasattr(e, "CommandEnglishName") else ""
+        if name in _CHANGE_COMMANDS:
+            Rhino.RhinoApp.WriteLine("[rhino_listener] EndCommand '{0}' → export scheduled (fallback).".format(name))
+            _mark_massing_dirty()
+            debounce_trigger()
+    except Exception as ex:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] EndCommand hook error: {0}".format(ex))
+
 
 
 # ===========================
@@ -893,14 +874,14 @@ def _start_watcher_thread():
 # ===========================
 def setup_layer_listener():
     global WATCHER_STARTED_AT
+    # If already active, restart cleanly so the new handlers are attached
     if sc.sticky.get(STICKY_KEY):
-        Rhino.RhinoApp.WriteLine("[rhino_listener] Already active on '{0}'.".format(TARGET_LAYER_NAME))
-        return
+        Rhino.RhinoApp.WriteLine("[rhino_listener] Restarting listener on '{0}'.".format(TARGET_LAYER_NAME))
+        remove_layer_listener()
 
     json_path = os.path.join(os.path.dirname(__file__), "layers.json")
     Rhino.RhinoApp.WriteLine("[rhino_listener] Creating layers from: {0}".format(json_path))
 
-    # Protect user's current layer during layer creation
     saved_layer_idx = _save_current_layer_index()
     try:
         create_layers_from_json(json_path)
@@ -914,44 +895,35 @@ def setup_layer_listener():
     Rhino.RhinoDoc.ModifyObjectAttributes += on_modify
     Rhino.RhinoDoc.ReplaceRhinoObject += on_replace
     Rhino.RhinoDoc.DeleteRhinoObject += on_delete
+    Command.EndCommand += on_end_command   # <-- NEW
 
     sc.sticky[STICKY_KEY] = True
     Rhino.RhinoApp.WriteLine("[rhino_listener] Layer-specific listener active on '{0}'.".format(TARGET_LAYER_NAME))
 
-    # Mark watcher start time to ignore old DONE flags
     try:
         WATCHER_STARTED_AT = time.time()
     except:
         WATCHER_STARTED_AT = None
 
     _start_watcher_thread()
-
-    # If there is no active job yet (e.g., listener started after a job finished), seed it
     _seed_active_job_dir_from_latest_done()
-
-    # Apply current UI toggles on boot (does not change current layer)
     _apply_ui_preview_state_if_changed()
 
 
 def remove_layer_listener():
-    try:
-        Rhino.RhinoDoc.AddRhinoObject -= on_add
-    except:
-        pass
-    try:
-        Rhino.RhinoDoc.ModifyObjectAttributes -= on_modify
-    except:
-        pass
-    try:
-        Rhino.RhinoDoc.ReplaceRhinoObject -= on_replace
-    except:
-        pass
-    try:
-        Rhino.RhinoDoc.DeleteRhinoObject -= on_delete
-    except:
-        pass
+    try: Rhino.RhinoDoc.AddRhinoObject -= on_add
+    except: pass
+    try: Rhino.RhinoDoc.ModifyObjectAttributes -= on_modify
+    except: pass
+    try: Rhino.RhinoDoc.ReplaceRhinoObject -= on_replace
+    except: pass
+    try: Rhino.RhinoDoc.DeleteRhinoObject -= on_delete
+    except: pass
+    try: Command.EndCommand -= on_end_command   # <-- NEW
+    except: pass
     sc.sticky[STICKY_KEY] = False
     Rhino.RhinoApp.WriteLine("[rhino_listener] Layer listener removed.")
+
 
 
 def shutdown_listener():
