@@ -6,7 +6,7 @@
 # ! _-RunPythonScript "C:\Users\broue\Documents\IAAC MaCAD\Master_Thesis\MaCAD25_Thesis\main.py"
 # _-RunPythonScript "C:\Users\broue\Documents\IAAC MaCAD\Master_Thesis\MaCAD25_Thesis\rhino\rhino_listener.py"
 
-import os, sys, subprocess, webbrowser
+import os, sys, subprocess, webbrowser, shutil, re
 
 # Import project variables
 try:
@@ -23,6 +23,7 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 LLM_DIR = os.path.join(CURRENT_DIR, "llm")
 RHINO_DIR = os.path.join(CURRENT_DIR, "rhino")
 UI_DIR = os.path.join(CURRENT_DIR, "ui")
+OSM_DIR = os.path.join(CURRENT_DIR, "knowledge", "osm")  # <-- raíz OSM para limpieza
 
 # Ensure local imports
 if LLM_DIR not in sys.path:
@@ -34,8 +35,49 @@ def _safe_print(msg):
     try:
         print(msg)
     except:
-        # IronPython in some environments may fail with unicode: force str
         print(str(msg))
+
+# ---------- Delete previous OSM ----------
+_UUID_RX = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
+
+def _looks_like_uuid(name):
+    try:
+        return bool(_UUID_RX.match(name))
+    except:
+        return False
+
+def _delete_folder(p):
+    try:
+        shutil.rmtree(p, ignore_errors=True)
+        return True
+    except Exception:
+        try:
+            trash = p + "_trash"
+            os.rename(p, trash)
+            shutil.rmtree(trash, ignore_errors=True)
+            return True
+        except Exception:
+            return False
+
+def purge_osm_temp_dirs():
+    try:
+        if not os.path.isdir(OSM_DIR):
+            return
+        entries = []
+        try:
+            entries = os.listdir(OSM_DIR)
+        except Exception:
+            entries = []
+        for name in entries:
+            full = os.path.join(OSM_DIR, name)
+            if not os.path.isdir(full):
+                continue
+            if name == "_tmp" or name.startswith("osm_") or _looks_like_uuid(name):
+                _safe_print("[CLEAN] Removing OSM workspace: {}".format(full))
+                _delete_folder(full)
+    except Exception as e:
+        _safe_print("[CLEAN] OSM purge error: {}".format(e))
+# ------------------------------------------------------
 
 def get_universal_python_path():
     """
@@ -167,6 +209,7 @@ def copilot_start():
     _safe_print("=" * 50)
     _safe_print("Starting '{}'".format(copilot_name))
     _safe_print("=" * 50)
+    purge_osm_temp_dirs()
 
     start_llm()
 
