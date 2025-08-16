@@ -99,6 +99,7 @@ def remove_known_files(knowledge_dir: Path) -> None:
     """Remove individual files that should not persist across sessions."""
     targets = [
         knowledge_dir / "massing_graph.json",
+        knowledge_dir / "osm" / "graph_context.json",
         # Add more single-file artifacts here if needed
     ]
     for t in targets:
