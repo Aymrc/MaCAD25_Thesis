@@ -1,0 +1,1250 @@
+{
+  "links": [
+    {
+      "weight": 1.0,
+      "target": "C-L01",
+      "type": "vertical",
+      "source": "C-L00"
+    },
+    {
+      "weight": 1.0,
+      "target": "B-L01",
+      "type": "vertical",
+      "source": "B-L00"
+    },
+    {
+      "weight": 1.0,
+      "target": "B-L02",
+      "type": "vertical",
+      "source": "B-L01"
+    },
+    {
+      "weight": 1.0,
+      "target": "B-L03",
+      "type": "vertical",
+      "source": "B-L02"
+    },
+    {
+      "weight": 1.0,
+      "target": "B-L04",
+      "type": "vertical",
+      "source": "B-L03"
+    },
+    {
+      "weight": 1.0,
+      "target": "B-L05",
+      "type": "vertical",
+      "source": "B-L04"
+    },
+    {
+      "weight": 1.0,
+      "target": "B-L06",
+      "type": "vertical",
+      "source": "B-L05"
+    },
+    {
+      "weight": 1.0,
+      "target": "D-L01",
+      "type": "vertical",
+      "source": "D-L00"
+    },
+    {
+      "weight": 1.0,
+      "target": "D-L02",
+      "type": "vertical",
+      "source": "D-L01"
+    },
+    {
+      "weight": 1.0,
+      "target": "D-L03",
+      "type": "vertical",
+      "source": "D-L02"
+    },
+    {
+      "weight": 1.0,
+      "target": "D-L04",
+      "type": "vertical",
+      "source": "D-L03"
+    },
+    {
+      "weight": 1.0,
+      "target": "D-L05",
+      "type": "vertical",
+      "source": "D-L04"
+    },
+    {
+      "weight": 1.0,
+      "target": "D-L06",
+      "type": "vertical",
+      "source": "D-L05"
+    },
+    {
+      "weight": 1.0,
+      "target": "E-L01",
+      "type": "vertical",
+      "source": "E-L00"
+    },
+    {
+      "weight": 1.0,
+      "target": "E-L02",
+      "type": "vertical",
+      "source": "E-L01"
+    },
+    {
+      "weight": 1.0,
+      "target": "E-L03",
+      "type": "vertical",
+      "source": "E-L02"
+    },
+    {
+      "weight": 1.0,
+      "target": "A-L01",
+      "type": "vertical",
+      "source": "A-L00"
+    },
+    {
+      "weight": 1.0,
+      "target": "A-L02",
+      "type": "vertical",
+      "source": "A-L01"
+    },
+    {
+      "weight": 1.0,
+      "target": "A-L03",
+      "type": "vertical",
+      "source": "A-L02"
+    },
+    {
+      "weight": 1.0,
+      "target": "A-L04",
+      "type": "vertical",
+      "source": "A-L03"
+    },
+    {
+      "weight": 1.0,
+      "target": "A-L05",
+      "type": "vertical",
+      "source": "A-L04"
+    },
+    {
+      "weight": 1.0,
+      "target": "A-L06",
+      "type": "vertical",
+      "source": "A-L05"
+    },
+    {
+      "weight": 1.0,
+      "target": "A-L07",
+      "type": "vertical",
+      "source": "A-L06"
+    },
+    {
+      "weight": 1.0,
+      "target": "A-L08",
+      "type": "vertical",
+      "source": "A-L07"
+    },
+    {
+      "weight": 1.0,
+      "target": "A-L09",
+      "type": "vertical",
+      "source": "A-L08"
+    },
+    {
+      "weight": 1.0,
+      "target": "PLOT",
+      "type": "plot",
+      "source": "C-L00"
+    },
+    {
+      "weight": 1.0,
+      "target": "PLOT",
+      "type": "plot",
+      "source": "B-L00"
+    },
+    {
+      "weight": 1.0,
+      "target": "PLOT",
+      "type": "plot",
+      "source": "D-L00"
+    },
+    {
+      "weight": 1.0,
+      "target": "PLOT",
+      "type": "plot",
+      "source": "E-L00"
+    },
+    {
+      "weight": 1.0,
+      "target": "PLOT",
+      "type": "plot",
+      "source": "A-L00"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "C-L00",
+      "area": 3723.4583952136154,
+      "centroid": [
+        -106.48561538340226,
+        275.16348853607025,
+        1.4999999999990052
+      ],
+      "building_id": "C",
+      "label": "C \u2022 L00",
+      "type": "level",
+      "z_span": [
+        0.0,
+        3.0
+      ],
+      "clean_id": "C-L00",
+      "level": 0,
+      "bbox": [
+        -125.34570463402191,
+        253.6929458412376,
+        0.0,
+        -87.62552613275751,
+        296.6340312309145,
+        3.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "cultural",
+          "area": 3723.4583952136154
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "cultural"
+    },
+    {
+      "id": "C-L01",
+      "area": 3562.1358674318,
+      "centroid": [
+        -106.4856153834031,
+        275.16348853607036,
+        4.000000000000694
+      ],
+      "building_id": "C",
+      "label": "C \u2022 L01",
+      "type": "level",
+      "z_span": [
+        3.0,
+        5.0
+      ],
+      "clean_id": "C-L01",
+      "level": 1,
+      "bbox": [
+        -125.34570463402191,
+        253.6929458412376,
+        3.0,
+        -87.62552613275751,
+        296.6340312309145,
+        5.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "recreational",
+          "area": 3562.1358674318
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "recreational"
+    },
+    {
+      "id": "B-L00",
+      "area": 5505.098249802677,
+      "centroid": [
+        157.8718226786577,
+        13.948208677787727,
+        1.500000000000602
+      ],
+      "building_id": "B",
+      "label": "B \u2022 L00",
+      "type": "level",
+      "z_span": [
+        0.0,
+        3.0000000000000004
+      ],
+      "clean_id": "B-L00",
+      "level": 0,
+      "bbox": [
+        135.7625719555778,
+        -13.794027313653743,
+        0.0,
+        179.98107340173783,
+        41.69044466923171,
+        3.0000000000000004
+      ],
+      "program_assignments": [
+        {
+          "program_id": "cultural",
+          "area": 5505.098249802677
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "cultural"
+    },
+    {
+      "id": "B-L01",
+      "area": 5505.098249804885,
+      "centroid": [
+        157.87182267865845,
+        13.948208677786473,
+        4.5
+      ],
+      "building_id": "B",
+      "label": "B \u2022 L01",
+      "type": "level",
+      "z_span": [
+        3.0,
+        6.0
+      ],
+      "clean_id": "B-L01",
+      "level": 1,
+      "bbox": [
+        135.7625719555727,
+        -13.794027313651,
+        3.0,
+        179.98107340174363,
+        41.69044466922615,
+        6.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "cultural",
+          "area": 5505.098249804885
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "cultural"
+    },
+    {
+      "id": "B-L02",
+      "area": 5505.098249804885,
+      "centroid": [
+        157.87182267865845,
+        13.948208677786473,
+        7.5
+      ],
+      "building_id": "B",
+      "label": "B \u2022 L02",
+      "type": "level",
+      "z_span": [
+        6.0,
+        9.0
+      ],
+      "clean_id": "B-L02",
+      "level": 2,
+      "bbox": [
+        135.7625719555709,
+        -13.79402731364987,
+        6.0,
+        179.98107340174565,
+        41.690444669223865,
+        9.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "recreational",
+          "area": 5505.098249804885
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "recreational"
+    },
+    {
+      "id": "B-L03",
+      "area": 5505.098249806171,
+      "centroid": [
+        157.8718226786567,
+        13.948208677779988,
+        10.500000000000352
+      ],
+      "building_id": "B",
+      "label": "B \u2022 L03",
+      "type": "level",
+      "z_span": [
+        9.0,
+        12.000000000000002
+      ],
+      "clean_id": "B-L03",
+      "level": 3,
+      "bbox": [
+        135.76257195557076,
+        -13.794027313678553,
+        9.0,
+        179.9810734017458,
+        41.69044466922307,
+        12.000000000000002
+      ],
+      "program_assignments": [
+        {
+          "program_id": "residential",
+          "area": 5505.098249806171
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "residential"
+    },
+    {
+      "id": "B-L04",
+      "area": 5505.098249807456,
+      "centroid": [
+        157.871822678655,
+        13.948208677773504,
+        13.499999999999998
+      ],
+      "building_id": "B",
+      "label": "B \u2022 L04",
+      "type": "level",
+      "z_span": [
+        12.0,
+        15.0
+      ],
+      "clean_id": "B-L04",
+      "level": 4,
+      "bbox": [
+        135.76257195557076,
+        -13.794027313687856,
+        12.0,
+        179.9810734017458,
+        41.69044466922344,
+        15.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "residential",
+          "area": 5505.098249807456
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "residential"
+    },
+    {
+      "id": "B-L05",
+      "area": 5505.098249807456,
+      "centroid": [
+        157.871822678655,
+        13.948208677773504,
+        16.5
+      ],
+      "building_id": "B",
+      "label": "B \u2022 L05",
+      "type": "level",
+      "z_span": [
+        15.0,
+        18.0
+      ],
+      "clean_id": "B-L05",
+      "level": 5,
+      "bbox": [
+        135.76257195557173,
+        -13.794027313687856,
+        15.0,
+        179.9810734017447,
+        41.690444669224505,
+        18.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "residential",
+          "area": 5505.098249807456
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "residential"
+    },
+    {
+      "id": "B-L06",
+      "area": 5305.692302945923,
+      "centroid": [
+        157.87182267865595,
+        13.948208677780952,
+        18.999999999999343
+      ],
+      "building_id": "B",
+      "label": "B \u2022 L06",
+      "type": "level",
+      "z_span": [
+        18.0,
+        20.0
+      ],
+      "clean_id": "B-L06",
+      "level": 6,
+      "bbox": [
+        135.76257195557412,
+        -13.794027313686929,
+        18.0,
+        179.98107340174204,
+        41.69044466923171,
+        20.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "residential",
+          "area": 5305.692302945923
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "residential"
+    },
+    {
+      "id": "D-L00",
+      "area": 5505.098249804593,
+      "centroid": [
+        -102.3172252391628,
+        13.948208677813671,
+        1.5000000000011249
+      ],
+      "building_id": "D",
+      "label": "D \u2022 L00",
+      "type": "level",
+      "z_span": [
+        0.0,
+        3.0
+      ],
+      "clean_id": "D-L00",
+      "level": 0,
+      "bbox": [
+        -124.42647596225041,
+        -13.794027313653743,
+        0.0,
+        -80.20797451610252,
+        41.69044466934257,
+        3.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "cultural",
+          "area": 5505.098249804593
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "cultural"
+    },
+    {
+      "id": "D-L01",
+      "area": 5505.09824980872,
+      "centroid": [
+        -102.31722523914195,
+        13.948208677838354,
+        4.5
+      ],
+      "building_id": "D",
+      "label": "D \u2022 L01",
+      "type": "level",
+      "z_span": [
+        3.0,
+        6.0
+      ],
+      "clean_id": "D-L01",
+      "level": 1,
+      "bbox": [
+        -124.42647596223345,
+        -13.794027313651,
+        3.0,
+        -80.2079745160966,
+        41.690444669388214,
+        6.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "cultural",
+          "area": 5505.09824980872
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "cultural"
+    },
+    {
+      "id": "D-L02",
+      "area": 5505.09824980872,
+      "centroid": [
+        -102.31722523914195,
+        13.948208677838352,
+        7.499999999999999
+      ],
+      "building_id": "D",
+      "label": "D \u2022 L02",
+      "type": "level",
+      "z_span": [
+        5.999999999999999,
+        9.0
+      ],
+      "clean_id": "D-L02",
+      "level": 2,
+      "bbox": [
+        -124.42647596222648,
+        -13.79402731364987,
+        5.999999999999999,
+        -80.20797451609454,
+        41.69044466940405,
+        9.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "recreational",
+          "area": 5505.09824980872
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "recreational"
+    },
+    {
+      "id": "D-L03",
+      "area": 5505.098249808719,
+      "centroid": [
+        -102.31722523914196,
+        13.948208677838354,
+        10.5
+      ],
+      "building_id": "D",
+      "label": "D \u2022 L03",
+      "type": "level",
+      "z_span": [
+        9.0,
+        12.0
+      ],
+      "clean_id": "D-L03",
+      "level": 3,
+      "bbox": [
+        -124.42647596222406,
+        -13.79402731364948,
+        9.0,
+        -80.2079745160944,
+        41.69044466940524,
+        12.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "residential",
+          "area": 5505.098249808719
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "residential"
+    },
+    {
+      "id": "D-L04",
+      "area": 5505.09824980872,
+      "centroid": [
+        -102.31722523914195,
+        13.948208677838354,
+        13.499999999999998
+      ],
+      "building_id": "D",
+      "label": "D \u2022 L04",
+      "type": "level",
+      "z_span": [
+        11.999999999999998,
+        15.000000000000002
+      ],
+      "clean_id": "D-L04",
+      "level": 4,
+      "bbox": [
+        -124.42647596222517,
+        -13.794027313649659,
+        11.999999999999998,
+        -80.2079745160944,
+        41.69044466940524,
+        15.000000000000002
+      ],
+      "program_assignments": [
+        {
+          "program_id": "residential",
+          "area": 5505.09824980872
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "residential"
+    },
+    {
+      "id": "D-L05",
+      "area": 5505.09824980872,
+      "centroid": [
+        -102.31722523914195,
+        13.948208677838354,
+        16.5
+      ],
+      "building_id": "D",
+      "label": "D \u2022 L05",
+      "type": "level",
+      "z_span": [
+        15.0,
+        18.0
+      ],
+      "clean_id": "D-L05",
+      "level": 5,
+      "bbox": [
+        -124.42647596222841,
+        -13.794027313650185,
+        15.0,
+        -80.20797451609549,
+        41.6904446693968,
+        18.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "residential",
+          "area": 5505.09824980872
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "residential"
+    },
+    {
+      "id": "D-L06",
+      "area": 5305.692302946554,
+      "centroid": [
+        -102.31722523916201,
+        13.9482086778146,
+        18.999999999999222
+      ],
+      "building_id": "D",
+      "label": "D \u2022 L06",
+      "type": "level",
+      "z_span": [
+        18.0,
+        20.0
+      ],
+      "clean_id": "D-L06",
+      "level": 6,
+      "bbox": [
+        -124.42647596225041,
+        -13.794027313653743,
+        18.0,
+        -80.20797451609823,
+        41.69044466937559,
+        20.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "residential",
+          "area": 5305.692302946554
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "residential"
+    },
+    {
+      "id": "E-L00",
+      "area": 8412.298848195822,
+      "centroid": [
+        28.88182961045846,
+        -102.49430905901606,
+        1.5000000000016145
+      ],
+      "building_id": "E",
+      "label": "E \u2022 L00",
+      "type": "level",
+      "z_span": [
+        0.0,
+        3.0
+      ],
+      "clean_id": "E-L00",
+      "level": 0,
+      "bbox": [
+        -3.307620650935739,
+        -132.27375552816187,
+        0.0,
+        61.071279871837085,
+        -72.71486258991285,
+        3.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "cultural",
+          "area": 8412.298848195822
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "cultural"
+    },
+    {
+      "id": "E-L01",
+      "area": 8412.298848206752,
+      "centroid": [
+        28.881829610461633,
+        -102.49430905900395,
+        4.500000000000334
+      ],
+      "building_id": "E",
+      "label": "E \u2022 L01",
+      "type": "level",
+      "z_span": [
+        2.9999999999999996,
+        6.0
+      ],
+      "clean_id": "E-L01",
+      "level": 1,
+      "bbox": [
+        -3.307620650946168,
+        -132.2737555281749,
+        2.9999999999999996,
+        61.071279871843515,
+        -72.71486258987979,
+        6.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "cultural",
+          "area": 8412.298848206752
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "cultural"
+    },
+    {
+      "id": "E-L02",
+      "area": 8412.298848208626,
+      "centroid": [
+        28.881829610464024,
+        -102.49430905899732,
+        7.5
+      ],
+      "building_id": "E",
+      "label": "E \u2022 L02",
+      "type": "level",
+      "z_span": [
+        6.0,
+        9.0
+      ],
+      "clean_id": "E-L02",
+      "level": 2,
+      "bbox": [
+        -3.307620650946168,
+        -132.2737555281749,
+        6.0,
+        61.071279871843515,
+        -72.71486258987788,
+        9.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "recreational",
+          "area": 8412.298848208626
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "recreational"
+    },
+    {
+      "id": "E-L03",
+      "area": 7916.547674354082,
+      "centroid": [
+        28.88182961046105,
+        -102.49430905900867,
+        9.499999999999309
+      ],
+      "building_id": "E",
+      "label": "E \u2022 L03",
+      "type": "level",
+      "z_span": [
+        9.0,
+        10.0
+      ],
+      "clean_id": "E-L03",
+      "level": 3,
+      "bbox": [
+        -3.3076206509416055,
+        -132.2737555281692,
+        9.0,
+        61.0712798718407,
+        -72.71486258987788,
+        10.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "recreational",
+          "area": 503.55222442865306
+        },
+        {
+          "program_id": "residential",
+          "area": 7412.995449925429
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "residential"
+    },
+    {
+      "id": "A-L00",
+      "area": 4647.789156489738,
+      "centroid": [
+        -200.15103134206882,
+        174.92849087907118,
+        1.5000000000017806
+      ],
+      "building_id": "A",
+      "label": "A \u2022 L00",
+      "type": "level",
+      "z_span": [
+        0.0,
+        3.0
+      ],
+      "clean_id": "A-L00",
+      "level": 0,
+      "bbox": [
+        -219.74842033833485,
+        148.7841390274984,
+        0.0,
+        -180.55364234584425,
+        201.07284273065946,
+        3.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "cultural",
+          "area": 4647.789156489738
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "cultural"
+    },
+    {
+      "id": "A-L01",
+      "area": 4647.789156495257,
+      "centroid": [
+        -200.15103134206075,
+        174.9284908790568,
+        4.5
+      ],
+      "building_id": "A",
+      "label": "A \u2022 L01",
+      "type": "level",
+      "z_span": [
+        3.0,
+        6.0
+      ],
+      "clean_id": "A-L01",
+      "level": 1,
+      "bbox": [
+        -219.74842033835432,
+        148.78413902748588,
+        3.0,
+        -180.5536423458359,
+        201.07284273066625,
+        6.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "cultural",
+          "area": 2783.7617526731956
+        },
+        {
+          "program_id": "recreational",
+          "area": 1864.0274038220614
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "cultural"
+    },
+    {
+      "id": "A-L02",
+      "area": 4647.789156495257,
+      "centroid": [
+        -200.15103134206075,
+        174.92849087905677,
+        7.5
+      ],
+      "building_id": "A",
+      "label": "A \u2022 L02",
+      "type": "level",
+      "z_span": [
+        6.0,
+        9.0
+      ],
+      "clean_id": "A-L02",
+      "level": 2,
+      "bbox": [
+        -219.74842033836228,
+        148.78413902748073,
+        6.0,
+        -180.5536423458325,
+        201.072842730669,
+        9.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "recreational",
+          "area": 4647.789156495257
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "recreational"
+    },
+    {
+      "id": "A-L03",
+      "area": 4647.789156495257,
+      "centroid": [
+        -200.15103134206075,
+        174.92849087905677,
+        10.5
+      ],
+      "building_id": "A",
+      "label": "A \u2022 L03",
+      "type": "level",
+      "z_span": [
+        9.0,
+        12.0
+      ],
+      "clean_id": "A-L03",
+      "level": 3,
+      "bbox": [
+        -219.7484203383649,
+        148.78413902747906,
+        9.0,
+        -180.55364234583138,
+        201.0728427306699,
+        12.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "residential",
+          "area": 4647.789156495257
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "residential"
+    },
+    {
+      "id": "A-L04",
+      "area": 4647.78915649754,
+      "centroid": [
+        -200.1510313420575,
+        174.92849087904395,
+        13.500000000000737
+      ],
+      "building_id": "A",
+      "label": "A \u2022 L04",
+      "type": "level",
+      "z_span": [
+        12.0,
+        15.0
+      ],
+      "clean_id": "A-L04",
+      "level": 4,
+      "bbox": [
+        -219.7484203383649,
+        148.7841390274209,
+        12.0,
+        -180.55364234583138,
+        201.0728427306699,
+        15.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "residential",
+          "area": 4647.78915649754
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "residential"
+    },
+    {
+      "id": "A-L05",
+      "area": 4647.789156499823,
+      "centroid": [
+        -200.15103134205432,
+        174.92849087903113,
+        16.5
+      ],
+      "building_id": "A",
+      "label": "A \u2022 L05",
+      "type": "level",
+      "z_span": [
+        14.999999999999998,
+        18.0
+      ],
+      "clean_id": "A-L05",
+      "level": 5,
+      "bbox": [
+        -219.74842033836478,
+        148.78413902740004,
+        14.999999999999998,
+        -180.5536423458314,
+        201.07284273066986,
+        18.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "residential",
+          "area": 4647.789156499823
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "residential"
+    },
+    {
+      "id": "A-L06",
+      "area": 4647.789156499824,
+      "centroid": [
+        -200.1510313420543,
+        174.9284908790311,
+        19.5
+      ],
+      "building_id": "A",
+      "label": "A \u2022 L06",
+      "type": "level",
+      "z_span": [
+        17.999999999999996,
+        21.0
+      ],
+      "clean_id": "A-L06",
+      "level": 6,
+      "bbox": [
+        -219.74842033836296,
+        148.78413902739715,
+        17.999999999999996,
+        -180.55364234583217,
+        201.07284273066924,
+        21.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "residential",
+          "area": 4647.789156499824
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "residential"
+    },
+    {
+      "id": "A-L07",
+      "area": 4647.789156499823,
+      "centroid": [
+        -200.15103134205432,
+        174.92849087903113,
+        22.5
+      ],
+      "building_id": "A",
+      "label": "A \u2022 L07",
+      "type": "level",
+      "z_span": [
+        21.0,
+        24.0
+      ],
+      "clean_id": "A-L07",
+      "level": 7,
+      "bbox": [
+        -219.74842033835944,
+        148.78413902739715,
+        21.0,
+        -180.55364234583368,
+        201.072842730668,
+        24.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "residential",
+          "area": 4647.789156499823
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "residential"
+    },
+    {
+      "id": "A-L08",
+      "area": 4647.78915649754,
+      "centroid": [
+        -200.1510313420575,
+        174.92849087904398,
+        25.49999999999926
+      ],
+      "building_id": "A",
+      "label": "A \u2022 L08",
+      "type": "level",
+      "z_span": [
+        23.999999999999996,
+        27.0
+      ],
+      "clean_id": "A-L08",
+      "level": 8,
+      "bbox": [
+        -219.748420338353,
+        148.78413902740604,
+        23.999999999999996,
+        -180.55364234583647,
+        201.07284273066577,
+        27.0
+      ],
+      "program_assignments": [
+        {
+          "program_id": "residential",
+          "area": 4647.78915649754
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "residential"
+    },
+    {
+      "id": "A-L09",
+      "area": 4159.195773831631,
+      "centroid": [
+        -200.15103134206785,
+        174.92849087906947,
+        27.164804362485295
+      ],
+      "building_id": "A",
+      "label": "A \u2022 L09",
+      "type": "level",
+      "z_span": [
+        27.0,
+        27.32960872497103
+      ],
+      "clean_id": "A-L09",
+      "level": 9,
+      "bbox": [
+        -219.74842033833795,
+        148.78413902749242,
+        27.0,
+        -180.5536423458429,
+        201.07284273066054,
+        27.32960872497103
+      ],
+      "program_assignments": [
+        {
+          "program_id": "residential",
+          "area": 4159.195773831631
+        }
+      ],
+      "remaining_area": 0.0,
+      "primary_program": "residential"
+    },
+    {
+      "centroid": [
+        -22.902287765878953,
+        105.01320183429445,
+        0.0
+      ],
+      "id": "PLOT",
+      "type": "plot"
+    }
+  ],
+  "meta": {
+    "floor_height": 3.0,
+    "floor_levels": [
+      3.0,
+      6.0,
+      9.0,
+      12.0,
+      15.0,
+      18.0,
+      21.0,
+      24.0,
+      27.0
+    ],
+    "tolerance": 0.01,
+    "source": "ActiveDoc",
+    "site_programs": [
+      {
+        "id": "public_space",
+        "typology": "public_space",
+        "need_sqm": 120000.0
+      }
+    ],
+    "unallocated_program_area": {
+      "residential": 116899.09973251347,
+      "office": 150000.0
+    }
+  }
+}
