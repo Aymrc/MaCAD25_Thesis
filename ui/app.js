@@ -1,49 +1,60 @@
-// Visual 
+// Visual / Graph orchestration (robust loads + retries)
 
-// --- API base (same as chat.js) ---
 const API_BASE = "http://localhost:8000";
 const CONTEXT_GRAPH_PATH = `${API_BASE}/graph/context`;
+const MASSING_GRAPH_PATH = `${API_BASE}/graph/massing`;
+const MASSING_MTIME_PATH = `${API_BASE}/graph/massing/mtime`;
 
+/** Retry helper for JSON fetches with small backoff. Treats empty graphs as retryable. */
+async function fetchJsonWithRetry(url, attempts = 3, delayMs = 800) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const r = await fetch(url, { cache: "no-store" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const j = await r.json();
 
-// --- Graph adapter (rules) ---
-
-function adaptGraph(raw) {
-  // Normalize input containers
-  const inNodes = Array.isArray(raw?.nodes) ? raw.nodes : [];
-  const inEdges = Array.isArray(raw?.links) ? raw.links
-                 : Array.isArray(raw?.edges) ? raw.edges
-                 : [];
-  // Rule 1: drop x/y from nodes if present
-  // Nodes: explicitly strip x/y to avoid interfering with ForceGraph3D internals
-  const nodes = inNodes.map(n => {
-    const { x, y, ...rest } = (n || {});
-    return rest;
-  });
-
-  // Rule 2: map u/v -> source/target on edges, without duplicating keys
-  // Edges: rename u/v to source/target if those are missing
-  const edges = inEdges
-    .map(e => {
-      if (!e) return null;
-      const hasUV = (e.u != null && e.v != null);
-      const source = (e.source != null) ? e.source : (hasUV ? e.u : undefined);
-      const target = (e.target != null) ? e.target : (hasUV ? e.v : undefined);
-      if (source == null || target == null) return null;
-
-      // Remove u/v to avoid ambiguity and keep a clean shape
-      const { u, v, ...rest } = e;
-      return { ...rest, source, target };
-    })
-    .filter(Boolean);
-
-  return {
-    nodes,
-    edges,
-    links: edges,           // keep both keys for downstream compatibility
-    meta: raw?.meta || {}
-  };
+      // Consider an empty graph as transient (retry)
+      const maybeNodes = Array.isArray(j?.nodes) ? j.nodes : [];
+      const maybeLinks = Array.isArray(j?.links) ? j.links
+                        : Array.isArray(j?.edges) ? j.edges : [];
+      if (maybeNodes.length === 0 && maybeLinks.length === 0) {
+        throw new Error("Empty graph payload");
+      }
+      return j;
+    } catch (e) {
+      lastErr = e;
+      if (i < attempts - 1) {
+        await new Promise(r => setTimeout(r, delayMs * (1 + i))); // small incremental backoff
+      }
+    }
+  }
+  throw lastErr;
 }
 
+/** Graph adapter: normalize inputs (drop x/y; map u/v -> source/target; expose both edges/links). */
+function adaptGraph(raw) {
+  const inNodes = Array.isArray(raw?.nodes) ? raw.nodes : [];
+  const inEdges = Array.isArray(raw?.links) ? raw.links
+               : Array.isArray(raw?.edges) ? raw.edges
+               : [];
+  const nodes = inNodes.map(n => { const { x, y, ...rest } = (n || {}); return rest; });
+
+  const edges = inEdges.map(e => {
+    if (!e) return null;
+    const hasUV = (e.u != null && e.v != null);
+    const source = (e.source != null) ? e.source : (hasUV ? e.u : undefined);
+    const target = (e.target != null) ? e.target : (hasUV ? e.v : undefined);
+    if (source == null || target == null) return null;
+    const { u, v, ...rest } = e;
+    return { ...rest, source, target };
+  }).filter(Boolean);
+
+  return { nodes, edges, links: edges, meta: raw?.meta || {} };
+}
+
+// Expose adapter so chat.js can reuse the exact same normalizer.
+window.adaptGraph = adaptGraph;
 
 // --- Massing polling state ---
 let _massingPoll = null;
@@ -51,9 +62,8 @@ let _massingLastMtime = 0;
 
 async function loadMassingGraphOnce() {
   try {
-    const res = await fetch(`${API_BASE}/graph/massing`, { cache: "no-store" });
-    const data = await res.json();
-    const adapted = adaptGraph(data); // ← apply rules
+    const data = await fetchJsonWithRetry(MASSING_GRAPH_PATH, 3, 700);
+    const adapted = adaptGraph(data);
     if (typeof window.showGraph3DBackground === "function") {
       window.showGraph3DBackground(adapted);
     }
@@ -65,23 +75,22 @@ async function loadMassingGraphOnce() {
 
 async function startMassingPolling() {
   stopMassingPolling();
-  // seed mtime to current state to avoid double fetch
   try {
-    const r0 = await fetch(`${API_BASE}/graph/massing/mtime`, { cache: "no-store" });
+    const r0 = await fetch(MASSING_MTIME_PATH, { cache: "no-store" });
     const j0 = await r0.json();
     _massingLastMtime = j0?.mtime || 0;
   } catch {}
 
   _massingPoll = setInterval(async () => {
     try {
-      const r = await fetch(`${API_BASE}/graph/massing/mtime`, { cache: "no-store" });
+      const r = await fetch(MASSING_MTIME_PATH, { cache: "no-store" });
       const { mtime } = await r.json();
       if (mtime && mtime !== _massingLastMtime) {
         _massingLastMtime = mtime;
         await loadMassingGraphOnce();
       }
     } catch {
-      // silent; keep polling
+      // keep polling silently
     }
   }, 2500);
 }
@@ -93,12 +102,11 @@ function stopMassingPolling() {
   }
 }
 
-/* === Context Graph loader === */
+/** Load Context graph once with retries. */
 async function loadContextGraphOnce() {
   try {
-    const res = await fetch(CONTEXT_GRAPH_PATH, { cache: "no-store" });
-    const data = await res.json();
-    const adapted = adaptGraph(data); // ← apply rules
+    const data = await fetchJsonWithRetry(CONTEXT_GRAPH_PATH, 3, 700);
+    const adapted = adaptGraph(data);
     if (typeof window.showGraph3DBackground === "function") {
       window.showGraph3DBackground(adapted);
     }
@@ -111,13 +119,16 @@ async function loadContextGraphOnce() {
 // === Tab switching (visual) ===
 document.querySelectorAll(".tab button").forEach(btn => {
   btn.addEventListener("click", async () => {
-    document.querySelectorAll(".tab button").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab button").forEach(b => {
+      b.classList.remove("active");
+      b.setAttribute("aria-selected", "false");
+    });
     btn.classList.add("active");
+    btn.setAttribute("aria-selected", "true");
 
     const tab = btn.dataset.tab;
 
     if (tab === "context") {
-      // show static context graph from knowledge/osm/graph_context.json
       stopMassingPolling();
       await loadContextGraphOnce();
       return;
@@ -125,7 +136,6 @@ document.querySelectorAll(".tab button").forEach(btn => {
 
     if (tab === "brief") {
       stopMassingPolling();
-      // show brief graph if we have one
       if (window._briefGraph && typeof window.showGraph3DBackground === "function") {
         window.showGraph3DBackground(window._briefGraph);
       } else if (typeof window.clearGraph === "function") {
@@ -142,14 +152,12 @@ document.querySelectorAll(".tab button").forEach(btn => {
 
     // masterplan or others: clear + stop any massing poll
     stopMassingPolling();
-    if (typeof window.clearGraph === "function") window.clearGraph(); // <<<<<<<<< to update with masterplan graph later 
+    if (typeof window.clearGraph === "function") window.clearGraph(); // TODO: replace with masterplan graph when available
   });
 });
 
-
 // === Resizable chat history ===
 const chatHistory = document.getElementById("chat-history");
-const historyContent = chatHistory?.querySelector(".history-content");
 let isResizing = false;
 let startY = 0;
 let startHeight = 0;
@@ -167,8 +175,6 @@ if (resizeHandle && chatHistory) {
   document.addEventListener("mousemove", e => {
     if (!isResizing) return;
     const dy = e.clientY - startY;
-
-    // clamp: min 60px, max 50vh
     const maxH = Math.round(window.innerHeight * 0.5);
     const next = Math.max(60, Math.min(maxH, startHeight - dy));
     chatHistory.style.height = `${next}px`;
@@ -190,7 +196,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadMassingGraphOnce();
     startMassingPolling();
   } else if (activeTab === "context") {
-    // initial load if Context tab is active by default
     await loadContextGraphOnce();
   } else if (activeTab === "brief") {
     if (window._briefGraph && typeof window.showGraph3DBackground === "function") {
@@ -199,7 +204,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       window.clearGraph();
     }
   } else {
-    // anything else → clear and make sure no stray polling runs
     stopMassingPolling();
     if (typeof window.clearGraph === "function") window.clearGraph();
   }
