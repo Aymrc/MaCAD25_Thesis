@@ -1,1281 +1,5675 @@
 {
   "links": [
     {
-      "type": "vertical", 
-      "target": "E-L01", 
-      "source": "E-L00", 
-      "weight": 1.0
+      "target": "X-L01", 
+      "source": "X-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "vertical", 
-      "target": "E-L02", 
-      "source": "E-L01", 
-      "weight": 1.0
+      "target": "X-L02", 
+      "source": "X-L01", 
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "vertical", 
-      "target": "E-L03", 
-      "source": "E-L02", 
-      "weight": 1.0
+      "target": "M-L01", 
+      "source": "M-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "vertical", 
-      "target": "E-L04", 
-      "source": "E-L03", 
-      "weight": 1.0
+      "target": "M-L02", 
+      "source": "M-L01", 
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "vertical", 
-      "target": "E-L05", 
-      "source": "E-L04", 
-      "weight": 1.0
+      "target": "M-L03", 
+      "source": "M-L02", 
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "vertical", 
-      "target": "E-L06", 
-      "source": "E-L05", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
-      "target": "D-L01", 
-      "source": "D-L00", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
-      "target": "A-L01", 
-      "source": "A-L00", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
-      "target": "A-L02", 
-      "source": "A-L01", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
-      "target": "A-L03", 
-      "source": "A-L02", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
-      "target": "A-L04", 
-      "source": "A-L03", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
-      "target": "A-L05", 
-      "source": "A-L04", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
-      "target": "A-L06", 
-      "source": "A-L05", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
       "target": "C-L01", 
       "source": "C-L00", 
-      "weight": 1.0
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "vertical", 
       "target": "C-L02", 
       "source": "C-L01", 
-      "weight": 1.0
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "vertical", 
       "target": "C-L03", 
       "source": "C-L02", 
-      "weight": 1.0
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "vertical", 
-      "target": "C-L04", 
-      "source": "C-L03", 
-      "weight": 1.0
+      "target": "G-L01", 
+      "source": "G-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "vertical", 
-      "target": "C-L05", 
-      "source": "C-L04", 
-      "weight": 1.0
+      "target": "G-L02", 
+      "source": "G-L01", 
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "vertical", 
-      "target": "C-L06", 
-      "source": "C-L05", 
-      "weight": 1.0
+      "target": "Q-L01", 
+      "source": "Q-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "vertical", 
-      "target": "F-L01", 
-      "source": "F-L00", 
-      "weight": 1.0
+      "target": "Q-L02", 
+      "source": "Q-L01", 
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "vertical", 
-      "target": "F-L02", 
-      "source": "F-L01", 
-      "weight": 1.0
+      "target": "Q-L03", 
+      "source": "Q-L02", 
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "vertical", 
-      "target": "F-L03", 
-      "source": "F-L02", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
       "target": "B-L01", 
       "source": "B-L00", 
-      "weight": 1.0
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "vertical", 
       "target": "B-L02", 
       "source": "B-L01", 
-      "weight": 1.0
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "vertical", 
-      "target": "B-L03", 
-      "source": "B-L02", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
-      "target": "B-L04", 
-      "source": "B-L03", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
-      "target": "B-L05", 
-      "source": "B-L04", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
-      "target": "B-L06", 
-      "source": "B-L05", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
-      "target": "B-L07", 
-      "source": "B-L06", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
-      "target": "B-L08", 
-      "source": "B-L07", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
-      "target": "B-L09", 
-      "source": "B-L08", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
-      "target": "B-L10", 
-      "source": "B-L09", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "vertical", 
-      "target": "B-L11", 
-      "source": "B-L10", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "plot", 
-      "target": "PLOT", 
-      "source": "E-L00", 
-      "weight": 1.0
-    }, 
-    {
-      "type": "plot", 
-      "target": "PLOT", 
+      "target": "D-L01", 
       "source": "D-L00", 
-      "weight": 1.0
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "plot", 
-      "target": "PLOT", 
+      "target": "D-L02", 
+      "source": "D-L01", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "D-L03", 
+      "source": "D-L02", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "D-L04", 
+      "source": "D-L03", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L02", 
+      "source": "V-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L03", 
+      "source": "V-L02", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L04", 
+      "source": "V-L03", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L05", 
+      "source": "V-L04", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L06", 
+      "source": "V-L05", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L07", 
+      "source": "V-L06", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L08", 
+      "source": "V-L07", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L09", 
+      "source": "V-L08", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L10", 
+      "source": "V-L09", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L11", 
+      "source": "V-L10", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L12", 
+      "source": "V-L11", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L13", 
+      "source": "V-L12", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L14", 
+      "source": "V-L13", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L15", 
+      "source": "V-L14", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L16", 
+      "source": "V-L15", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L17", 
+      "source": "V-L16", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L18", 
+      "source": "V-L17", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L19", 
+      "source": "V-L18", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L20", 
+      "source": "V-L19", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "V-L21", 
+      "source": "V-L20", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "T-L01", 
+      "source": "T-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "H-L01", 
+      "source": "H-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "H-L02", 
+      "source": "H-L01", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "H-L03", 
+      "source": "H-L02", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "K-L01", 
+      "source": "K-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "K-L02", 
+      "source": "K-L01", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "K-L03", 
+      "source": "K-L02", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "P-L01", 
+      "source": "P-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "P-L02", 
+      "source": "P-L01", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "P-L03", 
+      "source": "P-L02", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "O-L01", 
+      "source": "O-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "O-L02", 
+      "source": "O-L01", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "O-L03", 
+      "source": "O-L02", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "O-L04", 
+      "source": "O-L03", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "I-L05", 
+      "source": "I-L04", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "I-L06", 
+      "source": "I-L05", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "I-L07", 
+      "source": "I-L06", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "I-L08", 
+      "source": "I-L07", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "I-L09", 
+      "source": "I-L08", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "I-L10", 
+      "source": "I-L09", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "A-L01", 
       "source": "A-L00", 
-      "weight": 1.0
+      "weight": 1.0, 
+      "type": "vertical"
     }, 
     {
-      "type": "plot", 
+      "target": "A-L02", 
+      "source": "A-L01", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "J-L01", 
+      "source": "J-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "J-L02", 
+      "source": "J-L01", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "J-L03", 
+      "source": "J-L02", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "L-L01", 
+      "source": "L-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "L-L02", 
+      "source": "L-L01", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "L-L03", 
+      "source": "L-L02", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "U-L01", 
+      "source": "U-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L02", 
+      "source": "Y-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L03", 
+      "source": "Y-L02", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L04", 
+      "source": "Y-L03", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L05", 
+      "source": "Y-L04", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L06", 
+      "source": "Y-L05", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L07", 
+      "source": "Y-L06", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L08", 
+      "source": "Y-L07", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L09", 
+      "source": "Y-L08", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L10", 
+      "source": "Y-L09", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L11", 
+      "source": "Y-L10", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L12", 
+      "source": "Y-L11", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L13", 
+      "source": "Y-L12", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L14", 
+      "source": "Y-L13", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L15", 
+      "source": "Y-L14", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L16", 
+      "source": "Y-L15", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L17", 
+      "source": "Y-L16", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L18", 
+      "source": "Y-L17", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L19", 
+      "source": "Y-L18", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L20", 
+      "source": "Y-L19", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Y-L21", 
+      "source": "Y-L20", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "S-L01", 
+      "source": "S-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "S-L02", 
+      "source": "S-L01", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "S-L03", 
+      "source": "S-L02", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "S-L04", 
+      "source": "S-L03", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "S-L05", 
+      "source": "S-L04", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "S-L06", 
+      "source": "S-L05", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "S-L07", 
+      "source": "S-L06", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "S-L08", 
+      "source": "S-L07", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "S-L09", 
+      "source": "S-L08", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "N-L01", 
+      "source": "N-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "N-L02", 
+      "source": "N-L01", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "N-L03", 
+      "source": "N-L02", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "N-L04", 
+      "source": "N-L03", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L02", 
+      "source": "W-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L03", 
+      "source": "W-L02", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L04", 
+      "source": "W-L03", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L05", 
+      "source": "W-L04", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L06", 
+      "source": "W-L05", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L07", 
+      "source": "W-L06", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L08", 
+      "source": "W-L07", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L09", 
+      "source": "W-L08", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L10", 
+      "source": "W-L09", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L11", 
+      "source": "W-L10", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L12", 
+      "source": "W-L11", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L13", 
+      "source": "W-L12", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L14", 
+      "source": "W-L13", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L15", 
+      "source": "W-L14", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L16", 
+      "source": "W-L15", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L17", 
+      "source": "W-L16", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L18", 
+      "source": "W-L17", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L19", 
+      "source": "W-L18", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L20", 
+      "source": "W-L19", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "W-L21", 
+      "source": "W-L20", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "R-L01", 
+      "source": "R-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "R-L02", 
+      "source": "R-L01", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "R-L03", 
+      "source": "R-L02", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "R-L04", 
+      "source": "R-L03", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "R-L05", 
+      "source": "R-L04", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "R-L06", 
+      "source": "R-L05", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "R-L07", 
+      "source": "R-L06", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "R-L08", 
+      "source": "R-L07", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "F-L01", 
+      "source": "F-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L02", 
+      "source": "Z-L00", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L03", 
+      "source": "Z-L02", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L04", 
+      "source": "Z-L03", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L05", 
+      "source": "Z-L04", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L06", 
+      "source": "Z-L05", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L07", 
+      "source": "Z-L06", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L08", 
+      "source": "Z-L07", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L09", 
+      "source": "Z-L08", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L10", 
+      "source": "Z-L09", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L11", 
+      "source": "Z-L10", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L12", 
+      "source": "Z-L11", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L13", 
+      "source": "Z-L12", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L14", 
+      "source": "Z-L13", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L15", 
+      "source": "Z-L14", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L16", 
+      "source": "Z-L15", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L17", 
+      "source": "Z-L16", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L18", 
+      "source": "Z-L17", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L19", 
+      "source": "Z-L18", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L20", 
+      "source": "Z-L19", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "Z-L21", 
+      "source": "Z-L20", 
+      "weight": 1.0, 
+      "type": "vertical"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "X-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "M-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
       "target": "PLOT", 
       "source": "C-L00", 
-      "weight": 1.0
+      "weight": 1.0, 
+      "type": "plot"
     }, 
     {
-      "type": "plot", 
       "target": "PLOT", 
-      "source": "F-L00", 
-      "weight": 1.0
+      "source": "G-L00", 
+      "weight": 1.0, 
+      "type": "plot"
     }, 
     {
-      "type": "plot", 
+      "target": "PLOT", 
+      "source": "Q-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
       "target": "PLOT", 
       "source": "B-L00", 
-      "weight": 1.0
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "D-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "V-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "T-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "H-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "K-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "P-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "O-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "I-L04", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "A-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "E-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "J-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "L-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "U-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "Y-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "S-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "N-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "W-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "R-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "F-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }, 
+    {
+      "target": "PLOT", 
+      "source": "Z-L00", 
+      "weight": 1.0, 
+      "type": "plot"
+    }
+  ], 
+  "nodes": [
+    {
+      "level": 0, 
+      "label": "X \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995239
+      ], 
+      "clean_id": "X-L00", 
+      "area": 1979.2496497187146, 
+      "id": "X-L00", 
+      "type": "level", 
+      "centroid": [
+        -279.69468806612616, 
+        133.14501620895840, 
+        1.4999999999999938
+      ], 
+      "bbox": [
+        -301.48861646516627, 
+        113.02110573023558, 
+        0.0, 
+        -251.96861646516552, 
+        147.70910573026259, 
+        2.9999999999995239
+      ], 
+      "building_id": "X"
+    }, 
+    {
+      "level": 1, 
+      "label": "X \u2022 L01", 
+      "z_span": [
+        2.9999999999995230, 
+        5.9999999999995257
+      ], 
+      "clean_id": "X-L01", 
+      "area": 1979.2496497190912, 
+      "id": "X-L01", 
+      "type": "level", 
+      "centroid": [
+        -279.69468806611820, 
+        133.14501620895112, 
+        4.4999999999995239
+      ], 
+      "bbox": [
+        -301.48861646514575, 
+        113.02110573027981, 
+        2.9999999999995230, 
+        -251.96861646516541, 
+        147.70910573026708, 
+        5.9999999999995257
+      ], 
+      "building_id": "X"
+    }, 
+    {
+      "level": 2, 
+      "label": "X \u2022 L02", 
+      "z_span": [
+        5.9999999999995230, 
+        7.5
+      ], 
+      "clean_id": "X-L02", 
+      "area": 1758.5752688596149, 
+      "id": "X-L02", 
+      "type": "level", 
+      "centroid": [
+        -279.84819529293549, 
+        133.14717919567855, 
+        6.7499999999996314
+      ], 
+      "bbox": [
+        -301.48861646516627, 
+        113.02110573023558, 
+        5.9999999999995230, 
+        -251.96861646516541, 
+        147.70910573026708, 
+        7.5
+      ], 
+      "building_id": "X"
+    }, 
+    {
+      "level": 0, 
+      "label": "M \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995239
+      ], 
+      "clean_id": "M-L00", 
+      "area": 1500.0000000012164, 
+      "id": "M-L00", 
+      "type": "level", 
+      "centroid": [
+        156.12296097144790, 
+        26.495070620126000, 
+        1.5000000000010258
+      ], 
+      "bbox": [
+        139.17852257663003, 
+        13.221420195957974, 
+        0.0, 
+        173.06739936626167, 
+        39.768721044279943, 
+        2.9999999999995239
+      ], 
+      "building_id": "M"
+    }, 
+    {
+      "level": 1, 
+      "label": "M \u2022 L01", 
+      "z_span": [
+        2.9999999999995239, 
+        5.9999999999995239
+      ], 
+      "clean_id": "M-L01", 
+      "area": 1500.0000000025275, 
+      "id": "M-L01", 
+      "type": "level", 
+      "centroid": [
+        156.12296097143965, 
+        26.495070620141270, 
+        4.4999999999995230
+      ], 
+      "bbox": [
+        139.17852257661269, 
+        13.221420195979697, 
+        2.9999999999995239, 
+        173.06739936627213, 
+        39.768721044285428, 
+        5.9999999999995239
+      ], 
+      "building_id": "M"
+    }, 
+    {
+      "level": 2, 
+      "label": "M \u2022 L02", 
+      "z_span": [
+        5.9999999999995239, 
+        8.9999999999995239
+      ], 
+      "clean_id": "M-L02", 
+      "area": 1500.0000000025275, 
+      "id": "M-L02", 
+      "type": "level", 
+      "centroid": [
+        156.12296097143965, 
+        26.495070620141270, 
+        7.4999999999995239
+      ], 
+      "bbox": [
+        139.17852257661269, 
+        13.221420195986937, 
+        5.9999999999995239, 
+        173.06739936627213, 
+        39.768721044285428, 
+        8.9999999999995239
+      ], 
+      "building_id": "M"
+    }, 
+    {
+      "level": 3, 
+      "label": "M \u2022 L03", 
+      "z_span": [
+        8.9999999999995239, 
+        12.0
+      ], 
+      "clean_id": "M-L03", 
+      "area": 1500.0000000013115, 
+      "id": "M-L03", 
+      "type": "level", 
+      "centroid": [
+        156.12296097144790, 
+        26.495070620126000, 
+        10.499999999998499
+      ], 
+      "bbox": [
+        139.17852257661269, 
+        13.221420195957974, 
+        8.9999999999995239, 
+        173.06739936627213, 
+        39.768721044285428, 
+        12.0
+      ], 
+      "building_id": "M"
+    }, 
+    {
+      "level": 0, 
+      "label": "C \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995244
+      ], 
+      "clean_id": "C-L00", 
+      "area": 3881.4534901409470, 
+      "id": "C-L00", 
+      "type": "level", 
+      "centroid": [
+        435.32191311005897, 
+        -61.021710395362263, 
+        1.5000000000004488
+      ], 
+      "bbox": [
+        407.80356934844383, 
+        -89.372123208462028, 
+        0.0, 
+        462.44318203480094, 
+        -32.922396161686677, 
+        2.9999999999995244
+      ], 
+      "building_id": "C"
+    }, 
+    {
+      "level": 1, 
+      "label": "C \u2022 L01", 
+      "z_span": [
+        2.9999999999995226, 
+        5.9999999999995239
+      ], 
+      "clean_id": "C-L01", 
+      "area": 3881.4534901428042, 
+      "id": "C-L01", 
+      "type": "level", 
+      "centroid": [
+        435.32191311017181, 
+        -61.021710395401364, 
+        4.4999999999995230
+      ], 
+      "bbox": [
+        407.80356934843337, 
+        -89.372123208467684, 
+        2.9999999999995226, 
+        462.44318203478406, 
+        -32.922396161698295, 
+        5.9999999999995239
+      ], 
+      "building_id": "C"
+    }, 
+    {
+      "level": 2, 
+      "label": "C \u2022 L02", 
+      "z_span": [
+        5.9999999999995222, 
+        8.9999999999995239
+      ], 
+      "clean_id": "C-L02", 
+      "area": 3881.4534901428037, 
+      "id": "C-L02", 
+      "type": "level", 
+      "centroid": [
+        435.32191311017186, 
+        -61.021710395401364, 
+        7.4999999999995239
+      ], 
+      "bbox": [
+        407.80356934843337, 
+        -89.372123208467684, 
+        5.9999999999995222, 
+        462.44318203477849, 
+        -32.922396161702167, 
+        8.9999999999995239
+      ], 
+      "building_id": "C"
+    }, 
+    {
+      "level": 3, 
+      "label": "C \u2022 L03", 
+      "z_span": [
+        8.9999999999995186, 
+        12.0
+      ], 
+      "clean_id": "C-L03", 
+      "area": 3881.4534901411098, 
+      "id": "C-L03", 
+      "type": "level", 
+      "centroid": [
+        435.32191311005897, 
+        -61.021710395362263, 
+        10.499999999999075
+      ], 
+      "bbox": [
+        407.80356934843337, 
+        -89.372123208467684, 
+        8.9999999999995186, 
+        462.44318203480094, 
+        -32.922396161686677, 
+        12.0
+      ], 
+      "building_id": "C"
+    }, 
+    {
+      "level": 0, 
+      "label": "G \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995230
+      ], 
+      "clean_id": "G-L00", 
+      "area": 2490.0000000038835, 
+      "id": "G-L00", 
+      "type": "level", 
+      "centroid": [
+        171.72168014564684, 
+        125.49016651966406, 
+        1.5000000000021374
+      ], 
+      "bbox": [
+        152.89150130672391, 
+        104.84864175786335, 
+        0.0, 
+        190.55185898457654, 
+        146.13169128144369, 
+        2.9999999999995230
+      ], 
+      "building_id": "G"
+    }, 
+    {
+      "level": 1, 
+      "label": "G \u2022 L01", 
+      "z_span": [
+        2.9999999999995230, 
+        5.9999999999995239
+      ], 
+      "clean_id": "G-L01", 
+      "area": 2490.0000000078890, 
+      "id": "G-L01", 
+      "type": "level", 
+      "centroid": [
+        171.72168014564576, 
+        125.49016651967314, 
+        4.4999999999995230
+      ], 
+      "bbox": [
+        152.89150130671109, 
+        104.84864175786085, 
+        2.9999999999995230, 
+        190.55185898459052, 
+        146.13169128144548, 
+        5.9999999999995239
+      ], 
+      "building_id": "G"
+    }, 
+    {
+      "level": 2, 
+      "label": "G \u2022 L02", 
+      "z_span": [
+        5.9999999999995239, 
+        9.0000000000000018
+      ], 
+      "clean_id": "G-L02", 
+      "area": 2490.0000000040072, 
+      "id": "G-L02", 
+      "type": "level", 
+      "centroid": [
+        171.72168014564684, 
+        125.49016651966404, 
+        7.4999999999973870
+      ], 
+      "bbox": [
+        152.89150130671109, 
+        104.84864175786085, 
+        5.9999999999995239, 
+        190.55185898459052, 
+        146.13169128144548, 
+        9.0000000000000018
+      ], 
+      "building_id": "G"
+    }, 
+    {
+      "level": 0, 
+      "label": "Q \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995239
+      ], 
+      "clean_id": "Q-L00", 
+      "area": 2903.2979039816641, 
+      "id": "Q-L00", 
+      "type": "level", 
+      "centroid": [
+        -133.78633989853350, 
+        -44.906809353849354, 
+        1.4999999999984746
+      ], 
+      "bbox": [
+        -152.56763465000188, 
+        -87.910675505489593, 
+        0.0, 
+        -105.41826455916815, 
+        -12.737313614178579, 
+        2.9999999999995239
+      ], 
+      "building_id": "Q"
+    }, 
+    {
+      "level": 1, 
+      "label": "Q \u2022 L01", 
+      "z_span": [
+        2.9999999999995230, 
+        5.9999999999995239
+      ], 
+      "clean_id": "Q-L01", 
+      "area": 2903.2979039774345, 
+      "id": "Q-L01", 
+      "type": "level", 
+      "centroid": [
+        -133.78633989853091, 
+        -44.906809353838675, 
+        4.4999999999985709
+      ], 
+      "bbox": [
+        -152.56763464999204, 
+        -87.910675505478409, 
+        2.9999999999995230, 
+        -105.41826455920273, 
+        -12.737313614175275, 
+        5.9999999999995239
+      ], 
+      "building_id": "Q"
+    }, 
+    {
+      "level": 2, 
+      "label": "Q \u2022 L02", 
+      "z_span": [
+        5.9999999999995222, 
+        8.9999999999995239
+      ], 
+      "clean_id": "Q-L02", 
+      "area": 2903.2979039755910, 
+      "id": "Q-L02", 
+      "type": "level", 
+      "centroid": [
+        -133.78633989853134, 
+        -44.906809353838199, 
+        7.4999999999995230
+      ], 
+      "bbox": [
+        -152.56763464998875, 
+        -87.910675505474671, 
+        5.9999999999995222, 
+        -105.41826455921424, 
+        -12.737313614175275, 
+        8.9999999999995239
+      ], 
+      "building_id": "Q"
+    }, 
+    {
+      "level": 3, 
+      "label": "Q \u2022 L03", 
+      "z_span": [
+        8.9999999999995222, 
+        12.0
+      ], 
+      "clean_id": "Q-L03", 
+      "area": 2903.2979039800352, 
+      "id": "Q-L03", 
+      "type": "level", 
+      "centroid": [
+        -133.78633989853381, 
+        -44.906809353848836, 
+        10.500000000002002
+      ], 
+      "bbox": [
+        -152.56763465000188, 
+        -87.910675505489593, 
+        8.9999999999995222, 
+        -105.41826455916815, 
+        -12.737313614175276, 
+        12.0
+      ], 
+      "building_id": "Q"
+    }, 
+    {
+      "level": 0, 
+      "label": "B \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995253
+      ], 
+      "clean_id": "B-L00", 
+      "area": 5595.2424156306060, 
+      "id": "B-L00", 
+      "type": "level", 
+      "centroid": [
+        406.18011581328921, 
+        -123.88069552149467, 
+        1.5000000000017184
+      ], 
+      "bbox": [
+        367.08626303943947, 
+        -166.15338452404546, 
+        0.0, 
+        443.98622158208673, 
+        -82.612669630691073, 
+        2.9999999999995253
+      ], 
+      "building_id": "B"
+    }, 
+    {
+      "level": 1, 
+      "label": "B \u2022 L01", 
+      "z_span": [
+        2.9999999999995230, 
+        5.9999999999995257
+      ], 
+      "clean_id": "B-L01", 
+      "area": 5595.2424156384877, 
+      "id": "B-L01", 
+      "type": "level", 
+      "centroid": [
+        406.18011581328398, 
+        -123.88069552149990, 
+        4.4999999999996323
+      ], 
+      "bbox": [
+        367.08626303942992, 
+        -166.15338452404595, 
+        2.9999999999995230, 
+        443.98622158209946, 
+        -82.612669630688345, 
+        5.9999999999995257
+      ], 
+      "building_id": "B"
+    }, 
+    {
+      "level": 2, 
+      "label": "B \u2022 L02", 
+      "z_span": [
+        5.9999999999995213, 
+        7.5000000000000036
+      ], 
+      "clean_id": "B-L02", 
+      "area": 5035.6543628703785, 
+      "id": "B-L02", 
+      "type": "level", 
+      "centroid": [
+        406.18436641776623, 
+        -123.88289393472499, 
+        6.7499999999986136
+      ], 
+      "bbox": [
+        367.08626303942992, 
+        -166.15338452404595, 
+        5.9999999999995213, 
+        443.98622158209946, 
+        -82.612669630688345, 
+        7.5000000000000036
+      ], 
+      "building_id": "B"
+    }, 
+    {
+      "level": 0, 
+      "label": "D \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995239
+      ], 
+      "clean_id": "D-L00", 
+      "area": 3342.6719780667777, 
+      "id": "D-L00", 
+      "type": "level", 
+      "centroid": [
+        -618.75744092349635, 
+        -508.47249706252990, 
+        1.5000000000019142
+      ], 
+      "bbox": [
+        -648.46444400998507, 
+        -535.03378170937026, 
+        0.0, 
+        -588.87104718264879, 
+        -473.82638539818163, 
+        2.9999999999995239
+      ], 
+      "building_id": "D"
+    }, 
+    {
+      "level": 1, 
+      "label": "D \u2022 L01", 
+      "z_span": [
+        2.9999999999995230, 
+        5.9999999999995257
+      ], 
+      "clean_id": "D-L01", 
+      "area": 3342.6719780715048, 
+      "id": "D-L01", 
+      "type": "level", 
+      "centroid": [
+        -618.75744092348509, 
+        -508.47249706254968, 
+        4.499999999999444
+      ], 
+      "bbox": [
+        -648.46444400998871, 
+        -535.03378170937481, 
+        2.9999999999995230, 
+        -588.87104718262708, 
+        -473.82638539820118, 
+        5.9999999999995257
+      ], 
+      "building_id": "D"
+    }, 
+    {
+      "level": 2, 
+      "label": "D \u2022 L02", 
+      "z_span": [
+        5.9999999999995239, 
+        8.9999999999995257
+      ], 
+      "clean_id": "D-L02", 
+      "area": 3342.6719780724334, 
+      "id": "D-L02", 
+      "type": "level", 
+      "centroid": [
+        -618.75744092349032, 
+        -508.47249706254757, 
+        7.5000000000000213
+      ], 
+      "bbox": [
+        -648.46444400998939, 
+        -535.03378170937583, 
+        5.9999999999995239, 
+        -588.87104718262219, 
+        -473.82638539820857, 
+        8.9999999999995257
+      ], 
+      "building_id": "D"
+    }, 
+    {
+      "level": 3, 
+      "label": "D \u2022 L03", 
+      "z_span": [
+        8.9999999999995222, 
+        11.999999999999524
+      ], 
+      "clean_id": "D-L03", 
+      "area": 3342.6719780737185, 
+      "id": "D-L03", 
+      "type": "level", 
+      "centroid": [
+        -618.75744092349430, 
+        -508.47249706254712, 
+        10.499999999999602
+      ], 
+      "bbox": [
+        -648.46444400998939, 
+        -535.03378170937583, 
+        8.9999999999995222, 
+        -588.87104718262219, 
+        -473.82638539820834, 
+        11.999999999999524
+      ], 
+      "building_id": "D"
+    }, 
+    {
+      "level": 4, 
+      "label": "D \u2022 L04", 
+      "z_span": [
+        11.999999999999524, 
+        15.0
+      ], 
+      "clean_id": "D-L04", 
+      "area": 3342.6719780681033, 
+      "id": "D-L04", 
+      "type": "level", 
+      "centroid": [
+        -618.75744092350067, 
+        -508.47249706252853, 
+        13.499999999997113
+      ], 
+      "bbox": [
+        -648.46444400998848, 
+        -535.03378170937469, 
+        11.999999999999524, 
+        -588.87104718262765, 
+        -473.82638539818163, 
+        15.0
+      ], 
+      "building_id": "D"
+    }, 
+    {
+      "level": 0, 
+      "label": "V \u2022 L00", 
+      "z_span": [
+        0.0, 
+        3.0
+      ], 
+      "clean_id": "V-L00", 
+      "area": 341.09110622694129, 
+      "id": "V-L00", 
+      "type": "level", 
+      "centroid": [
+        -374.50859775462527, 
+        -9.0574327047353265, 
+        1.4999999999998481
+      ], 
+      "bbox": [
+        -380.82039713071276, 
+        -15.370793919785193, 
+        0.0, 
+        -368.11454988767468, 
+        -2.6921821384339886, 
+        3.0
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 2, 
+      "label": "V \u2022 L02", 
+      "z_span": [
+        5.9999999999995239, 
+        5.9999999999995239
+      ], 
+      "clean_id": "V-L02", 
+      "area": 8000000000000.0, 
+      "id": "V-L02", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        5.9999999999995248
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        5.9999999999995239, 
+        1000000.0, 
+        1000000.0, 
+        5.9999999999995239
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 3, 
+      "label": "V \u2022 L03", 
+      "z_span": [
+        8.9999999999995239, 
+        8.9999999999995239
+      ], 
+      "clean_id": "V-L03", 
+      "area": 8000000000000.0, 
+      "id": "V-L03", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        8.9999999999995257
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        8.9999999999995239, 
+        1000000.0, 
+        1000000.0, 
+        8.9999999999995239
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 4, 
+      "label": "V \u2022 L04", 
+      "z_span": [
+        11.999999999999524, 
+        11.999999999999524
+      ], 
+      "clean_id": "V-L04", 
+      "area": 8000000000000.0, 
+      "id": "V-L04", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        11.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        11.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        11.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 5, 
+      "label": "V \u2022 L05", 
+      "z_span": [
+        14.999999999999524, 
+        14.999999999999524
+      ], 
+      "clean_id": "V-L05", 
+      "area": 8000000000000.0, 
+      "id": "V-L05", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        14.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        14.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        14.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 6, 
+      "label": "V \u2022 L06", 
+      "z_span": [
+        17.999999999999524, 
+        17.999999999999524
+      ], 
+      "clean_id": "V-L06", 
+      "area": 8000000000000.0, 
+      "id": "V-L06", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        17.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        17.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        17.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 7, 
+      "label": "V \u2022 L07", 
+      "z_span": [
+        20.999999999999524, 
+        20.999999999999524
+      ], 
+      "clean_id": "V-L07", 
+      "area": 8000000000000.0, 
+      "id": "V-L07", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        20.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        20.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        20.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 8, 
+      "label": "V \u2022 L08", 
+      "z_span": [
+        23.999999999999524, 
+        23.999999999999524
+      ], 
+      "clean_id": "V-L08", 
+      "area": 8000000000000.0, 
+      "id": "V-L08", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        23.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        23.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        23.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 9, 
+      "label": "V \u2022 L09", 
+      "z_span": [
+        26.999999999999524, 
+        26.999999999999524
+      ], 
+      "clean_id": "V-L09", 
+      "area": 8000000000000.0, 
+      "id": "V-L09", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        26.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        26.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        26.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 10, 
+      "label": "V \u2022 L10", 
+      "z_span": [
+        29.999999999999524, 
+        29.999999999999524
+      ], 
+      "clean_id": "V-L10", 
+      "area": 8000000000000.0, 
+      "id": "V-L10", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        29.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        29.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        29.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 11, 
+      "label": "V \u2022 L11", 
+      "z_span": [
+        32.999999999999524, 
+        32.999999999999524
+      ], 
+      "clean_id": "V-L11", 
+      "area": 8000000000000.0, 
+      "id": "V-L11", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        32.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        32.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        32.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 12, 
+      "label": "V \u2022 L12", 
+      "z_span": [
+        35.999999999999524, 
+        35.999999999999524
+      ], 
+      "clean_id": "V-L12", 
+      "area": 8000000000000.0, 
+      "id": "V-L12", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        35.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        35.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        35.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 13, 
+      "label": "V \u2022 L13", 
+      "z_span": [
+        38.999999999999524, 
+        38.999999999999524
+      ], 
+      "clean_id": "V-L13", 
+      "area": 8000000000000.0, 
+      "id": "V-L13", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        38.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        38.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        38.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 14, 
+      "label": "V \u2022 L14", 
+      "z_span": [
+        41.999999999999524, 
+        41.999999999999524
+      ], 
+      "clean_id": "V-L14", 
+      "area": 8000000000000.0, 
+      "id": "V-L14", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        41.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        41.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        41.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 15, 
+      "label": "V \u2022 L15", 
+      "z_span": [
+        44.999999999999524, 
+        44.999999999999524
+      ], 
+      "clean_id": "V-L15", 
+      "area": 8000000000000.0, 
+      "id": "V-L15", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        44.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        44.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        44.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 16, 
+      "label": "V \u2022 L16", 
+      "z_span": [
+        47.999999999999524, 
+        47.999999999999524
+      ], 
+      "clean_id": "V-L16", 
+      "area": 8000000000000.0, 
+      "id": "V-L16", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        47.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        47.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        47.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 17, 
+      "label": "V \u2022 L17", 
+      "z_span": [
+        50.999999999999524, 
+        50.999999999999524
+      ], 
+      "clean_id": "V-L17", 
+      "area": 8000000000000.0, 
+      "id": "V-L17", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        50.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        50.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        50.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 18, 
+      "label": "V \u2022 L18", 
+      "z_span": [
+        53.999999999999524, 
+        53.999999999999524
+      ], 
+      "clean_id": "V-L18", 
+      "area": 8000000000000.0, 
+      "id": "V-L18", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        53.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        53.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        53.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 19, 
+      "label": "V \u2022 L19", 
+      "z_span": [
+        56.999999999999524, 
+        56.999999999999524
+      ], 
+      "clean_id": "V-L19", 
+      "area": 8000000000000.0, 
+      "id": "V-L19", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        56.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        56.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        56.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 20, 
+      "label": "V \u2022 L20", 
+      "z_span": [
+        59.999999999999524, 
+        59.999999999999524
+      ], 
+      "clean_id": "V-L20", 
+      "area": 8000000000000.0, 
+      "id": "V-L20", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        59.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        59.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        59.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 21, 
+      "label": "V \u2022 L21", 
+      "z_span": [
+        62.999999999999524, 
+        62.999999999999524
+      ], 
+      "clean_id": "V-L21", 
+      "area": 8000000000000.0, 
+      "id": "V-L21", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        62.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        62.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        62.999999999999524
+      ], 
+      "building_id": "V"
+    }, 
+    {
+      "level": 0, 
+      "label": "T \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995239
+      ], 
+      "clean_id": "T-L00", 
+      "area": 2320.8323303052321, 
+      "id": "T-L00", 
+      "type": "level", 
+      "centroid": [
+        -48.710617942248930, 
+        101.85043732479980, 
+        1.5000000000073559
+      ], 
+      "bbox": [
+        -86.413352265925226, 
+        86.733908189392366, 
+        0.0, 
+        -10.747943267130488, 
+        116.87302166188847, 
+        2.9999999999995239
+      ], 
+      "building_id": "T"
+    }, 
+    {
+      "level": 1, 
+      "label": "T \u2022 L01", 
+      "z_span": [
+        2.9999999999995230, 
+        6.0
+      ], 
+      "clean_id": "T-L01", 
+      "area": 2320.8323303053980, 
+      "id": "T-L01", 
+      "type": "level", 
+      "centroid": [
+        -48.710617942248930, 
+        101.85043732479978, 
+        4.4999999999921672
+      ], 
+      "bbox": [
+        -86.413352265925226, 
+        86.733908189392366, 
+        2.9999999999995230, 
+        -10.747943267130488, 
+        116.87302166188847, 
+        6.0
+      ], 
+      "building_id": "T"
+    }, 
+    {
+      "level": 0, 
+      "label": "H \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995239
+      ], 
+      "clean_id": "H-L00", 
+      "area": 2094.7438151073297, 
+      "id": "H-L00", 
+      "type": "level", 
+      "centroid": [
+        132.67581976378685, 
+        127.55772554704564, 
+        1.5000000000027300
+      ], 
+      "bbox": [
+        115.33583124918596, 
+        102.72756607728465, 
+        0.0, 
+        147.55265365916574, 
+        149.97080544331232, 
+        2.9999999999995239
+      ], 
+      "building_id": "H"
+    }, 
+    {
+      "level": 1, 
+      "label": "H \u2022 L01", 
+      "z_span": [
+        2.9999999999995230, 
+        5.9999999999995239
+      ], 
+      "clean_id": "H-L01", 
+      "area": 2094.7438151115384, 
+      "id": "H-L01", 
+      "type": "level", 
+      "centroid": [
+        132.67581976380305, 
+        127.55772554707957, 
+        4.4999999999995230
+      ], 
+      "bbox": [
+        115.33583124916822, 
+        102.72756607732929, 
+        2.9999999999995230, 
+        147.55265365915042, 
+        149.97080544332744, 
+        5.9999999999995239
+      ], 
+      "building_id": "H"
+    }, 
+    {
+      "level": 2, 
+      "label": "H \u2022 L02", 
+      "z_span": [
+        5.9999999999995239, 
+        8.9999999999995239
+      ], 
+      "clean_id": "H-L02", 
+      "area": 2094.7438151115384, 
+      "id": "H-L02", 
+      "type": "level", 
+      "centroid": [
+        132.67581976380305, 
+        127.55772554707957, 
+        7.4999999999995239
+      ], 
+      "bbox": [
+        115.33583124916821, 
+        102.72756607734416, 
+        5.9999999999995239, 
+        147.55265365914534, 
+        149.97080544332744, 
+        8.9999999999995239
+      ], 
+      "building_id": "H"
+    }, 
+    {
+      "level": 3, 
+      "label": "H \u2022 L03", 
+      "z_span": [
+        8.9999999999995239, 
+        12.0
+      ], 
+      "clean_id": "H-L03", 
+      "area": 2094.7438151074584, 
+      "id": "H-L03", 
+      "type": "level", 
+      "centroid": [
+        132.67581976378682, 
+        127.55772554704561, 
+        10.499999999996792
+      ], 
+      "bbox": [
+        115.33583124916821, 
+        102.72756607728465, 
+        8.9999999999995239, 
+        147.55265365916574, 
+        149.97080544332744, 
+        12.0
+      ], 
+      "building_id": "H"
+    }, 
+    {
+      "level": 0, 
+      "label": "K \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995239
+      ], 
+      "clean_id": "K-L00", 
+      "area": 2484.2478967810489, 
+      "id": "K-L00", 
+      "type": "level", 
+      "centroid": [
+        100.06723630788341, 
+        61.536453262086148, 
+        1.4999999999992559
+      ], 
+      "bbox": [
+        82.904662824792183, 
+        36.961162375910831, 
+        0.0, 
+        121.27996835116879, 
+        90.146365840072008, 
+        2.9999999999995239
+      ], 
+      "building_id": "K"
+    }, 
+    {
+      "level": 1, 
+      "label": "K \u2022 L01", 
+      "z_span": [
+        2.9999999999995230, 
+        5.9999999999995239
+      ], 
+      "clean_id": "K-L01", 
+      "area": 2484.2478967802840, 
+      "id": "K-L01", 
+      "type": "level", 
+      "centroid": [
+        100.06723630790643, 
+        61.536453262060306, 
+        4.4999999999995230
+      ], 
+      "bbox": [
+        82.904662824805058, 
+        36.961162375896656, 
+        2.9999999999995230, 
+        121.27996835119325, 
+        90.146365840030001, 
+        5.9999999999995239
+      ], 
+      "building_id": "K"
+    }, 
+    {
+      "level": 2, 
+      "label": "K \u2022 L02", 
+      "z_span": [
+        5.9999999999995230, 
+        8.9999999999995239
+      ], 
+      "clean_id": "K-L02", 
+      "area": 2484.2478967802840, 
+      "id": "K-L02", 
+      "type": "level", 
+      "centroid": [
+        100.06723630790643, 
+        61.536453262060306, 
+        7.4999999999995248
+      ], 
+      "bbox": [
+        82.904662824809350, 
+        36.961162375896656, 
+        5.9999999999995230, 
+        121.27996835119325, 
+        90.146365840016003, 
+        8.9999999999995239
+      ], 
+      "building_id": "K"
+    }, 
+    {
+      "level": 3, 
+      "label": "K \u2022 L03", 
+      "z_span": [
+        8.9999999999995239, 
+        12.0
+      ], 
+      "clean_id": "K-L03", 
+      "area": 2484.2478967811962, 
+      "id": "K-L03", 
+      "type": "level", 
+      "centroid": [
+        100.06723630788342, 
+        61.536453262086184, 
+        10.500000000000268
+      ], 
+      "bbox": [
+        82.904662824792183, 
+        36.961162375896656, 
+        8.9999999999995239, 
+        121.27996835119325, 
+        90.146365840072008, 
+        12.0
+      ], 
+      "building_id": "K"
+    }, 
+    {
+      "level": 0, 
+      "label": "P \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995239
+      ], 
+      "clean_id": "P-L00", 
+      "area": 4020.3802764164993, 
+      "id": "P-L00", 
+      "type": "level", 
+      "centroid": [
+        -158.99817596789180, 
+        -141.89710930566849, 
+        1.5000000000012514
+      ], 
+      "bbox": [
+        -187.71405613157830, 
+        -164.90729713954667, 
+        0.0, 
+        -130.32480371700638, 
+        -118.66795662268119, 
+        2.9999999999995239
+      ], 
+      "building_id": "P"
+    }, 
+    {
+      "level": 1, 
+      "label": "P \u2022 L01", 
+      "z_span": [
+        2.9999999999995230, 
+        5.9999999999995239
+      ], 
+      "clean_id": "P-L01", 
+      "area": 4020.3802764205739, 
+      "id": "P-L01", 
+      "type": "level", 
+      "centroid": [
+        -158.99817596789569, 
+        -141.89710930569643, 
+        4.4999999999995239
+      ], 
+      "bbox": [
+        -187.71405613158706, 
+        -164.90729713955773, 
+        2.9999999999995230, 
+        -130.32480371699381, 
+        -118.66795662273213, 
+        5.9999999999995239
+      ], 
+      "building_id": "P"
+    }, 
+    {
+      "level": 2, 
+      "label": "P \u2022 L02", 
+      "z_span": [
+        5.9999999999995239, 
+        8.9999999999995239
+      ], 
+      "clean_id": "P-L02", 
+      "area": 4020.3802764205730, 
+      "id": "P-L02", 
+      "type": "level", 
+      "centroid": [
+        -158.99817596789569, 
+        -141.89710930569640, 
+        7.4999999999995239
+      ], 
+      "bbox": [
+        -187.71405613158706, 
+        -164.90729713955773, 
+        5.9999999999995239, 
+        -130.32480371699381, 
+        -118.66795662274912, 
+        8.9999999999995239
+      ], 
+      "building_id": "P"
+    }, 
+    {
+      "level": 3, 
+      "label": "P \u2022 L03", 
+      "z_span": [
+        8.9999999999995222, 
+        12.0
+      ], 
+      "clean_id": "P-L03", 
+      "area": 4020.3802764166621, 
+      "id": "P-L03", 
+      "type": "level", 
+      "centroid": [
+        -158.99817596789183, 
+        -141.89710930566849, 
+        10.499999999998272
+      ], 
+      "bbox": [
+        -187.71405613158706, 
+        -164.90729713955773, 
+        8.9999999999995222, 
+        -130.32480371699381, 
+        -118.66795662268119, 
+        12.0
+      ], 
+      "building_id": "P"
+    }, 
+    {
+      "level": 0, 
+      "label": "O \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995235
+      ], 
+      "clean_id": "O-L00", 
+      "area": 2764.9437373474029, 
+      "id": "O-L00", 
+      "type": "level", 
+      "centroid": [
+        -45.027611485372624, 
+        -104.04714702794863, 
+        1.4999999999958915
+      ], 
+      "bbox": [
+        -80.150200177502612, 
+        -120.47161884142288, 
+        0.0, 
+        -9.8073736465770196, 
+        -87.677760318846808, 
+        2.9999999999995235
+      ], 
+      "building_id": "O"
+    }, 
+    {
+      "level": 1, 
+      "label": "O \u2022 L01", 
+      "z_span": [
+        2.9999999999995230, 
+        5.9999999999995239
+      ], 
+      "clean_id": "O-L01", 
+      "area": 2764.9437373403489, 
+      "id": "O-L01", 
+      "type": "level", 
+      "centroid": [
+        -45.027611485392747, 
+        -104.04714702795503, 
+        4.4999999999995239
+      ], 
+      "bbox": [
+        -80.150200177476165, 
+        -120.47161884141255, 
+        2.9999999999995230, 
+        -9.807373646582775, 
+        -87.677760318908099, 
+        5.9999999999995239
+      ], 
+      "building_id": "O"
+    }, 
+    {
+      "level": 2, 
+      "label": "O \u2022 L02", 
+      "z_span": [
+        5.9999999999995230, 
+        8.9999999999995239
+      ], 
+      "clean_id": "O-L02", 
+      "area": 2764.9437373403493, 
+      "id": "O-L02", 
+      "type": "level", 
+      "centroid": [
+        -45.027611485392747, 
+        -104.04714702795503, 
+        7.4999999999995239
+      ], 
+      "bbox": [
+        -80.150200177466260, 
+        -120.47161884140868, 
+        5.9999999999995230, 
+        -9.8073736465849333, 
+        -87.677760318931092, 
+        8.9999999999995239
+      ], 
+      "building_id": "O"
+    }, 
+    {
+      "level": 3, 
+      "label": "O \u2022 L03", 
+      "z_span": [
+        8.9999999999995239, 
+        11.999999999999524
+      ], 
+      "clean_id": "O-L03", 
+      "area": 2764.9437373403493, 
+      "id": "O-L03", 
+      "type": "level", 
+      "centroid": [
+        -45.027611485392747, 
+        -104.04714702795503, 
+        10.499999999999524
+      ], 
+      "bbox": [
+        -80.150200177466530, 
+        -120.47161884140880, 
+        8.9999999999995239, 
+        -9.8073736465848729, 
+        -87.677760318930439, 
+        11.999999999999524
+      ], 
+      "building_id": "O"
+    }, 
+    {
+      "level": 4, 
+      "label": "O \u2022 L04", 
+      "z_span": [
+        11.999999999999524, 
+        15.0
+      ], 
+      "clean_id": "O-L04", 
+      "area": 2764.9437373475644, 
+      "id": "O-L04", 
+      "type": "level", 
+      "centroid": [
+        -45.027611485372624, 
+        -104.04714702794861, 
+        13.500000000003633
+      ], 
+      "bbox": [
+        -80.150200177502612, 
+        -120.47161884142288, 
+        11.999999999999524, 
+        -9.8073736465770196, 
+        -87.677760318846808, 
+        15.0
+      ], 
+      "building_id": "O"
+    }, 
+    {
+      "level": 4, 
+      "label": "I \u2022 L04", 
+      "z_span": [
+        12.0, 
+        14.999999999999522
+      ], 
+      "clean_id": "I-L04", 
+      "area": 821.99999999778436, 
+      "id": "I-L04", 
+      "type": "level", 
+      "centroid": [
+        263.76499881907773, 
+        122.14984962510420, 
+        13.499999999995778
+      ], 
+      "bbox": [
+        250.16419526326825, 
+        113.22432229157639, 
+        12.0, 
+        277.36580237489397, 
+        131.07537695858122, 
+        14.999999999999522
+      ], 
+      "building_id": "I"
+    }, 
+    {
+      "level": 5, 
+      "label": "I \u2022 L05", 
+      "z_span": [
+        14.999999999999522, 
+        17.999999999999524
+      ], 
+      "clean_id": "I-L05", 
+      "area": 821.99999999563727, 
+      "id": "I-L05", 
+      "type": "level", 
+      "centroid": [
+        263.76499881907802, 
+        122.14984962513215, 
+        16.499999999999524
+      ], 
+      "bbox": [
+        250.16419526328048, 
+        113.22432229162479, 
+        14.999999999999522, 
+        277.36580237489704, 
+        131.07537695858332, 
+        17.999999999999524
+      ], 
+      "building_id": "I"
+    }, 
+    {
+      "level": 6, 
+      "label": "I \u2022 L06", 
+      "z_span": [
+        17.999999999999524, 
+        20.999999999999527
+      ], 
+      "clean_id": "I-L06", 
+      "area": 821.99999999563659, 
+      "id": "I-L06", 
+      "type": "level", 
+      "centroid": [
+        263.76499881907802, 
+        122.14984962513212, 
+        19.499999999999524
+      ], 
+      "bbox": [
+        250.16419526328554, 
+        113.22432229164494, 
+        17.999999999999524, 
+        277.36580237489812, 
+        131.07537695858409, 
+        20.999999999999527
+      ], 
+      "building_id": "I"
+    }, 
+    {
+      "level": 7, 
+      "label": "I \u2022 L07", 
+      "z_span": [
+        20.999999999999520, 
+        23.999999999999524
+      ], 
+      "clean_id": "I-L07", 
+      "area": 821.99999999563659, 
+      "id": "I-L07", 
+      "type": "level", 
+      "centroid": [
+        263.76499881907802, 
+        122.14984962513212, 
+        22.499999999999524
+      ], 
+      "bbox": [
+        250.16419526328735, 
+        113.22432229165220, 
+        20.999999999999520, 
+        277.36580237489824, 
+        131.07537695858417, 
+        23.999999999999524
+      ], 
+      "building_id": "I"
+    }, 
+    {
+      "level": 8, 
+      "label": "I \u2022 L08", 
+      "z_span": [
+        23.999999999999524, 
+        26.999999999999524
+      ], 
+      "clean_id": "I-L08", 
+      "area": 821.99999999563693, 
+      "id": "I-L08", 
+      "type": "level", 
+      "centroid": [
+        263.76499881907802, 
+        122.14984962513212, 
+        25.499999999999524
+      ], 
+      "bbox": [
+        250.16419526328690, 
+        113.22432229165038, 
+        23.999999999999524, 
+        277.36580237489824, 
+        131.07537695858417, 
+        26.999999999999524
+      ], 
+      "building_id": "I"
+    }, 
+    {
+      "level": 9, 
+      "label": "I \u2022 L09", 
+      "z_span": [
+        26.999999999999524, 
+        29.999999999999524
+      ], 
+      "clean_id": "I-L09", 
+      "area": 821.99999999563681, 
+      "id": "I-L09", 
+      "type": "level", 
+      "centroid": [
+        263.76499881907802, 
+        122.14984962513212, 
+        28.499999999999520
+      ], 
+      "bbox": [
+        250.16419526328514, 
+        113.22432229164328, 
+        26.999999999999524, 
+        277.36580237489784, 
+        131.07537695858389, 
+        29.999999999999524
+      ], 
+      "building_id": "I"
+    }, 
+    {
+      "level": 10, 
+      "label": "I \u2022 L10", 
+      "z_span": [
+        29.999999999999520, 
+        33.0
+      ], 
+      "clean_id": "I-L10", 
+      "area": 821.99999999785507, 
+      "id": "I-L10", 
+      "type": "level", 
+      "centroid": [
+        263.76499881907779, 
+        122.14984962510421, 
+        31.500000000003741
+      ], 
+      "bbox": [
+        250.16419526326825, 
+        113.22432229157639, 
+        29.999999999999520, 
+        277.36580237489670, 
+        131.07537695858315, 
+        33.0
+      ], 
+      "building_id": "I"
+    }, 
+    {
+      "level": 0, 
+      "label": "A \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995230
+      ], 
+      "clean_id": "A-L00", 
+      "area": 392.14566935067603, 
+      "id": "A-L00", 
+      "type": "level", 
+      "centroid": [
+        -74.051207413994632, 
+        184.26524252299888, 
+        1.4999994292701411
+      ], 
+      "bbox": [
+        -81.193997937018850, 
+        177.49593339214780, 
+        0.0, 
+        -66.885996706151289, 
+        190.91394350503401, 
+        2.9999999999995230
+      ], 
+      "building_id": "A"
+    }, 
+    {
+      "level": 1, 
+      "label": "A \u2022 L01", 
+      "z_span": [
+        2.9999999999995230, 
+        5.9999999999995239
+      ], 
+      "clean_id": "A-L01", 
+      "area": 392.14552014459821, 
+      "id": "A-L01", 
+      "type": "level", 
+      "centroid": [
+        -74.051222683561235, 
+        184.26523241628985, 
+        4.4999999999995239
+      ], 
+      "bbox": [
+        -81.193997937019589, 
+        177.49593339217466, 
+        2.9999999999995230, 
+        -66.885996706149342, 
+        190.91394350503253, 
+        5.9999999999995239
+      ], 
+      "building_id": "A"
+    }, 
+    {
+      "level": 2, 
+      "label": "A \u2022 L02", 
+      "z_span": [
+        5.9999999999995239, 
+        9.0
+      ], 
+      "clean_id": "A-L02", 
+      "area": 392.14566935071912, 
+      "id": "A-L02", 
+      "type": "level", 
+      "centroid": [
+        -74.051207413994632, 
+        184.26524252299888, 
+        7.5000005707293820
+      ], 
+      "bbox": [
+        -81.193997937019589, 
+        177.49593339214780, 
+        5.9999999999995239, 
+        -66.885996706149342, 
+        190.91394350503401, 
+        9.0
+      ], 
+      "building_id": "A"
+    }, 
+    {
+      "level": 0, 
+      "label": "E \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.5
+      ], 
+      "clean_id": "E-L00", 
+      "area": 1109.7791645553282, 
+      "id": "E-L00", 
+      "type": "level", 
+      "centroid": [
+        204.33989210399321, 
+        128.11544114420687, 
+        0.0
+      ], 
+      "bbox": [
+        190.22438049316406, 
+        113.53742980957031, 
+        0.0, 
+        218.45539855957031, 
+        142.69345127820850, 
+        2.5
+      ], 
+      "building_id": "E"
+    }, 
+    {
+      "level": 0, 
+      "label": "J \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995239
+      ], 
+      "clean_id": "J-L00", 
+      "area": 5137.7118599278601, 
+      "id": "J-L00", 
+      "type": "level", 
+      "centroid": [
+        246.45220392430892, 
+        127.40129821999392, 
+        1.5000000000024498
+      ], 
+      "bbox": [
+        212.42320096715088, 
+        101.96138866818438, 
+        0.0, 
+        281.89103195221674, 
+        148.69095757494256, 
+        2.9999999999995239
+      ], 
+      "building_id": "J"
+    }, 
+    {
+      "level": 1, 
+      "label": "J \u2022 L01", 
+      "z_span": [
+        2.9999999999995235, 
+        5.9999999999995239
+      ], 
+      "clean_id": "J-L01", 
+      "area": 5137.7118599371615, 
+      "id": "J-L01", 
+      "type": "level", 
+      "centroid": [
+        246.45220392434862, 
+        127.40129821999072, 
+        4.4999999999995230
+      ], 
+      "bbox": [
+        212.42320096720343, 
+        101.96138866817687, 
+        2.9999999999995235, 
+        281.89103195221969, 
+        148.69095757495793, 
+        5.9999999999995239
+      ], 
+      "building_id": "J"
+    }, 
+    {
+      "level": 2, 
+      "label": "J \u2022 L02", 
+      "z_span": [
+        5.9999999999995239, 
+        8.9999999999995239
+      ], 
+      "clean_id": "J-L02", 
+      "area": 5137.7118599371615, 
+      "id": "J-L02", 
+      "type": "level", 
+      "centroid": [
+        246.45220392434862, 
+        127.40129821999072, 
+        7.4999999999995239
+      ], 
+      "bbox": [
+        212.42320096722096, 
+        101.96138866817687, 
+        5.9999999999995239, 
+        281.89103195221969, 
+        148.69095757495793, 
+        8.9999999999995239
+      ], 
+      "building_id": "J"
+    }, 
+    {
+      "level": 3, 
+      "label": "J \u2022 L03", 
+      "z_span": [
+        8.9999999999995239, 
+        12.0
+      ], 
+      "clean_id": "J-L03", 
+      "area": 5137.7118599280475, 
+      "id": "J-L03", 
+      "type": "level", 
+      "centroid": [
+        246.45220392430889, 
+        127.40129821999392, 
+        10.499999999997074
+      ], 
+      "bbox": [
+        212.42320096715088, 
+        101.96138866817687, 
+        8.9999999999995239, 
+        281.89103195221969, 
+        148.69095757495793, 
+        12.0
+      ], 
+      "building_id": "J"
+    }, 
+    {
+      "level": 0, 
+      "label": "L \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995239
+      ], 
+      "clean_id": "L-L00", 
+      "area": 1500.0000000012428, 
+      "id": "L-L00", 
+      "type": "level", 
+      "centroid": [
+        115.32245688695308, 
+        16.529185488824897, 
+        1.5000000000010516
+      ], 
+      "bbox": [
+        98.378018492174149, 
+        3.2555350646416343, 
+        0.0, 
+        132.26689528172227, 
+        29.802835913058299, 
+        2.9999999999995239
+      ], 
+      "building_id": "L"
+    }, 
+    {
+      "level": 1, 
+      "label": "L \u2022 L01", 
+      "z_span": [
+        2.9999999999995230, 
+        5.9999999999995239
+      ], 
+      "clean_id": "L-L01", 
+      "area": 1500.0000000025798, 
+      "id": "L-L01", 
+      "type": "level", 
+      "centroid": [
+        115.32245688695794, 
+        16.529185488828141, 
+        4.4999999999995230
+      ], 
+      "bbox": [
+        98.378018492212419, 
+        3.2555350646325487, 
+        2.9999999999995230, 
+        132.26689528166943, 
+        29.802835913086263, 
+        5.9999999999995239
+      ], 
+      "building_id": "L"
+    }, 
+    {
+      "level": 2, 
+      "label": "L \u2022 L02", 
+      "z_span": [
+        5.9999999999995230, 
+        8.9999999999995239
+      ], 
+      "clean_id": "L-L02", 
+      "area": 1500.0000000025798, 
+      "id": "L-L02", 
+      "type": "level", 
+      "centroid": [
+        115.32245688695794, 
+        16.529185488828141, 
+        7.4999999999995248
+      ], 
+      "bbox": [
+        98.378018492225181, 
+        3.2555350646325487, 
+        5.9999999999995230, 
+        132.26689528165184, 
+        29.802835913086263, 
+        8.9999999999995239
+      ], 
+      "building_id": "L"
+    }, 
+    {
+      "level": 3, 
+      "label": "L \u2022 L03", 
+      "z_span": [
+        8.9999999999995239, 
+        12.0
+      ], 
+      "clean_id": "L-L03", 
+      "area": 1500.0000000013383, 
+      "id": "L-L03", 
+      "type": "level", 
+      "centroid": [
+        115.32245688695308, 
+        16.529185488824897, 
+        10.499999999998472
+      ], 
+      "bbox": [
+        98.378018492174149, 
+        3.2555350646325487, 
+        8.9999999999995239, 
+        132.26689528172227, 
+        29.802835913086263, 
+        12.0
+      ], 
+      "building_id": "L"
+    }, 
+    {
+      "level": 0, 
+      "label": "U \u2022 L00", 
+      "z_span": [
+        -2.2204460492503131e-16, 
+        2.9999999999995239
+      ], 
+      "clean_id": "U-L00", 
+      "area": 937.59138425587537, 
+      "id": "U-L00", 
+      "type": "level", 
+      "centroid": [
+        -409.00322289528026, 
+        -2.5578446033422031, 
+        1.4999999999995095
+      ], 
+      "bbox": [
+        -428.00711843193596, 
+        -10.799664473782117, 
+        -2.2204460492503131e-16, 
+        -390.64825679807279, 
+        6.1837647880385207, 
+        2.9999999999995239
+      ], 
+      "building_id": "U"
+    }, 
+    {
+      "level": 1, 
+      "label": "U \u2022 L01", 
+      "z_span": [
+        2.9999999999995230, 
+        6.0
+      ], 
+      "clean_id": "U-L01", 
+      "area": 937.59138425597087, 
+      "id": "U-L01", 
+      "type": "level", 
+      "centroid": [
+        -409.00322289528015, 
+        -2.5578446033422226, 
+        4.5000000000000133
+      ], 
+      "bbox": [
+        -428.00711843193596, 
+        -10.799664473782117, 
+        2.9999999999995230, 
+        -390.64825679807279, 
+        6.1837647880385207, 
+        6.0
+      ], 
+      "building_id": "U"
+    }, 
+    {
+      "level": 0, 
+      "label": "Y \u2022 L00", 
+      "z_span": [
+        0.0, 
+        3.0000000000000004
+      ], 
+      "clean_id": "Y-L00", 
+      "area": 239.91012250510772, 
+      "id": "Y-L00", 
+      "type": "level", 
+      "centroid": [
+        -387.13095594328570, 
+        -13.236046392411403, 
+        1.4999999999998601
+      ], 
+      "bbox": [
+        -392.33624796231402, 
+        -18.353089715084909, 
+        0.0, 
+        -382.06006399851486, 
+        -8.050987175299543, 
+        3.0000000000000004
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 2, 
+      "label": "Y \u2022 L02", 
+      "z_span": [
+        5.9999999999995239, 
+        5.9999999999995239
+      ], 
+      "clean_id": "Y-L02", 
+      "area": 8000000000000.0, 
+      "id": "Y-L02", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        5.9999999999995248
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        5.9999999999995239, 
+        1000000.0, 
+        1000000.0, 
+        5.9999999999995239
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 3, 
+      "label": "Y \u2022 L03", 
+      "z_span": [
+        8.9999999999995239, 
+        8.9999999999995239
+      ], 
+      "clean_id": "Y-L03", 
+      "area": 8000000000000.0, 
+      "id": "Y-L03", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        8.9999999999995257
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        8.9999999999995239, 
+        1000000.0, 
+        1000000.0, 
+        8.9999999999995239
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 4, 
+      "label": "Y \u2022 L04", 
+      "z_span": [
+        11.999999999999524, 
+        11.999999999999524
+      ], 
+      "clean_id": "Y-L04", 
+      "area": 8000000000000.0, 
+      "id": "Y-L04", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        11.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        11.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        11.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 5, 
+      "label": "Y \u2022 L05", 
+      "z_span": [
+        14.999999999999524, 
+        14.999999999999524
+      ], 
+      "clean_id": "Y-L05", 
+      "area": 8000000000000.0, 
+      "id": "Y-L05", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        14.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        14.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        14.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 6, 
+      "label": "Y \u2022 L06", 
+      "z_span": [
+        17.999999999999524, 
+        17.999999999999524
+      ], 
+      "clean_id": "Y-L06", 
+      "area": 8000000000000.0, 
+      "id": "Y-L06", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        17.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        17.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        17.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 7, 
+      "label": "Y \u2022 L07", 
+      "z_span": [
+        20.999999999999524, 
+        20.999999999999524
+      ], 
+      "clean_id": "Y-L07", 
+      "area": 8000000000000.0, 
+      "id": "Y-L07", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        20.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        20.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        20.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 8, 
+      "label": "Y \u2022 L08", 
+      "z_span": [
+        23.999999999999524, 
+        23.999999999999524
+      ], 
+      "clean_id": "Y-L08", 
+      "area": 8000000000000.0, 
+      "id": "Y-L08", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        23.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        23.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        23.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 9, 
+      "label": "Y \u2022 L09", 
+      "z_span": [
+        26.999999999999524, 
+        26.999999999999524
+      ], 
+      "clean_id": "Y-L09", 
+      "area": 8000000000000.0, 
+      "id": "Y-L09", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        26.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        26.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        26.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 10, 
+      "label": "Y \u2022 L10", 
+      "z_span": [
+        29.999999999999524, 
+        29.999999999999524
+      ], 
+      "clean_id": "Y-L10", 
+      "area": 8000000000000.0, 
+      "id": "Y-L10", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        29.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        29.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        29.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 11, 
+      "label": "Y \u2022 L11", 
+      "z_span": [
+        32.999999999999524, 
+        32.999999999999524
+      ], 
+      "clean_id": "Y-L11", 
+      "area": 8000000000000.0, 
+      "id": "Y-L11", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        32.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        32.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        32.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 12, 
+      "label": "Y \u2022 L12", 
+      "z_span": [
+        35.999999999999524, 
+        35.999999999999524
+      ], 
+      "clean_id": "Y-L12", 
+      "area": 8000000000000.0, 
+      "id": "Y-L12", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        35.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        35.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        35.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 13, 
+      "label": "Y \u2022 L13", 
+      "z_span": [
+        38.999999999999524, 
+        38.999999999999524
+      ], 
+      "clean_id": "Y-L13", 
+      "area": 8000000000000.0, 
+      "id": "Y-L13", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        38.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        38.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        38.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 14, 
+      "label": "Y \u2022 L14", 
+      "z_span": [
+        41.999999999999524, 
+        41.999999999999524
+      ], 
+      "clean_id": "Y-L14", 
+      "area": 8000000000000.0, 
+      "id": "Y-L14", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        41.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        41.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        41.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 15, 
+      "label": "Y \u2022 L15", 
+      "z_span": [
+        44.999999999999524, 
+        44.999999999999524
+      ], 
+      "clean_id": "Y-L15", 
+      "area": 8000000000000.0, 
+      "id": "Y-L15", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        44.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        44.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        44.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 16, 
+      "label": "Y \u2022 L16", 
+      "z_span": [
+        47.999999999999524, 
+        47.999999999999524
+      ], 
+      "clean_id": "Y-L16", 
+      "area": 8000000000000.0, 
+      "id": "Y-L16", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        47.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        47.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        47.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 17, 
+      "label": "Y \u2022 L17", 
+      "z_span": [
+        50.999999999999524, 
+        50.999999999999524
+      ], 
+      "clean_id": "Y-L17", 
+      "area": 8000000000000.0, 
+      "id": "Y-L17", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        50.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        50.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        50.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 18, 
+      "label": "Y \u2022 L18", 
+      "z_span": [
+        53.999999999999524, 
+        53.999999999999524
+      ], 
+      "clean_id": "Y-L18", 
+      "area": 8000000000000.0, 
+      "id": "Y-L18", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        53.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        53.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        53.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 19, 
+      "label": "Y \u2022 L19", 
+      "z_span": [
+        56.999999999999524, 
+        56.999999999999524
+      ], 
+      "clean_id": "Y-L19", 
+      "area": 8000000000000.0, 
+      "id": "Y-L19", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        56.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        56.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        56.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 20, 
+      "label": "Y \u2022 L20", 
+      "z_span": [
+        59.999999999999524, 
+        59.999999999999524
+      ], 
+      "clean_id": "Y-L20", 
+      "area": 8000000000000.0, 
+      "id": "Y-L20", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        59.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        59.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        59.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 21, 
+      "label": "Y \u2022 L21", 
+      "z_span": [
+        62.999999999999524, 
+        62.999999999999524
+      ], 
+      "clean_id": "Y-L21", 
+      "area": 8000000000000.0, 
+      "id": "Y-L21", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        62.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        62.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        62.999999999999524
+      ], 
+      "building_id": "Y"
+    }, 
+    {
+      "level": 0, 
+      "label": "S \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995239
+      ], 
+      "clean_id": "S-L00", 
+      "area": 1700.1383451809879, 
+      "id": "S-L00", 
+      "type": "level", 
+      "centroid": [
+        -108.72933948108648, 
+        81.910168982269226, 
+        1.4999999999987164
+      ], 
+      "bbox": [
+        -127.13997632585539, 
+        67.605805728003958, 
+        0.0, 
+        -90.295439481293357, 
+        96.121500910366919, 
+        2.9999999999995239
+      ], 
+      "building_id": "S"
+    }, 
+    {
+      "level": 1, 
+      "label": "S \u2022 L01", 
+      "z_span": [
+        2.9999999999995235, 
+        5.9999999999995230
+      ], 
+      "clean_id": "S-L01", 
+      "area": 1700.1383451798538, 
+      "id": "S-L01", 
+      "type": "level", 
+      "centroid": [
+        -108.72933948106088, 
+        81.910168982284944, 
+        4.4999999999995230
+      ], 
+      "bbox": [
+        -127.13997632582476, 
+        67.605805728061412, 
+        2.9999999999995235, 
+        -90.295439481282784, 
+        96.121500910313358, 
+        5.9999999999995230
+      ], 
+      "building_id": "S"
+    }, 
+    {
+      "level": 2, 
+      "label": "S \u2022 L02", 
+      "z_span": [
+        5.9999999999995230, 
+        8.9999999999995239
+      ], 
+      "clean_id": "S-L02", 
+      "area": 1700.1383451798536, 
+      "id": "S-L02", 
+      "type": "level", 
+      "centroid": [
+        -108.72933948106088, 
+        81.910168982284944, 
+        7.4999999999995239
+      ], 
+      "bbox": [
+        -127.13997632581113, 
+        67.605805728086949, 
+        5.9999999999995230, 
+        -90.295439481278322, 
+        96.121500910289541, 
+        8.9999999999995239
+      ], 
+      "building_id": "S"
+    }, 
+    {
+      "level": 3, 
+      "label": "S \u2022 L03", 
+      "z_span": [
+        8.9999999999995222, 
+        11.999999999999524
+      ], 
+      "clean_id": "S-L03", 
+      "area": 1700.1383451798538, 
+      "id": "S-L03", 
+      "type": "level", 
+      "centroid": [
+        -108.72933948106088, 
+        81.910168982284944, 
+        10.499999999999526
+      ], 
+      "bbox": [
+        -127.13997632580539, 
+        67.605805728097721, 
+        8.9999999999995222, 
+        -90.295439481276730, 
+        96.121500910279508, 
+        11.999999999999524
+      ], 
+      "building_id": "S"
+    }, 
+    {
+      "level": 4, 
+      "label": "S \u2022 L04", 
+      "z_span": [
+        11.999999999999524, 
+        14.999999999999526
+      ], 
+      "clean_id": "S-L04", 
+      "area": 1700.1383451798540, 
+      "id": "S-L04", 
+      "type": "level", 
+      "centroid": [
+        -108.72933948106086, 
+        81.910168982284929, 
+        13.499999999999524
+      ], 
+      "bbox": [
+        -127.13997632580333, 
+        67.605805728101586, 
+        11.999999999999524, 
+        -90.295439481276503, 
+        96.121500910275884, 
+        14.999999999999526
+      ], 
+      "building_id": "S"
+    }, 
+    {
+      "level": 5, 
+      "label": "S \u2022 L05", 
+      "z_span": [
+        14.999999999999524, 
+        17.999999999999524
+      ], 
+      "clean_id": "S-L05", 
+      "area": 1700.1383451798531, 
+      "id": "S-L05", 
+      "type": "level", 
+      "centroid": [
+        -108.72933948106088, 
+        81.910168982284944, 
+        16.499999999999524
+      ], 
+      "bbox": [
+        -127.13997632580381, 
+        67.605805728100663, 
+        14.999999999999524, 
+        -90.295439481276503, 
+        96.121500910276751, 
+        17.999999999999524
+      ], 
+      "building_id": "S"
+    }, 
+    {
+      "level": 6, 
+      "label": "S \u2022 L06", 
+      "z_span": [
+        17.999999999999524, 
+        20.999999999999524
+      ], 
+      "clean_id": "S-L06", 
+      "area": 1700.1383451798538, 
+      "id": "S-L06", 
+      "type": "level", 
+      "centroid": [
+        -108.72933948106088, 
+        81.910168982284944, 
+        19.499999999999524
+      ], 
+      "bbox": [
+        -127.13997632580541, 
+        67.605805728097678, 
+        17.999999999999524, 
+        -90.295439481277100, 
+        96.121500910279536, 
+        20.999999999999524
+      ], 
+      "building_id": "S"
+    }, 
+    {
+      "level": 7, 
+      "label": "S \u2022 L07", 
+      "z_span": [
+        20.999999999999524, 
+        23.999999999999527
+      ], 
+      "clean_id": "S-L07", 
+      "area": 1700.1383451798542, 
+      "id": "S-L07", 
+      "type": "level", 
+      "centroid": [
+        -108.72933948106086, 
+        81.910168982284944, 
+        22.499999999999524
+      ], 
+      "bbox": [
+        -127.13997632580809, 
+        67.605805728092648, 
+        20.999999999999524, 
+        -90.295439481278336, 
+        96.121500910284226, 
+        23.999999999999527
+      ], 
+      "building_id": "S"
+    }, 
+    {
+      "level": 8, 
+      "label": "S \u2022 L08", 
+      "z_span": [
+        23.999999999999524, 
+        26.999999999999527
+      ], 
+      "clean_id": "S-L08", 
+      "area": 1700.1383451798540, 
+      "id": "S-L08", 
+      "type": "level", 
+      "centroid": [
+        -108.72933948106086, 
+        81.910168982284929, 
+        25.499999999999524
+      ], 
+      "bbox": [
+        -127.13997632581294, 
+        67.605805728083581, 
+        23.999999999999524, 
+        -90.295439481280425, 
+        96.121500910292681, 
+        26.999999999999527
+      ], 
+      "building_id": "S"
+    }, 
+    {
+      "level": 9, 
+      "label": "S \u2022 L09", 
+      "z_span": [
+        26.999999999999524, 
+        30.0
+      ], 
+      "clean_id": "S-L09", 
+      "area": 1700.1383451810898, 
+      "id": "S-L09", 
+      "type": "level", 
+      "centroid": [
+        -108.72933948108650, 
+        81.910168982269241, 
+        28.500000000000810
+      ], 
+      "bbox": [
+        -127.13997632585539, 
+        67.605805728003958, 
+        26.999999999999524, 
+        -90.295439481284177, 
+        96.121500910366919, 
+        30.0
+      ], 
+      "building_id": "S"
+    }, 
+    {
+      "level": 0, 
+      "label": "N \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995239
+      ], 
+      "clean_id": "N-L00", 
+      "area": 1780.9698285568759, 
+      "id": "N-L00", 
+      "type": "level", 
+      "centroid": [
+        -104.92153699211846, 
+        -119.05458178229331, 
+        1.4999999999988052
+      ], 
+      "bbox": [
+        -127.86526432785077, 
+        -132.27740790955028, 
+        0.0, 
+        -81.789893103631442, 
+        -105.87835179887652, 
+        2.9999999999995239
+      ], 
+      "building_id": "N"
+    }, 
+    {
+      "level": 1, 
+      "label": "N \u2022 L01", 
+      "z_span": [
+        2.9999999999995230, 
+        5.9999999999995239
+      ], 
+      "clean_id": "N-L01", 
+      "area": 1780.9698285568793, 
+      "id": "N-L01", 
+      "type": "level", 
+      "centroid": [
+        -104.92153699209619, 
+        -119.05458178230427, 
+        4.5000000000004361
+      ], 
+      "bbox": [
+        -127.86526432781997, 
+        -132.27740790953047, 
+        2.9999999999995230, 
+        -81.789893103639244, 
+        -105.87835179889893, 
+        5.9999999999995239
+      ], 
+      "building_id": "N"
+    }, 
+    {
+      "level": 2, 
+      "label": "N \u2022 L02", 
+      "z_span": [
+        5.9999999999995230, 
+        8.9999999999995239
+      ], 
+      "clean_id": "N-L02", 
+      "area": 1780.9698285593040, 
+      "id": "N-L02", 
+      "type": "level", 
+      "centroid": [
+        -104.92153699208684, 
+        -119.05458178230153, 
+        7.5000000000006537
+      ], 
+      "bbox": [
+        -127.86526432780843, 
+        -132.27740790952305, 
+        5.9999999999995230, 
+        -81.789893103642171, 
+        -105.87835179888012, 
+        8.9999999999995239
+      ], 
+      "building_id": "N"
+    }, 
+    {
+      "level": 3, 
+      "label": "N \u2022 L03", 
+      "z_span": [
+        8.9999999999995239, 
+        11.999999999999526
+      ], 
+      "clean_id": "N-L03", 
+      "area": 1780.9698285606455, 
+      "id": "N-L03", 
+      "type": "level", 
+      "centroid": [
+        -104.92153699208214, 
+        -119.05458178229432, 
+        10.499999999999524
+      ], 
+      "bbox": [
+        -127.86526432780876, 
+        -132.27740790952325, 
+        8.9999999999995239, 
+        -81.789893103642100, 
+        -105.87835179887074, 
+        11.999999999999526
+      ], 
+      "building_id": "N"
+    }, 
+    {
+      "level": 4, 
+      "label": "N \u2022 L04", 
+      "z_span": [
+        11.999999999999524, 
+        15.0
+      ], 
+      "clean_id": "N-L04", 
+      "area": 1780.9698285594136, 
+      "id": "N-L04", 
+      "type": "level", 
+      "centroid": [
+        -104.92153699210910, 
+        -119.05458178229057, 
+        13.499999999998677
+      ], 
+      "bbox": [
+        -127.86526432785077, 
+        -132.27740790955028, 
+        11.999999999999524, 
+        -81.789893103631442, 
+        -105.87835179887074, 
+        15.0
+      ], 
+      "building_id": "N"
+    }, 
+    {
+      "level": 0, 
+      "label": "W \u2022 L00", 
+      "z_span": [
+        -4.4408920985006262e-16, 
+        3.0000000000000004
+      ], 
+      "clean_id": "W-L00", 
+      "area": 138.24107489112021, 
+      "id": "W-L00", 
+      "type": "level", 
+      "centroid": [
+        -433.32805412743534, 
+        -24.502144117900414, 
+        1.4999999999998881
+      ], 
+      "bbox": [
+        -436.04338939055640, 
+        -29.617859503408589, 
+        -4.4408920985006262e-16, 
+        -430.74092219493053, 
+        -19.526677442569465, 
+        3.0000000000000004
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 2, 
+      "label": "W \u2022 L02", 
+      "z_span": [
+        5.9999999999995239, 
+        5.9999999999995239
+      ], 
+      "clean_id": "W-L02", 
+      "area": 8000000000000.0, 
+      "id": "W-L02", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        5.9999999999995248
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        5.9999999999995239, 
+        1000000.0, 
+        1000000.0, 
+        5.9999999999995239
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 3, 
+      "label": "W \u2022 L03", 
+      "z_span": [
+        8.9999999999995239, 
+        8.9999999999995239
+      ], 
+      "clean_id": "W-L03", 
+      "area": 8000000000000.0, 
+      "id": "W-L03", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        8.9999999999995257
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        8.9999999999995239, 
+        1000000.0, 
+        1000000.0, 
+        8.9999999999995239
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 4, 
+      "label": "W \u2022 L04", 
+      "z_span": [
+        11.999999999999524, 
+        11.999999999999524
+      ], 
+      "clean_id": "W-L04", 
+      "area": 8000000000000.0, 
+      "id": "W-L04", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        11.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        11.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        11.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 5, 
+      "label": "W \u2022 L05", 
+      "z_span": [
+        14.999999999999524, 
+        14.999999999999524
+      ], 
+      "clean_id": "W-L05", 
+      "area": 8000000000000.0, 
+      "id": "W-L05", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        14.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        14.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        14.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 6, 
+      "label": "W \u2022 L06", 
+      "z_span": [
+        17.999999999999524, 
+        17.999999999999524
+      ], 
+      "clean_id": "W-L06", 
+      "area": 8000000000000.0, 
+      "id": "W-L06", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        17.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        17.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        17.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 7, 
+      "label": "W \u2022 L07", 
+      "z_span": [
+        20.999999999999524, 
+        20.999999999999524
+      ], 
+      "clean_id": "W-L07", 
+      "area": 8000000000000.0, 
+      "id": "W-L07", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        20.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        20.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        20.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 8, 
+      "label": "W \u2022 L08", 
+      "z_span": [
+        23.999999999999524, 
+        23.999999999999524
+      ], 
+      "clean_id": "W-L08", 
+      "area": 8000000000000.0, 
+      "id": "W-L08", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        23.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        23.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        23.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 9, 
+      "label": "W \u2022 L09", 
+      "z_span": [
+        26.999999999999524, 
+        26.999999999999524
+      ], 
+      "clean_id": "W-L09", 
+      "area": 8000000000000.0, 
+      "id": "W-L09", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        26.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        26.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        26.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 10, 
+      "label": "W \u2022 L10", 
+      "z_span": [
+        29.999999999999524, 
+        29.999999999999524
+      ], 
+      "clean_id": "W-L10", 
+      "area": 8000000000000.0, 
+      "id": "W-L10", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        29.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        29.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        29.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 11, 
+      "label": "W \u2022 L11", 
+      "z_span": [
+        32.999999999999524, 
+        32.999999999999524
+      ], 
+      "clean_id": "W-L11", 
+      "area": 8000000000000.0, 
+      "id": "W-L11", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        32.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        32.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        32.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 12, 
+      "label": "W \u2022 L12", 
+      "z_span": [
+        35.999999999999524, 
+        35.999999999999524
+      ], 
+      "clean_id": "W-L12", 
+      "area": 8000000000000.0, 
+      "id": "W-L12", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        35.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        35.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        35.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 13, 
+      "label": "W \u2022 L13", 
+      "z_span": [
+        38.999999999999524, 
+        38.999999999999524
+      ], 
+      "clean_id": "W-L13", 
+      "area": 8000000000000.0, 
+      "id": "W-L13", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        38.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        38.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        38.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 14, 
+      "label": "W \u2022 L14", 
+      "z_span": [
+        41.999999999999524, 
+        41.999999999999524
+      ], 
+      "clean_id": "W-L14", 
+      "area": 8000000000000.0, 
+      "id": "W-L14", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        41.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        41.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        41.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 15, 
+      "label": "W \u2022 L15", 
+      "z_span": [
+        44.999999999999524, 
+        44.999999999999524
+      ], 
+      "clean_id": "W-L15", 
+      "area": 8000000000000.0, 
+      "id": "W-L15", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        44.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        44.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        44.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 16, 
+      "label": "W \u2022 L16", 
+      "z_span": [
+        47.999999999999524, 
+        47.999999999999524
+      ], 
+      "clean_id": "W-L16", 
+      "area": 8000000000000.0, 
+      "id": "W-L16", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        47.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        47.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        47.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 17, 
+      "label": "W \u2022 L17", 
+      "z_span": [
+        50.999999999999524, 
+        50.999999999999524
+      ], 
+      "clean_id": "W-L17", 
+      "area": 8000000000000.0, 
+      "id": "W-L17", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        50.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        50.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        50.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 18, 
+      "label": "W \u2022 L18", 
+      "z_span": [
+        53.999999999999524, 
+        53.999999999999524
+      ], 
+      "clean_id": "W-L18", 
+      "area": 8000000000000.0, 
+      "id": "W-L18", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        53.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        53.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        53.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 19, 
+      "label": "W \u2022 L19", 
+      "z_span": [
+        56.999999999999524, 
+        56.999999999999524
+      ], 
+      "clean_id": "W-L19", 
+      "area": 8000000000000.0, 
+      "id": "W-L19", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        56.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        56.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        56.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 20, 
+      "label": "W \u2022 L20", 
+      "z_span": [
+        59.999999999999524, 
+        59.999999999999524
+      ], 
+      "clean_id": "W-L20", 
+      "area": 8000000000000.0, 
+      "id": "W-L20", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        59.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        59.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        59.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 21, 
+      "label": "W \u2022 L21", 
+      "z_span": [
+        62.999999999999524, 
+        62.999999999999524
+      ], 
+      "clean_id": "W-L21", 
+      "area": 8000000000000.0, 
+      "id": "W-L21", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        62.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        62.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        62.999999999999524
+      ], 
+      "building_id": "W"
+    }, 
+    {
+      "level": 0, 
+      "label": "R \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995230
+      ], 
+      "clean_id": "R-L00", 
+      "area": 1596.0354060230179, 
+      "id": "R-L00", 
+      "type": "level", 
+      "centroid": [
+        -103.23327698543653, 
+        17.200314884817001, 
+        1.5000000000020228
+      ], 
+      "bbox": [
+        -116.98296339027885, 
+        -0.61062771524155091, 
+        0.0, 
+        -89.657579157897686, 
+        35.106016242040425, 
+        2.9999999999995230
+      ], 
+      "building_id": "R"
+    }, 
+    {
+      "level": 1, 
+      "label": "R \u2022 L01", 
+      "z_span": [
+        2.9999999999995230, 
+        5.9999999999995239
+      ], 
+      "clean_id": "R-L01", 
+      "area": 1596.0354060254745, 
+      "id": "R-L01", 
+      "type": "level", 
+      "centroid": [
+        -103.23327698543721, 
+        17.200314884805106, 
+        4.4999999999995230
+      ], 
+      "bbox": [
+        -116.98296339028772, 
+        -0.61062771524219661, 
+        2.9999999999995230, 
+        -89.657579157903299, 
+        35.106016242049748, 
+        5.9999999999995239
+      ], 
+      "building_id": "R"
+    }, 
+    {
+      "level": 2, 
+      "label": "R \u2022 L02", 
+      "z_span": [
+        5.9999999999995239, 
+        8.9999999999995239
+      ], 
+      "clean_id": "R-L02", 
+      "area": 1596.0354060254745, 
+      "id": "R-L02", 
+      "type": "level", 
+      "centroid": [
+        -103.23327698543721, 
+        17.200314884805106, 
+        7.4999999999995239
+      ], 
+      "bbox": [
+        -116.98296339029135, 
+        -0.61062771524246007, 
+        5.9999999999995239, 
+        -89.657579157905758, 
+        35.106016242053556, 
+        8.9999999999995239
+      ], 
+      "building_id": "R"
+    }, 
+    {
+      "level": 3, 
+      "label": "R \u2022 L03", 
+      "z_span": [
+        8.9999999999995239, 
+        11.999999999999524
+      ], 
+      "clean_id": "R-L03", 
+      "area": 1596.0354060254738, 
+      "id": "R-L03", 
+      "type": "level", 
+      "centroid": [
+        -103.23327698543721, 
+        17.200314884805106, 
+        10.499999999999524
+      ], 
+      "bbox": [
+        -116.98296339029250, 
+        -0.61062771524254456, 
+        8.9999999999995239, 
+        -89.657579157906753, 
+        35.106016242054778, 
+        11.999999999999524
+      ], 
+      "building_id": "R"
+    }, 
+    {
+      "level": 4, 
+      "label": "R \u2022 L04", 
+      "z_span": [
+        11.999999999999524, 
+        14.999999999999524
+      ], 
+      "clean_id": "R-L04", 
+      "area": 1596.0354060254740, 
+      "id": "R-L04", 
+      "type": "level", 
+      "centroid": [
+        -103.23327698543721, 
+        17.200314884805106, 
+        13.499999999999522
+      ], 
+      "bbox": [
+        -116.98296339029250, 
+        -0.61062771524254456, 
+        11.999999999999524, 
+        -89.657579157907051, 
+        35.106016242054778, 
+        14.999999999999524
+      ], 
+      "building_id": "R"
+    }, 
+    {
+      "level": 5, 
+      "label": "R \u2022 L05", 
+      "z_span": [
+        14.999999999999524, 
+        17.999999999999524
+      ], 
+      "clean_id": "R-L05", 
+      "area": 1596.0354060254742, 
+      "id": "R-L05", 
+      "type": "level", 
+      "centroid": [
+        -103.23327698543723, 
+        17.200314884805106, 
+        16.499999999999524
+      ], 
+      "bbox": [
+        -116.98296339029241, 
+        -0.61062771524253856, 
+        14.999999999999524, 
+        -89.657579157906810, 
+        35.106016242054693, 
+        17.999999999999524
+      ], 
+      "building_id": "R"
+    }, 
+    {
+      "level": 6, 
+      "label": "R \u2022 L06", 
+      "z_span": [
+        17.999999999999524, 
+        20.999999999999524
+      ], 
+      "clean_id": "R-L06", 
+      "area": 1596.0354060254738, 
+      "id": "R-L06", 
+      "type": "level", 
+      "centroid": [
+        -103.23327698543721, 
+        17.200314884805106, 
+        19.499999999999524
+      ], 
+      "bbox": [
+        -116.98296339029154, 
+        -0.61062771524247461, 
+        17.999999999999524, 
+        -89.657579157906341, 
+        35.106016242053769, 
+        20.999999999999524
+      ], 
+      "building_id": "R"
+    }, 
+    {
+      "level": 7, 
+      "label": "R \u2022 L07", 
+      "z_span": [
+        20.999999999999524, 
+        23.999999999999524
+      ], 
+      "clean_id": "R-L07", 
+      "area": 1596.0354060254742, 
+      "id": "R-L07", 
+      "type": "level", 
+      "centroid": [
+        -103.23327698543723, 
+        17.200314884805103, 
+        22.499999999999524
+      ], 
+      "bbox": [
+        -116.98296339028985, 
+        -0.61062771524235071, 
+        20.999999999999524, 
+        -89.657579157905474, 
+        35.106016242051979, 
+        23.999999999999524
+      ], 
+      "building_id": "R"
+    }, 
+    {
+      "level": 8, 
+      "label": "R \u2022 L08", 
+      "z_span": [
+        23.999999999999524, 
+        27.0
+      ], 
+      "clean_id": "R-L08", 
+      "area": 1596.0354060231175, 
+      "id": "R-L08", 
+      "type": "level", 
+      "centroid": [
+        -103.23327698543652, 
+        17.200314884817004, 
+        25.499999999997499
+      ], 
+      "bbox": [
+        -116.98296339028667, 
+        -0.61062771524211978, 
+        23.999999999999524, 
+        -89.657579157897686, 
+        35.106016242048639, 
+        27.0
+      ], 
+      "building_id": "R"
+    }, 
+    {
+      "level": 0, 
+      "label": "F \u2022 L00", 
+      "z_span": [
+        0.0, 
+        2.9999999999995230
+      ], 
+      "clean_id": "F-L00", 
+      "area": 1073.9999999978263, 
+      "id": "F-L00", 
+      "type": "level", 
+      "centroid": [
+        217.46301931801489, 
+        77.112081475524263, 
+        1.4999999999967797
+      ], 
+      "bbox": [
+        204.10857829789848, 
+        65.568986378275937, 
+        0.0, 
+        230.81746033814309, 
+        88.655176572784399, 
+        2.9999999999995230
+      ], 
+      "building_id": "F"
+    }, 
+    {
+      "level": 1, 
+      "label": "F \u2022 L01", 
+      "z_span": [
+        2.9999999999995230, 
+        6.0
+      ], 
+      "clean_id": "F-L01", 
+      "area": 1073.9999999979045, 
+      "id": "F-L01", 
+      "type": "level", 
+      "centroid": [
+        217.46301931801489, 
+        77.112081475524278, 
+        4.5000000000027427
+      ], 
+      "bbox": [
+        204.10857829789848, 
+        65.568986378275937, 
+        2.9999999999995230, 
+        230.81746033814309, 
+        88.655176572784399, 
+        6.0
+      ], 
+      "building_id": "F"
+    }, 
+    {
+      "level": 0, 
+      "label": "Z \u2022 L00", 
+      "z_span": [
+        0.0, 
+        3.0
+      ], 
+      "clean_id": "Z-L00", 
+      "area": 256.77711928669419, 
+      "id": "Z-L00", 
+      "type": "level", 
+      "centroid": [
+        -405.22871021470280, 
+        -17.430438078353756, 
+        1.4999999999998601
+      ], 
+      "bbox": [
+        -410.32972985319577, 
+        -23.000092733200553, 
+        0.0, 
+        -400.22630573577493, 
+        -11.874450831342564, 
+        3.0
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 2, 
+      "label": "Z \u2022 L02", 
+      "z_span": [
+        5.9999999999995239, 
+        5.9999999999995239
+      ], 
+      "clean_id": "Z-L02", 
+      "area": 8000000000000.0, 
+      "id": "Z-L02", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        5.9999999999995248
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        5.9999999999995239, 
+        1000000.0, 
+        1000000.0, 
+        5.9999999999995239
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 3, 
+      "label": "Z \u2022 L03", 
+      "z_span": [
+        8.9999999999995239, 
+        8.9999999999995239
+      ], 
+      "clean_id": "Z-L03", 
+      "area": 8000000000000.0, 
+      "id": "Z-L03", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        8.9999999999995257
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        8.9999999999995239, 
+        1000000.0, 
+        1000000.0, 
+        8.9999999999995239
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 4, 
+      "label": "Z \u2022 L04", 
+      "z_span": [
+        11.999999999999524, 
+        11.999999999999524
+      ], 
+      "clean_id": "Z-L04", 
+      "area": 8000000000000.0, 
+      "id": "Z-L04", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        11.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        11.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        11.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 5, 
+      "label": "Z \u2022 L05", 
+      "z_span": [
+        14.999999999999524, 
+        14.999999999999524
+      ], 
+      "clean_id": "Z-L05", 
+      "area": 8000000000000.0, 
+      "id": "Z-L05", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        14.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        14.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        14.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 6, 
+      "label": "Z \u2022 L06", 
+      "z_span": [
+        17.999999999999524, 
+        17.999999999999524
+      ], 
+      "clean_id": "Z-L06", 
+      "area": 8000000000000.0, 
+      "id": "Z-L06", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        17.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        17.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        17.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 7, 
+      "label": "Z \u2022 L07", 
+      "z_span": [
+        20.999999999999524, 
+        20.999999999999524
+      ], 
+      "clean_id": "Z-L07", 
+      "area": 8000000000000.0, 
+      "id": "Z-L07", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        20.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        20.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        20.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 8, 
+      "label": "Z \u2022 L08", 
+      "z_span": [
+        23.999999999999524, 
+        23.999999999999524
+      ], 
+      "clean_id": "Z-L08", 
+      "area": 8000000000000.0, 
+      "id": "Z-L08", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        23.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        23.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        23.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 9, 
+      "label": "Z \u2022 L09", 
+      "z_span": [
+        26.999999999999524, 
+        26.999999999999524
+      ], 
+      "clean_id": "Z-L09", 
+      "area": 8000000000000.0, 
+      "id": "Z-L09", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        26.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        26.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        26.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 10, 
+      "label": "Z \u2022 L10", 
+      "z_span": [
+        29.999999999999524, 
+        29.999999999999524
+      ], 
+      "clean_id": "Z-L10", 
+      "area": 8000000000000.0, 
+      "id": "Z-L10", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        29.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        29.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        29.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 11, 
+      "label": "Z \u2022 L11", 
+      "z_span": [
+        32.999999999999524, 
+        32.999999999999524
+      ], 
+      "clean_id": "Z-L11", 
+      "area": 8000000000000.0, 
+      "id": "Z-L11", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        32.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        32.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        32.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 12, 
+      "label": "Z \u2022 L12", 
+      "z_span": [
+        35.999999999999524, 
+        35.999999999999524
+      ], 
+      "clean_id": "Z-L12", 
+      "area": 8000000000000.0, 
+      "id": "Z-L12", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        35.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        35.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        35.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 13, 
+      "label": "Z \u2022 L13", 
+      "z_span": [
+        38.999999999999524, 
+        38.999999999999524
+      ], 
+      "clean_id": "Z-L13", 
+      "area": 8000000000000.0, 
+      "id": "Z-L13", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        38.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        38.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        38.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 14, 
+      "label": "Z \u2022 L14", 
+      "z_span": [
+        41.999999999999524, 
+        41.999999999999524
+      ], 
+      "clean_id": "Z-L14", 
+      "area": 8000000000000.0, 
+      "id": "Z-L14", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        41.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        41.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        41.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 15, 
+      "label": "Z \u2022 L15", 
+      "z_span": [
+        44.999999999999524, 
+        44.999999999999524
+      ], 
+      "clean_id": "Z-L15", 
+      "area": 8000000000000.0, 
+      "id": "Z-L15", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        44.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        44.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        44.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 16, 
+      "label": "Z \u2022 L16", 
+      "z_span": [
+        47.999999999999524, 
+        47.999999999999524
+      ], 
+      "clean_id": "Z-L16", 
+      "area": 8000000000000.0, 
+      "id": "Z-L16", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        47.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        47.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        47.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 17, 
+      "label": "Z \u2022 L17", 
+      "z_span": [
+        50.999999999999524, 
+        50.999999999999524
+      ], 
+      "clean_id": "Z-L17", 
+      "area": 8000000000000.0, 
+      "id": "Z-L17", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        50.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        50.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        50.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 18, 
+      "label": "Z \u2022 L18", 
+      "z_span": [
+        53.999999999999524, 
+        53.999999999999524
+      ], 
+      "clean_id": "Z-L18", 
+      "area": 8000000000000.0, 
+      "id": "Z-L18", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        53.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        53.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        53.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 19, 
+      "label": "Z \u2022 L19", 
+      "z_span": [
+        56.999999999999524, 
+        56.999999999999524
+      ], 
+      "clean_id": "Z-L19", 
+      "area": 8000000000000.0, 
+      "id": "Z-L19", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        56.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        56.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        56.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 20, 
+      "label": "Z \u2022 L20", 
+      "z_span": [
+        59.999999999999524, 
+        59.999999999999524
+      ], 
+      "clean_id": "Z-L20", 
+      "area": 8000000000000.0, 
+      "id": "Z-L20", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        59.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        59.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        59.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "level": 21, 
+      "label": "Z \u2022 L21", 
+      "z_span": [
+        62.999999999999524, 
+        62.999999999999524
+      ], 
+      "clean_id": "Z-L21", 
+      "area": 8000000000000.0, 
+      "id": "Z-L21", 
+      "type": "level", 
+      "centroid": [
+        1.0103186858551841e-10, 
+        1.0593959263392856e-10, 
+        62.999999999999524
+      ], 
+      "bbox": [
+        -1000000.0, 
+        -1000000.0, 
+        62.999999999999524, 
+        1000000.0, 
+        1000000.0, 
+        62.999999999999524
+      ], 
+      "building_id": "Z"
+    }, 
+    {
+      "centroid": [
+        -99.459825762923685, 
+        -190.58353141633651, 
+        0.0
+      ], 
+      "id": "PLOT", 
+      "type": "plot"
     }
   ], 
   "meta": {
-    "floor_levels": [
-      3.0, 
-      6.0, 
-      9.0, 
-      12.0, 
-      15.0, 
-      18.0, 
-      21.0, 
-      24.0, 
-      27.0, 
-      30.0, 
-      33.0
-    ], 
-    "source": "ActiveDoc", 
     "tolerance": 0.01, 
+    "source": "ActiveDoc", 
+    "floor_levels": [
+      2.9999999999995235, 
+      5.9999999999995239, 
+      8.9999999999995239, 
+      11.999999999999524, 
+      14.999999999999524, 
+      17.999999999999524, 
+      20.999999999999524, 
+      23.999999999999524, 
+      26.999999999999524, 
+      29.999999999999524, 
+      32.999999999999524, 
+      35.999999999999524, 
+      38.999999999999524, 
+      41.999999999999524, 
+      44.999999999999524, 
+      47.999999999999524, 
+      50.999999999999524, 
+      53.999999999999524, 
+      56.999999999999524, 
+      59.999999999999524, 
+      62.999999999999524
+    ], 
     "floor_height": 3.0
-  }, 
-  "nodes": [
-    {
-      "clean_id": "E-L00", 
-      "label": "E \u2022 L00", 
-      "area": 5505.0982498045933, 
-      "z_span": [
-        0.0, 
-        3.0
-      ], 
-      "level": 0, 
-      "centroid": [
-        -102.31722523916279, 
-        13.948208677813671, 
-        1.5000000000011249
-      ], 
-      "building_id": "E", 
-      "bbox": [
-        -124.42647596225041, 
-        -13.794027313653743, 
-        0.0, 
-        -80.207974516102524, 
-        41.690444669342568, 
-        3.0
-      ], 
-      "id": "E-L00", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "E-L01", 
-      "label": "E \u2022 L01", 
-      "area": 5505.0982498087196, 
-      "z_span": [
-        3.0, 
-        6.0
-      ], 
-      "level": 1, 
-      "centroid": [
-        -102.31722523914195, 
-        13.948208677838354, 
-        4.5
-      ], 
-      "building_id": "E", 
-      "bbox": [
-        -124.42647596223345, 
-        -13.794027313651000, 
-        3.0, 
-        -80.207974516096598, 
-        41.690444669388214, 
-        6.0
-      ], 
-      "id": "E-L01", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "E-L02", 
-      "label": "E \u2022 L02", 
-      "area": 5505.0982498087196, 
-      "z_span": [
-        5.9999999999999991, 
-        9.0
-      ], 
-      "level": 2, 
-      "centroid": [
-        -102.31722523914195, 
-        13.948208677838352, 
-        7.4999999999999991
-      ], 
-      "building_id": "E", 
-      "bbox": [
-        -124.42647596222648, 
-        -13.794027313649870, 
-        5.9999999999999991, 
-        -80.207974516094538, 
-        41.690444669404052, 
-        9.0
-      ], 
-      "id": "E-L02", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "E-L03", 
-      "label": "E \u2022 L03", 
-      "area": 5505.0982498087187, 
-      "z_span": [
-        9.0, 
-        12.0
-      ], 
-      "level": 3, 
-      "centroid": [
-        -102.31722523914196, 
-        13.948208677838354, 
-        10.5
-      ], 
-      "building_id": "E", 
-      "bbox": [
-        -124.42647596222406, 
-        -13.794027313649480, 
-        9.0, 
-        -80.207974516094396, 
-        41.690444669405238, 
-        12.0
-      ], 
-      "id": "E-L03", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "E-L04", 
-      "label": "E \u2022 L04", 
-      "area": 5505.0982498087196, 
-      "z_span": [
-        11.999999999999998, 
-        15.000000000000002
-      ], 
-      "level": 4, 
-      "centroid": [
-        -102.31722523914195, 
-        13.948208677838354, 
-        13.499999999999998
-      ], 
-      "building_id": "E", 
-      "bbox": [
-        -124.42647596222517, 
-        -13.794027313649659, 
-        11.999999999999998, 
-        -80.207974516094396, 
-        41.690444669405238, 
-        15.000000000000002
-      ], 
-      "id": "E-L04", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "E-L05", 
-      "label": "E \u2022 L05", 
-      "area": 5505.0982498087196, 
-      "z_span": [
-        15.0, 
-        18.0
-      ], 
-      "level": 5, 
-      "centroid": [
-        -102.31722523914195, 
-        13.948208677838354, 
-        16.5
-      ], 
-      "building_id": "E", 
-      "bbox": [
-        -124.42647596222841, 
-        -13.794027313650185, 
-        15.0, 
-        -80.20797451609549, 
-        41.690444669396797, 
-        18.0
-      ], 
-      "id": "E-L05", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "E-L06", 
-      "label": "E \u2022 L06", 
-      "area": 5305.6923029465543, 
-      "z_span": [
-        18.0, 
-        20.0
-      ], 
-      "level": 6, 
-      "centroid": [
-        -102.31722523916201, 
-        13.948208677814600, 
-        18.999999999999222
-      ], 
-      "building_id": "E", 
-      "bbox": [
-        -124.42647596225041, 
-        -13.794027313653743, 
-        18.0, 
-        -80.207974516098233, 
-        41.690444669375587, 
-        20.0
-      ], 
-      "id": "E-L06", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "D-L00", 
-      "label": "D \u2022 L00", 
-      "area": 3723.4583952136154, 
-      "z_span": [
-        0.0, 
-        3.0
-      ], 
-      "level": 0, 
-      "centroid": [
-        -106.48561538340226, 
-        275.16348853607025, 
-        1.4999999999990052
-      ], 
-      "building_id": "D", 
-      "bbox": [
-        -125.34570463402191, 
-        253.69294584123759, 
-        0.0, 
-        -87.625526132757514, 
-        296.63403123091450, 
-        3.0
-      ], 
-      "id": "D-L00", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "D-L01", 
-      "label": "D \u2022 L01", 
-      "area": 3562.1358674317999, 
-      "z_span": [
-        3.0, 
-        5.0
-      ], 
-      "level": 1, 
-      "centroid": [
-        -106.48561538340310, 
-        275.16348853607036, 
-        4.0000000000006937
-      ], 
-      "building_id": "D", 
-      "bbox": [
-        -125.34570463402191, 
-        253.69294584123759, 
-        3.0, 
-        -87.625526132757514, 
-        296.63403123091450, 
-        5.0
-      ], 
-      "id": "D-L01", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "A-L00", 
-      "label": "A \u2022 L00", 
-      "area": 5505.0982498052472, 
-      "z_span": [
-        0.0, 
-        3.0
-      ], 
-      "level": 0, 
-      "centroid": [
-        161.12272077517306, 
-        246.30445982942643, 
-        1.5000000000013038
-      ], 
-      "building_id": "A", 
-      "bbox": [
-        139.01347005208947, 
-        218.56222383797143, 
-        0.0, 
-        183.23197149826944, 
-        274.04669582088457, 
-        3.0
-      ], 
-      "id": "A-L00", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "A-L01", 
-      "label": "A \u2022 L01", 
-      "area": 5505.0982498100275, 
-      "z_span": [
-        3.0, 
-        6.0
-      ], 
-      "level": 1, 
-      "centroid": [
-        161.12272077514348, 
-        246.30445982941100, 
-        4.5
-      ], 
-      "building_id": "A", 
-      "bbox": [
-        139.01347005207032, 
-        218.56222383796003, 
-        3.0, 
-        183.23197149824949, 
-        274.04669582087769, 
-        6.0
-      ], 
-      "id": "A-L01", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "A-L02", 
-      "label": "A \u2022 L02", 
-      "area": 5505.0982498100275, 
-      "z_span": [
-        5.9999999999999991, 
-        9.0
-      ], 
-      "level": 2, 
-      "centroid": [
-        161.12272077514348, 
-        246.30445982941100, 
-        7.5000000000000009
-      ], 
-      "building_id": "A", 
-      "bbox": [
-        139.01347005206367, 
-        218.56222383795608, 
-        5.9999999999999991, 
-        183.23197149824128, 
-        274.04669582087490, 
-        9.0
-      ], 
-      "id": "A-L02", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "A-L03", 
-      "label": "A \u2022 L03", 
-      "area": 5505.0982498100257, 
-      "z_span": [
-        9.0, 
-        12.0
-      ], 
-      "level": 3, 
-      "centroid": [
-        161.12272077514348, 
-        246.30445982941100, 
-        10.5
-      ], 
-      "building_id": "A", 
-      "bbox": [
-        139.01347005206318, 
-        218.56222383795580, 
-        9.0, 
-        183.23197149823844, 
-        274.04669582087388, 
-        12.0
-      ], 
-      "id": "A-L03", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "A-L04", 
-      "label": "A \u2022 L04", 
-      "area": 5505.0982498100275, 
-      "z_span": [
-        11.999999999999998, 
-        15.0
-      ], 
-      "level": 4, 
-      "centroid": [
-        161.12272077514348, 
-        246.30445982941100, 
-        13.5
-      ], 
-      "building_id": "A", 
-      "bbox": [
-        139.01347005206318, 
-        218.56222383795580, 
-        11.999999999999998, 
-        183.23197149823974, 
-        274.04669582087433, 
-        15.0
-      ], 
-      "id": "A-L04", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "A-L05", 
-      "label": "A \u2022 L05", 
-      "area": 5505.0982498100275, 
-      "z_span": [
-        14.999999999999998, 
-        18.0
-      ], 
-      "level": 5, 
-      "centroid": [
-        161.12272077514348, 
-        246.30445982941100, 
-        16.5
-      ], 
-      "building_id": "A", 
-      "bbox": [
-        139.01347005206674, 
-        218.56222383795790, 
-        14.999999999999998, 
-        183.23197149824358, 
-        274.04669582087564, 
-        18.0
-      ], 
-      "id": "A-L05", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "A-L06", 
-      "label": "A \u2022 L06", 
-      "area": 5305.6923029472082, 
-      "z_span": [
-        18.0, 
-        20.0
-      ], 
-      "level": 6, 
-      "centroid": [
-        161.12272077517196, 
-        246.30445982942589, 
-        18.999999999999098
-      ], 
-      "building_id": "A", 
-      "bbox": [
-        139.01347005207560, 
-        218.56222383796319, 
-        18.0, 
-        183.23197149826944, 
-        274.04669582088457, 
-        20.0
-      ], 
-      "id": "A-L06", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "C-L00", 
-      "label": "C \u2022 L00", 
-      "area": 5505.0982498026769, 
-      "z_span": [
-        0.0, 
-        3.0000000000000004
-      ], 
-      "level": 0, 
-      "centroid": [
-        157.87182267865771, 
-        13.948208677787727, 
-        1.5000000000006020
-      ], 
-      "building_id": "C", 
-      "bbox": [
-        135.76257195557781, 
-        -13.794027313653743, 
-        0.0, 
-        179.98107340173783, 
-        41.690444669231709, 
-        3.0000000000000004
-      ], 
-      "id": "C-L00", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "C-L01", 
-      "label": "C \u2022 L01", 
-      "area": 5505.0982498048852, 
-      "z_span": [
-        3.0, 
-        6.0
-      ], 
-      "level": 1, 
-      "centroid": [
-        157.87182267865845, 
-        13.948208677786473, 
-        4.5
-      ], 
-      "building_id": "C", 
-      "bbox": [
-        135.76257195557270, 
-        -13.794027313651000, 
-        3.0, 
-        179.98107340174363, 
-        41.690444669226153, 
-        6.0
-      ], 
-      "id": "C-L01", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "C-L02", 
-      "label": "C \u2022 L02", 
-      "area": 5505.0982498048852, 
-      "z_span": [
-        6.0, 
-        9.0
-      ], 
-      "level": 2, 
-      "centroid": [
-        157.87182267865845, 
-        13.948208677786473, 
-        7.5
-      ], 
-      "building_id": "C", 
-      "bbox": [
-        135.76257195557091, 
-        -13.794027313649870, 
-        6.0, 
-        179.98107340174565, 
-        41.690444669223865, 
-        9.0
-      ], 
-      "id": "C-L02", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "C-L03", 
-      "label": "C \u2022 L03", 
-      "area": 5505.0982498061712, 
-      "z_span": [
-        9.0, 
-        12.000000000000002
-      ], 
-      "level": 3, 
-      "centroid": [
-        157.87182267865671, 
-        13.948208677779988, 
-        10.500000000000352
-      ], 
-      "building_id": "C", 
-      "bbox": [
-        135.76257195557076, 
-        -13.794027313678553, 
-        9.0, 
-        179.98107340174579, 
-        41.690444669223069, 
-        12.000000000000002
-      ], 
-      "id": "C-L03", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "C-L04", 
-      "label": "C \u2022 L04", 
-      "area": 5505.0982498074563, 
-      "z_span": [
-        12.0, 
-        15.0
-      ], 
-      "level": 4, 
-      "centroid": [
-        157.87182267865501, 
-        13.948208677773504, 
-        13.499999999999998
-      ], 
-      "building_id": "C", 
-      "bbox": [
-        135.76257195557076, 
-        -13.794027313687856, 
-        12.0, 
-        179.98107340174579, 
-        41.690444669223439, 
-        15.0
-      ], 
-      "id": "C-L04", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "C-L05", 
-      "label": "C \u2022 L05", 
-      "area": 5505.0982498074563, 
-      "z_span": [
-        15.0, 
-        18.0
-      ], 
-      "level": 5, 
-      "centroid": [
-        157.87182267865501, 
-        13.948208677773504, 
-        16.5
-      ], 
-      "building_id": "C", 
-      "bbox": [
-        135.76257195557173, 
-        -13.794027313687856, 
-        15.0, 
-        179.98107340174471, 
-        41.690444669224505, 
-        18.0
-      ], 
-      "id": "C-L05", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "C-L06", 
-      "label": "C \u2022 L06", 
-      "area": 5305.6923029459231, 
-      "z_span": [
-        18.0, 
-        20.0
-      ], 
-      "level": 6, 
-      "centroid": [
-        157.87182267865595, 
-        13.948208677780952, 
-        18.999999999999343
-      ], 
-      "building_id": "C", 
-      "bbox": [
-        135.76257195557412, 
-        -13.794027313686929, 
-        18.0, 
-        179.98107340174204, 
-        41.690444669231709, 
-        20.0
-      ], 
-      "id": "C-L06", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "F-L00", 
-      "label": "F \u2022 L00", 
-      "area": 8412.2988481958218, 
-      "z_span": [
-        0.0, 
-        3.0
-      ], 
-      "level": 0, 
-      "centroid": [
-        28.881829610458460, 
-        -102.49430905901606, 
-        1.5000000000016145
-      ], 
-      "building_id": "F", 
-      "bbox": [
-        -3.3076206509357391, 
-        -132.27375552816187, 
-        0.0, 
-        61.071279871837085, 
-        -72.714862589912855, 
-        3.0
-      ], 
-      "id": "F-L00", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "F-L01", 
-      "label": "F \u2022 L01", 
-      "area": 8412.2988482067522, 
-      "z_span": [
-        2.9999999999999996, 
-        6.0
-      ], 
-      "level": 1, 
-      "centroid": [
-        28.881829610461633, 
-        -102.49430905900395, 
-        4.5000000000003340
-      ], 
-      "building_id": "F", 
-      "bbox": [
-        -3.3076206509461681, 
-        -132.27375552817489, 
-        2.9999999999999996, 
-        61.071279871843515, 
-        -72.714862589879786, 
-        6.0
-      ], 
-      "id": "F-L01", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "F-L02", 
-      "label": "F \u2022 L02", 
-      "area": 8412.2988482086257, 
-      "z_span": [
-        6.0, 
-        9.0
-      ], 
-      "level": 2, 
-      "centroid": [
-        28.881829610464024, 
-        -102.49430905899732, 
-        7.5
-      ], 
-      "building_id": "F", 
-      "bbox": [
-        -3.3076206509461681, 
-        -132.27375552817489, 
-        6.0, 
-        61.071279871843515, 
-        -72.714862589877882, 
-        9.0
-      ], 
-      "id": "F-L02", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "F-L03", 
-      "label": "F \u2022 L03", 
-      "area": 7916.5476743540821, 
-      "z_span": [
-        9.0, 
-        10.0
-      ], 
-      "level": 3, 
-      "centroid": [
-        28.881829610461050, 
-        -102.49430905900867, 
-        9.499999999999309
-      ], 
-      "building_id": "F", 
-      "bbox": [
-        -3.3076206509416055, 
-        -132.27375552816920, 
-        9.0, 
-        61.071279871840702, 
-        -72.714862589877882, 
-        10.0
-      ], 
-      "id": "F-L03", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "B-L00", 
-      "label": "B \u2022 L00", 
-      "area": 4647.7891564897382, 
-      "z_span": [
-        0.0, 
-        3.0
-      ], 
-      "level": 0, 
-      "centroid": [
-        -200.15103134206882, 
-        174.92849087907118, 
-        1.5000000000017806
-      ], 
-      "building_id": "B", 
-      "bbox": [
-        -219.74842033833485, 
-        148.78413902749841, 
-        0.0, 
-        -180.55364234584425, 
-        201.07284273065946, 
-        3.0
-      ], 
-      "id": "B-L00", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "B-L01", 
-      "label": "B \u2022 L01", 
-      "area": 4647.7891564952570, 
-      "z_span": [
-        3.0, 
-        6.0
-      ], 
-      "level": 1, 
-      "centroid": [
-        -200.15103134206072, 
-        174.92849087905677, 
-        4.4999999999999991
-      ], 
-      "building_id": "B", 
-      "bbox": [
-        -219.74842033835500, 
-        148.78413902748539, 
-        3.0, 
-        -180.55364234583558, 
-        201.07284273066648, 
-        6.0
-      ], 
-      "id": "B-L01", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "B-L02", 
-      "label": "B \u2022 L02", 
-      "area": 4647.7891564952561, 
-      "z_span": [
-        6.0, 
-        9.0
-      ], 
-      "level": 2, 
-      "centroid": [
-        -200.15103134206072, 
-        174.92849087905680, 
-        7.5
-      ], 
-      "building_id": "B", 
-      "bbox": [
-        -219.74842033836387, 
-        148.78413902747968, 
-        6.0, 
-        -180.55364234583178, 
-        201.07284273066955, 
-        9.0
-      ], 
-      "id": "B-L02", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "B-L03", 
-      "label": "B \u2022 L03", 
-      "area": 4647.7891564952570, 
-      "z_span": [
-        8.9999999999999982, 
-        12.0
-      ], 
-      "level": 3, 
-      "centroid": [
-        -200.15103134206075, 
-        174.92849087905677, 
-        10.5
-      ], 
-      "building_id": "B", 
-      "bbox": [
-        -219.74842033836745, 
-        148.78413902747735, 
-        8.9999999999999982, 
-        -180.55364234583024, 
-        201.07284273067080, 
-        12.0
-      ], 
-      "id": "B-L03", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "B-L04", 
-      "label": "B \u2022 L04", 
-      "area": 4647.7891564952570, 
-      "z_span": [
-        11.999999999999998, 
-        15.0
-      ], 
-      "level": 4, 
-      "centroid": [
-        -200.15103134206075, 
-        174.92849087905677, 
-        13.499999999999998
-      ], 
-      "building_id": "B", 
-      "bbox": [
-        -219.74842033836853, 
-        148.78413902747667, 
-        11.999999999999998, 
-        -180.55364234582981, 
-        201.07284273067117, 
-        15.0
-      ], 
-      "id": "B-L04", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "B-L05", 
-      "label": "B \u2022 L05", 
-      "area": 4647.7891564952570, 
-      "z_span": [
-        14.999999999999998, 
-        18.0
-      ], 
-      "level": 5, 
-      "centroid": [
-        -200.15103134206072, 
-        174.92849087905677, 
-        16.5
-      ], 
-      "building_id": "B", 
-      "bbox": [
-        -219.74842033836853, 
-        148.78413902747667, 
-        14.999999999999998, 
-        -180.55364234582981, 
-        201.07284273067117, 
-        18.0
-      ], 
-      "id": "B-L05", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "B-L06", 
-      "label": "B \u2022 L06", 
-      "area": 4647.7891564975398, 
-      "z_span": [
-        18.0, 
-        21.0
-      ], 
-      "level": 6, 
-      "centroid": [
-        -200.15103134205751, 
-        174.92849087904395, 
-        19.500000000000735
-      ], 
-      "building_id": "B", 
-      "bbox": [
-        -219.74842033836828, 
-        148.78413902741931, 
-        18.0, 
-        -180.55364234582990, 
-        201.07284273067108, 
-        21.0
-      ], 
-      "id": "B-L06", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "B-L07", 
-      "label": "B \u2022 L07", 
-      "area": 4647.7891564998226, 
-      "z_span": [
-        21.0, 
-        24.0
-      ], 
-      "level": 7, 
-      "centroid": [
-        -200.15103134205430, 
-        174.92849087903113, 
-        22.5
-      ], 
-      "building_id": "B", 
-      "bbox": [
-        -219.74842033836725, 
-        148.78413902739715, 
-        21.0, 
-        -180.55364234583033, 
-        201.07284273067074, 
-        24.0
-      ], 
-      "id": "B-L07", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "B-L08", 
-      "label": "B \u2022 L08", 
-      "area": 4647.7891564998226, 
-      "z_span": [
-        23.999999999999996, 
-        27.0
-      ], 
-      "level": 8, 
-      "centroid": [
-        -200.15103134205430, 
-        174.92849087903110, 
-        25.5
-      ], 
-      "building_id": "B", 
-      "bbox": [
-        -219.74842033836552, 
-        148.78413902739157, 
-        23.999999999999996, 
-        -180.55364234583107, 
-        201.07284273067012, 
-        27.0
-      ], 
-      "id": "B-L08", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "B-L09", 
-      "label": "B \u2022 L09", 
-      "area": 4647.7891564998235, 
-      "z_span": [
-        27.0, 
-        30.0
-      ], 
-      "level": 9, 
-      "centroid": [
-        -200.15103134205430, 
-        174.92849087903110, 
-        28.499999999999996
-      ], 
-      "building_id": "B", 
-      "bbox": [
-        -219.74842033836296, 
-        148.78413902739157, 
-        27.0, 
-        -180.55364234583217, 
-        201.07284273066921, 
-        30.0
-      ], 
-      "id": "B-L09", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "B-L10", 
-      "label": "B \u2022 L10", 
-      "area": 4647.7891564998226, 
-      "z_span": [
-        29.999999999999996, 
-        33.0
-      ], 
-      "level": 10, 
-      "centroid": [
-        -200.15103134205430, 
-        174.92849087903113, 
-        31.499999999999996
-      ], 
-      "building_id": "B", 
-      "bbox": [
-        -219.74842033835893, 
-        148.78413902739521, 
-        29.999999999999996, 
-        -180.55364234583391, 
-        201.07284273066782, 
-        33.0
-      ], 
-      "id": "B-L10", 
-      "type": "level"
-    }, 
-    {
-      "clean_id": "B-L11", 
-      "label": "B \u2022 L11", 
-      "area": 4635.2380497183694, 
-      "z_span": [
-        33.0, 
-        35.931402333289945
-      ], 
-      "level": 11, 
-      "centroid": [
-        -200.15103134206555, 
-        174.92849087905824, 
-        34.465701166642503
-      ], 
-      "building_id": "B", 
-      "bbox": [
-        -219.74842033835176, 
-        148.78413902740763, 
-        33.0, 
-        -180.55364234583698, 
-        201.07284273066534, 
-        35.931402333289945
-      ], 
-      "id": "B-L11", 
-      "type": "level"
-    }, 
-    {
-      "type": "plot", 
-      "centroid": [
-        -22.902287765878953, 
-        105.01320183429445, 
-        0.0
-      ], 
-      "id": "PLOT"
-    }
-  ]
+  }
 }
