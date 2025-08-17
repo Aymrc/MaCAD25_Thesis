@@ -1,5 +1,4 @@
 // LLM + upload + dropdowns + optional 3D graph
-
 (function () {
   // ---------- Config ----------
   const API = "http://localhost:8000";
@@ -10,28 +9,16 @@
 
   /* ---------------- Loading chip helpers ---------------- */
   const chip = () => document.getElementById("graph-loading");
-  const chipLabel = () => {
-    const c = chip();
-    if (!c) return null;
-    return c.querySelector(".label") || c.querySelector("span:last-child");
-  };
+  const chipLabel = () => chip()?.querySelector(".label");
 
   function showLoading(text) {
     const c = chip();
     if (!c) return;
-    const lbl = chipLabel();
-    if (lbl && text) lbl.textContent = text;
+    if (chipLabel() && text) chipLabel().textContent = text;
     c.classList.add("show");
   }
-  function setLoading(text) {
-    const lbl = chipLabel();
-    if (lbl && typeof text === "string") lbl.textContent = text;
-  }
-  function hideLoading() {
-    const c = chip();
-    if (!c) return;
-    c.classList.remove("show");
-  }
+  function setLoading(text) { if (chipLabel() && typeof text === "string") chipLabel().textContent = text; }
+  function hideLoading() { chip()?.classList.remove("show"); }
 
   /* ---------------- Chat rendering ---------------- */
   // Main: #chat-history receives .message ROLE
@@ -63,33 +50,14 @@
 
   // Dispatcher: prefer legacy when .history-content exists
   function appendMessage(role, content) {
-    const hasLegacyBox = !!document.querySelector("#chat-history .history-content");
-    return hasLegacyBox ? appendMessageLegacy(role, content) : appendMessageMain(role, content);
+    const legacy = !!document.querySelector("#chat-history .history-content");
+    return legacy ? appendMessageLegacy(role, content) : appendMessageMain(role, content);
   }
 
   function setStatus(text) {
     const s = document.getElementById("status");
     if (s) s.textContent = text || "";
     else console.log("[status]", text);
-  }
-
-  // Strip accidental meta prefixes from LLM greetings
-  function cleanGreeting(t) {
-    if (!t) return t;
-    t = t.replace(/^```(?:\w+)?\s*|\s*```$/g, "");
-    t = t.replace(
-      /^\s*(?:need\b.*?greet\w*|greeting|assistant|system|note|meta)\s*[:\-.\]]*\s*/i,
-      ""
-    );
-    if (/^need\b/i.test(t)) {
-      const m = t.match(/\.\s*([\s\S]+)$/);
-      if (m) t = m[1];
-    }
-
-    t = t.replace(/\s+(?:User:|Assistant:|System:).*/i, "");
-
-    const m2 = t.match(/^(.+?[.!?])(\s|$)/s);
-    return (m2 ? m2[1] : t).trim();
   }
 
   /* ---------------- Server health ---------------- */
@@ -103,7 +71,7 @@
     }
   }
 
-  /* ---------------- Context dropdown ---------------- */
+  /* ---------------- Dropdowns ---------------- */
   function setupStickyDropdown(pillId, dropdownId) {
     const pill = document.getElementById(pillId);
     const dropdown = document.getElementById(dropdownId);
@@ -200,41 +168,46 @@
       appendMessage("assistant", "Reading brief… extracting entities… building graph.");
       showLoading("Reading brief…");
 
-      // simple messages while waiting
+      // staged chip updates
       let stageTimers = [];
       stageTimers.push(setTimeout(() => setLoading("Extracting entities…"), 1200));
       stageTimers.push(setTimeout(() => setLoading("Building graph…"), 2600));
 
       try {
-        const res = await fetch(`${API}/upload_brief`, {
-          method: "POST",
-          body: formData,
-        });
+        const res = await fetch(`${API}/upload_brief`, { method: "POST", body: formData });
         const data = await res.json();
 
         // Tooltip filename on the pill
-        if (uploadPill && file?.name) {
-          uploadPill.setAttribute("data-filename", file.name);
-        }
+        if (uploadPill && file?.name) uploadPill.setAttribute("data-filename", file.name);
 
         if (data.chat_notice) appendMessage("assistant", data.chat_notice);
-        uploadLabel.textContent = "Brief uploaded";
-        console.log("Uploaded:", data);
 
-        // Store the brief graph globally ; render only if "Brief" tab is active
-        if (data.graph && data.graph.nodes?.length) {
-          window._briefGraph = data.graph;
-          const briefActive = document.querySelector('.tab button.active[data-tab="brief"]');
-          if (briefActive && typeof window.showGraph3DBackground === "function") {
-            window.showGraph3DBackground(window._briefGraph);
+        // Normalize and render if present
+        if (data.graph) {
+          const adapt = window.adaptGraph || ((raw) => raw); // fallback (should exist)
+          const normalized = adapt(data.graph);
+          window._briefGraph = normalized;
+
+          const hasNodes = Array.isArray(normalized.nodes) && normalized.nodes.length > 0;
+          const hasLinks = Array.isArray(normalized.links) && normalized.links.length > 0;
+          if (hasNodes || hasLinks) {
+            const briefActive = document.querySelector('.tab button.active[data-tab="brief"]');
+            if (briefActive && typeof window.showGraph3DBackground === "function") {
+              window.showGraph3DBackground(window._briefGraph);
+            }
+            uploadLabel.textContent = "Brief uploaded";
+          } else {
+            uploadLabel.textContent = "Brief parsed (no graph)";
+            appendMessage("assistant", "Brief parsed, but no entities/links were detected.");
           }
+        } else {
+          uploadLabel.textContent = "Brief uploaded";
         }
       } catch (err) {
         console.error("Upload failed", err);
         uploadLabel.textContent = "Upload failed";
         appendMessage("assistant", "Hmm, that failed to process. Try again?");
       } finally {
-        // clear staged timers & hide chip
         stageTimers.forEach(t => clearTimeout(t));
         hideLoading();
       }
@@ -246,13 +219,11 @@
 
   /* ---------------- Rhino toggles + bake ---------------- */
   function bindRhinoPanel() {
-    const API  = "http://localhost:8000";
     const tPlot = document.getElementById("togglePlot");
     const tCtx  = document.getElementById("toggleContext");
     const bake  = document.getElementById("bakeBtn");
 
     async function postPreview(kind, enabled) {
-      // kind: "context" | "plot"
       try {
         const res = await fetch(`${API}/preview/${kind}`, {
           method: "POST",
@@ -266,17 +237,8 @@
       }
     }
 
-    if (tPlot) {
-      tPlot.addEventListener("change", () => {
-        postPreview("plot", tPlot.checked);   // <-- antes solo hacía console.log
-      });
-    }
-
-    if (tCtx) {
-      tCtx.addEventListener("change", () => {
-        postPreview("context", tCtx.checked); // <-- antes solo hacía console.log
-      });
-    }
+    if (tPlot) tPlot.addEventListener("change", () => postPreview("plot", tPlot.checked));
+    if (tCtx)  tCtx.addEventListener("change",  () => postPreview("context", tCtx.checked));
 
     if (bake) {
       bake.addEventListener("click", async () => {
@@ -288,7 +250,6 @@
       });
     }
   }
-
 
   // ---------- OSM run + polling (silent to chat) ----------
   function toNumber(val) {
@@ -308,94 +269,19 @@
     return fetch(`${API}/osm/status/${jobId}`).then((r) => r.json());
   }
 
-  // ---------- Preview toggles (Context Graph / Plot Graph) ----------
-  async function postPreview(kind, enabled) {
-    // kind: "context" | "plot"
-    try {
-      const res = await fetch(`${API}/preview/${kind}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled: !!enabled })
-      });
-      const j = await res.json();
-      if (!j.ok) console.warn(`[preview] ${kind} -> backend said not ok`, j);
-    } catch (e) {
-      console.warn(`[preview] ${kind} toggle failed (server not ready?)`, e);
-    }
-  }
-
-  async function fetchPreviewState() {
-    try {
-      const res = await fetch(`${API}/preview/state`);
-      if (!res.ok) return null;
-      return await res.json(); // {context_preview: bool, plot_preview: bool}
-    } catch {
-      return null;
-    }
-  }
-
-  function getParamTogglesByLabel() {
-    // Your HTML reuses the same id for several inputs.
-    // We select by label text to avoid relying on unique IDs.
-    const form = document.getElementById("paramForm");
-    const out = { viewContext: null, contextGraph: null, plotGraph: null };
-    if (!form) return out;
-
-    const labels = Array.from(form.querySelectorAll("label"));
-    for (const lbl of labels) {
-      const txt = (lbl.textContent || "").trim();
-      const input = lbl.querySelector('input[type="checkbox"]');
-      if (!input) continue;
-      if (txt === "View Context") out.viewContext = input;
-      else if (txt === "Context Graph") out.contextGraph = input;
-      else if (txt === "Plot Graph") out.plotGraph = input;
-    }
-    return out;
-  }
-
-  function initParamToggles() {
-    const { contextGraph, plotGraph } = getParamTogglesByLabel();
-
-    if (contextGraph) {
-      contextGraph.addEventListener("change", () => {
-        postPreview("context", contextGraph.checked);
-      });
-    }
-    if (plotGraph) {
-      plotGraph.addEventListener("change", () => {
-        postPreview("plot", plotGraph.checked);
-      });
-    }
-  }
-
-  /* ---------------- Sync preview from server ---------------- */
-  async function syncPreviewTogglesFromServer() {
-    const st = await fetchPreviewState();
-    if (!st) return;
-    const { contextGraph, plotGraph } = getParamTogglesByLabel();
-    if (contextGraph) contextGraph.checked = !!st.context_preview;
-    if (plotGraph)   plotGraph.checked   = !!st.plot_preview;
-  }
-
-  // ---------- Chat controls (merged) ----------
+  /* ---------------- Chat controls ---------------- */
   function initChatControls() {
-    // Support both ID schemes
-    const sendBtnA = document.getElementById("sendBtn");
-    const inputA   = document.getElementById("chatInput");
-    const sendBtnB = document.getElementById("chat-send");
-    const inputB   = document.getElementById("chat-input");
+    const sendBtn = document.getElementById("chat-send");
+    const input   = document.getElementById("chat-input");
 
-    if (sendBtnA) sendBtnA.addEventListener("click", sendMessage);
-    if (inputA)   inputA.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage(); });
-
-    if (sendBtnB) sendBtnB.addEventListener("click", sendMessage);
-    if (inputB) {
-      inputB.addEventListener("keydown", (e) => {
+    if (sendBtn) sendBtn.addEventListener("click", sendMessage);
+    if (input) {
+      input.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
       });
     }
 
-    // Context setter -> Start OSM job and poll status (NO chat messages)
+    // Context setter -> start OSM job and poll status (NO chat messages)
     const saveBtn = document.getElementById("saveContextBtn");
     if (saveBtn) {
       saveBtn.addEventListener("click", function () {
@@ -413,7 +299,7 @@
           return;
         }
 
-        setStatus("Starting OSM job...");
+        setStatus("Starting OSM job…");
         startOsm(lat, lon, radius).then(function (resp) {
           if (!resp.ok) {
             setStatus("OSM job failed: " + (resp.error || "unknown error"));
@@ -421,7 +307,7 @@
           }
           var jobId = resp.job_id;
           try { localStorage.setItem("latest_osm_job", jobId); } catch (e) {}
-          setStatus("OSM job running...");
+          setStatus("OSM job running…");
 
           var intv = setInterval(function () {
             pollStatus(jobId).then(function (st) {
@@ -432,7 +318,7 @@
               }
               if (st.status === "finished") {
                 clearInterval(intv);
-                setStatus("OSM job finished. Importing into Rhino...");
+                setStatus("OSM job finished. Importing into Rhino…");
               } else if (st.status === "failed") {
                 clearInterval(intv);
                 setStatus("OSM job failed. See FAILED.txt");
@@ -449,49 +335,218 @@
     }
   }
 
-  /* ---------------- Graph3D fullscreen helpers ---------------- */
-  function ensureGraph3DFullscreen() {
-    const mount = document.getElementById("graph3d");
-    if (!mount) return;
+  /* ---------------- 3D Graph (background, interactive) ---------------- */
+  // Robust loader: waits briefly if ForceGraph3D isn't ready yet.
+  function ensureForceGraphReady(callback, attempts = 10, intervalMs = 200) {
+    if (typeof ForceGraph3D === "function") return callback();
+    let tries = 0;
+    const t = setInterval(() => {
+      tries++;
+      if (typeof ForceGraph3D === "function") {
+        clearInterval(t);
+        callback();
+      } else if (tries >= attempts) {
+        clearInterval(t);
+        console.warn("[Graph] ForceGraph3D not available after retries.");
+      }
+    }, intervalMs);
+  }
 
-    const parent = mount.parentElement || document.body;
-    const parentStyle = getComputedStyle(parent);
-    if (parentStyle.position === "static") parent.style.position = "relative";
+  // Expose helpers globally so app.js tab logic can call them
+  window.showGraph3DBackground = function showGraph3DBackground(dataGraph) {
+    ensureForceGraphReady(() => {
+      const mount = document.getElementById("graph3d");
+      if (!mount) return;
 
-    // Try to fill parent; if parent is too small, fallback to viewport
-    const parentRect = parent.getBoundingClientRect();
-    const parentTooSmall = (parentRect.width < 400 || parentRect.height < 300);
+      // ---- Category color palette (hex; mirrors your FromArgb) ----
+      const CAT_COLORS = {
+        Residential: "#DC2D46",
+        Office:      "#0070B8",
+        Leisure:     "#00AA46",
+        Cultural:    "#8C008C",
+        Green:       "#50B478"
+      };
 
-    if (parentTooSmall && parent === document.body) {
-      mount.style.position = "fixed";
-      mount.style.inset = "0";
-    } else {
-      mount.style.position = "absolute";
-      mount.style.inset = "0";
+      // ---- Edge color palette ----
+      const EDGE_COLORS = { street: "#8A8A8A", access: "#8A8A8A" };
+
+      function categorizeNode(attrs) {
+        try {
+          const tags = {};
+          for (const [k, v] of Object.entries(attrs || {})) {
+            try { tags[String(k).toLowerCase()] = String(v).toLowerCase(); } catch {}
+          }
+          const b = tags["building"];
+
+          const residential = new Set(["apartments","house","residential","semidetached_house","terrace","bungalow","detached","dormitory"]);
+          const office = new Set(["office","commercial","industrial","retail","manufacture","warehouse","service"]);
+          const cultural = new Set(["college","school","kindergarten","government","civic","church","fire_station","prison"]);
+          const leisure = new Set(["hotel","boathouse","houseboat","bridge"]);
+          const green   = new Set(["greenhouse","allotment_house"]);
+
+          if (b === "yes") return "Residential";
+          if (residential.has(b)) return "Residential";
+          if (office.has(b)) return "Office";
+          if (cultural.has(b)) return "Cultural";
+          if (leisure.has(b)) return "Leisure";
+          if (green.has(b)) return "Green";
+
+          const amen = tags["amenity"] || "";
+          if (amen.includes("museum") || amen.includes("theatre") || amen.includes("gallery")) return "Cultural";
+
+          const leis = tags["leisure"] || "";
+          if (leis.includes("park") || leis.includes("recreation") || leis.includes("garden")) return "Leisure";
+
+          if ((tags["landuse"] === "grass" || tags["landuse"] === "meadow") || (tags["type"] || "").includes("green")) {
+            return "Green";
+          }
+          return null;
+        } catch { return null; }
+      }
+
+      function pickCategory(n) {
+        const byAttrs = categorizeNode(n.attrs || {});
+        if (byAttrs) return byAttrs;
+        const hint = (n.typology || n.kind || "").toLowerCase();
+        if (!hint) return null;
+        if (/(res|housing|living|residential)/.test(hint)) return "Residential";
+        if (/(office|commercial|retail|work)/.test(hint))    return "Office";
+        if (/(museum|theatre|gallery|school|college|civic|gov|cultural)/.test(hint)) return "Cultural";
+        if (/(leisure|hotel|park|garden|recreation)/.test(hint)) return "Leisure";
+        if (/(green|grass|meadow|landscape)/.test(hint)) return "Green";
+        return null;
+      }
+
+      // Build nodes/links keeping raw attrs
+      const nodes = (dataGraph.nodes || []).map(n => {
+        const buildingId = n.building_id || (typeof n.id === "string" ? n.id.split("|")[0] : "");
+        return {
+          id: n.id,
+          name: n.label || n.clean_id || n.id,
+          typology: n.typology || "",
+          footprint: n.footprint || 0,
+          buildingId,
+          kind: n.type || n.kind || "",
+          area: Number.isFinite(n.area) ? n.area : null,
+          level: Number.isFinite(n.level) ? n.level : null,
+          attrs: n
+        };
+      });
+
+      const links = (dataGraph.edges || dataGraph.links || []).map(e => ({
+        source: e.source, target: e.target, type: e.type || "adjacent"
+      }));
+
+      // Fallback monochrome per-building
+      const uniqueBuildings = Array.from(new Set(nodes.map(n => n.buildingId).filter(Boolean).sort()));
+      const monoColorMap = {};
+      uniqueBuildings.forEach((bid, idx) => {
+        const t = idx / Math.max(1, uniqueBuildings.length - 1);
+        const shade = Math.round(238 - t * 238);
+        const hex = shade.toString(16).padStart(2, "0");
+        monoColorMap[bid] = `#${hex}${hex}${hex}`;
+      });
+
+      const deg = new Map(nodes.map(n => [n.id, 0]));
+      links.forEach(l => {
+        deg.set(l.source, (deg.get(l.source) || 0) + 1);
+        deg.set(l.target, (deg.get(l.target) || 0) + 1);
+      });
+
+      // Init instance once
+      if (!window.Graph3DInstance) {
+        window.Graph3DInstance = ForceGraph3D()(mount)
+          .backgroundColor("#f0f0f0")
+          .cooldownTicks(500)
+          .d3VelocityDecay(0.12)
+          .nodeRelSize(30)
+          .nodeOpacity(1)
+          .nodeLabel(n => {
+            if (n.id === "PLOT" || n.kind === "plot") return "Plot";
+            const parts = [];
+            if (n.buildingId) parts.push(`<b>Building:</b> ${n.buildingId}`);
+            parts.push(`<b>Name:</b> ${n.name}`);
+            if (Number.isFinite(n.level)) parts.push(`<b>Level:</b> ${n.level}`);
+            if (Number.isFinite(n.area)) parts.push(`<b>Area:</b> ${Math.round(n.area).toLocaleString()} m²`);
+            const cat = pickCategory(n);
+            if (cat) parts.push(`<b>Category:</b> ${cat}`);
+            if (n.typology) parts.push(`<b>Typology:</b> ${n.typology}`);
+            return parts.join("<br>");
+          })
+          .enableNodeDrag(true)
+          .showNavInfo(false)
+          .warmupTicks(60);
+      }
+
+      window.Graph3DInstance
+        .nodeColor(n => {
+          if (n.id === "PLOT" || n.kind === "plot") return "#ff0000";
+          const cat = pickCategory(n);
+          if (cat && CAT_COLORS[cat]) return CAT_COLORS[cat];
+          return monoColorMap[n.buildingId] || "#000000";
+        })
+        .linkColor(l => {
+          const t = (l.type || "").toString().toLowerCase();
+          return EDGE_COLORS[t] || "#8A8A8A";
+        })
+        .nodeVal(n => {
+          if ((n.kind || "").toLowerCase() === "street") return 2;
+          const cat = pickCategory(n);
+          if (cat && ["Residential","Office","Leisure","Cultural","Green"].includes(cat)) return 12;
+          return 6;
+        });
+
+      window.Graph3DInstance.graphData({ nodes, links });
+
+      // Nudges for sizing and forces
+      const w = mount.clientWidth  || window.innerWidth;
+      const h = mount.clientHeight || window.innerHeight;
+      try { window.Graph3DInstance.width(w).height(h); } catch {}
+
+      requestAnimationFrame(() => {
+        const charge = window.Graph3DInstance.d3Force('charge');
+        if (charge?.strength) charge.strength(-160);
+
+        const link = window.Graph3DInstance.d3Force('link');
+        if (link?.distance && link?.strength) {
+          link
+            .distance(l => {
+              const s = l.source.id || l.source;
+              const t = l.target.id || l.target;
+              const d = (deg.get(s) || 0) + (deg.get(t) || 0);
+              return 40 + 8 * Math.sqrt(d);
+            })
+            .strength(0.04);
+        }
+        try { window.Graph3DInstance.d3ReheatSimulation(); } catch {}
+      });
+
+      setTimeout(() => {
+        try {
+          window.Graph3DInstance.zoomToFit(600, 8);
+          const controls = window.Graph3DInstance.controls?.();
+          if (controls?.dollyIn) { controls.dollyIn(1.2); controls.update(); }
+        } catch {}
+      }, 150);
+    });
+  };
+
+  window.clearGraph = function clearGraph() {
+    if (window.Graph3DInstance) {
+      window.Graph3DInstance.graphData({ nodes: [], links: [] });
     }
-    mount.style.width = "100%";
-    mount.style.height = "100%";
-    mount.style.zIndex = "0"; // keep UI above; raise if you need interactions
-  }
-
-  function resizeGraph3D() {
-    const mount = document.getElementById("graph3d");
-    if (!mount || !window.Graph3DInstance) return;
-    const w = mount.clientWidth  || window.innerWidth;
-    const h = mount.clientHeight || window.innerHeight;
-    try { window.Graph3DInstance.width(w).height(h); } catch {}
-  }
+  };
 
   /* ---------------- Chat send ---------------- */
   async function sendMessage() {
-    const input = document.getElementById("chat-input") || document.getElementById("chatInput");
+    const input = document.getElementById("chat-input");
     const text = (input?.value || "").trim();
     if (!text) return;
 
     appendMessage("user", text);
     if (input) input.value = "";
 
-    // typing indicator placeholder
+    // typing indicator placeholder (legacy UI)
     const hasLegacyBox = !!document.querySelector("#chat-history .history-content");
     let placeholder = null;
     if (hasLegacyBox) {
@@ -524,11 +579,11 @@
 
   /* ---------------- Boot ---------------- */
   window.addEventListener("DOMContentLoaded", async () => {
-    // keep handle + wrapper ; clear only messages
+    // Clear only messages (keep wrapper/handle)
     const hc = document.querySelector("#chat-history .history-content");
     if (hc) hc.innerHTML = "";
 
-    appendMessage("assistant", "Connecting...");
+    appendMessage("assistant", "Connecting…");
     let serverReady = false;
     for (let i = 0; i < 10; i++) {
       serverReady = await checkServer();
@@ -536,7 +591,7 @@
       await sleep(800);
     }
 
-    // remove the last "Connecting..." line in chat (legacy UI)
+    // Remove the last "Connecting..." line in chat (legacy UI)
     if (hc?.lastElementChild) hc.removeChild(hc.lastElementChild);
 
     // If no legacy box, clear the simple container
@@ -545,7 +600,9 @@
       if (ch) ch.innerHTML = "";
     }
 
-    // Only show LLM greeting if available
+    // Update status badge
+    setStatus(serverReady ? "Connected" : "Disconnected");
+
     if (serverReady) {
       try {
         const res = await fetch(`${API}/initial_greeting`);
@@ -562,166 +619,7 @@
     initChatControls();
     initUpload();
     setupStickyDropdown("contextPill", "contextForm");
-    setupStickyDropdown("paramPill", "paramForm");
     setupStickyDropdown("rhinoPill", "rhinoForm");
     bindRhinoPanel();
-    syncPreviewTogglesFromServer();
-    initParamToggles();
-
-    // Try to sync preview toggles with server state (if backend exposes it)
-    if (serverReady) {
-      syncPreviewTogglesFromServer();
-    }
   });
-
-  /* ---------------- 3D Graph (background, interactive) ---------------- */
-  // Expose helpers globally so app.js tab logic can call them
-  window.showGraph3DBackground = function showGraph3DBackground(dataGraph) {
-    if (typeof ForceGraph3D !== "function") return;
-    const mount = document.getElementById("graph3d");
-    if (!mount) return;
-
-    ensureGraph3DFullscreen();
-
-    // --- Nodes: coerce id to string; ignore any positional fields for fluffy layout
-    const rawNodes = Array.isArray(dataGraph?.nodes) ? dataGraph.nodes : [];
-    const nodes = rawNodes.map(n => {
-      const idStr = String(n?.id ?? n?.clean_id ?? "");
-      const buildingId = n?.building_id || (typeof idStr === "string" ? idStr.split("|")[0] : "");
-      return {
-        id: idStr,
-        name: n?.label || n?.clean_id || idStr,
-        typology: n?.typology || "",
-        footprint: n?.footprint || 0,
-        buildingId,
-        kind: n?.type || "",
-        area: Number.isFinite(n?.area) ? n.area : null,
-        level: Number.isFinite(n?.level) ? n.level : null,
-        // seed start positions so everything doesn't spawn at (0,0,0)
-        x: (Math.random() - 0.5) * 50,
-        y: (Math.random() - 0.5) * 50,
-        z: (Math.random() - 0.5) * 50
-      };
-    });
-
-    // Build a fast lookup of valid ids
-    const nodeIdSet = new Set(nodes.map(n => n.id));
-
-    // --- Links: accept ids OR {id}, coerce to strings, drop invalids
-    const rawEdges = Array.isArray(dataGraph?.edges) ? dataGraph.edges
-                    : Array.isArray(dataGraph?.links) ? dataGraph.links
-                    : [];
-    const links = [];
-    let dropped = 0;
-    for (const e of rawEdges) {
-      const srcRaw = (e && typeof e.source === "object") ? (e.source?.id ?? e.source) : e?.source;
-      const tgtRaw = (e && typeof e.target === "object") ? (e.target?.id ?? e.target) : e?.target;
-      const src = (srcRaw === 0 || srcRaw) ? String(srcRaw) : undefined;
-      const tgt = (tgtRaw === 0 || tgtRaw) ? String(tgtRaw) : undefined;
-      if (!src || !tgt || !nodeIdSet.has(src) || !nodeIdSet.has(tgt)) { dropped++; continue; }
-      links.push({ source: src, target: tgt, type: e?.type || "adjacent" });
-    }
-
-    if (dropped) {
-      console.warn(`[Graph3D] Dropped ${dropped} invalid links (id mismatch).`);
-    }
-
-    // --- Color by building id (same as before)
-    const uniqueBuildings = Array.from(new Set(
-      nodes.map(n => n.buildingId).filter(Boolean).sort()
-    ));
-    const colorMap = {};
-    uniqueBuildings.forEach((bid, idx) => {
-      const t = idx / Math.max(1, uniqueBuildings.length - 1);
-      const shade = Math.round(238 - t * 238);
-      const hex = shade.toString(16).padStart(2, "0");
-      colorMap[bid] = `#${hex}${hex}${hex}`;
-    });
-
-    // Degree map for link distance tuning
-    const deg = new Map(nodes.map(n => [n.id, 0]));
-    links.forEach(l => {
-      deg.set(l.source, (deg.get(l.source) || 0) + 1);
-      deg.set(l.target, (deg.get(l.target) || 0) + 1);
-    });
-
-    // --- Always rebuild the graph instance so forces are active/fresh
-    try { mount.innerHTML = ""; } catch {}
-    window.Graph3DInstance = ForceGraph3D()(mount)
-      .backgroundColor("#f0f0f0")
-      .cooldownTicks(500)
-      .d3VelocityDecay(0.12)
-      .nodeRelSize(15)
-      .nodeOpacity(1)
-      .nodeLabel(n => {
-        if (n.id === "PLOT" || n.kind === "plot") return "Plot";
-        const parts = [];
-        if (n.buildingId) parts.push(`<b>Building:</b> ${n.buildingId}`);
-        parts.push(`<b>Name:</b> ${n.name}`);
-        if (Number.isFinite(n.level)) parts.push(`<b>Level:</b> ${n.level}`);
-        if (Number.isFinite(n.area)) {
-          const rounded = Math.round(n.area);
-          parts.push(`<b>Area:</b> ${rounded.toLocaleString()} m²`);
-        }
-        if (n.typology) parts.push(`<b>Typology:</b> ${n.typology}`);
-        return parts.join("<br>");
-      })
-      .enableNodeDrag(true)
-      .showNavInfo(false)
-      .warmupTicks(60)
-      .nodeColor(n => {
-        if (n.id === "PLOT" || n.kind === "plot") return "#ff0000";
-        return colorMap[n.buildingId] || "#000000";
-      })
-      .linkColor(() => "rgba(138, 138, 138, 1)");
-
-    // Push data & size
-    window.Graph3DInstance.graphData({ nodes, links });
-    resizeGraph3D();
-    if (!window._graph3dResizeBound) {
-      window.addEventListener("resize", resizeGraph3D);
-      window._graph3dResizeBound = true;
-    }
-
-    // Force tuning (distance by combined degree)
-    requestAnimationFrame(() => {
-      const charge = window.Graph3DInstance.d3Force('charge');
-      if (charge?.strength) charge.strength(-160);
-
-      const link = window.Graph3DInstance.d3Force('link');
-      if (link?.distance && link?.strength) {
-        link
-          .distance(l => {
-            const s = l.source.id || l.source;
-            const t = l.target.id || l.target;
-            const d = (deg.get(s) || 0) + (deg.get(t) || 0);
-            return 40 + 8 * Math.sqrt(d);
-          })
-          .strength(0.04);
-      }
-      try { window.Graph3DInstance.d3ReheatSimulation(); } catch {}
-    });
-
-    setTimeout(() => {
-      try {
-        window.Graph3DInstance.zoomToFit(600, 8);
-        const controls = window.Graph3DInstance.controls?.();
-        if (controls?.dollyIn) { controls.dollyIn(1.2); controls.update(); }
-      } catch {}
-    }, 150);
-
-    // Sanity logs
-    console.log("[Graph3D] nodes:", nodes.length, nodes[0]);
-    console.log("[Graph3D] links (kept):", links.length);
-  };
-
-
-
-
-
-  window.clearGraph = function clearGraph() {
-    if (window.Graph3DInstance) {
-      window.Graph3DInstance.graphData({ nodes: [], links: [] });
-    }
-  };
 })();
