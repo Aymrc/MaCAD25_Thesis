@@ -6,6 +6,7 @@
 #     * folders starting with "osm_"
 #     * folders whose names look like UUIDs
 # - Removes knowledge/osm/_last_job.txt marker if present
+# - Deletes everything inside knowledge/merge
 
 import os
 import re
@@ -100,21 +101,34 @@ def remove_known_files(knowledge_dir: Path) -> None:
     targets = [
         knowledge_dir / "massing_graph.json",
         knowledge_dir / "osm" / "graph_context.json",
-        # Add more single-file artifacts here if needed
     ]
     for t in targets:
         if t.exists() and t.is_file():
             safe_remove_file(t)
 
+def purge_merge_dir(merge_dir: Path) -> None:
+    """Delete all files inside knowledge/merge."""
+    if not merge_dir.exists() or not merge_dir.is_dir():
+        return
+    try:
+        for p in merge_dir.iterdir():
+            if p.is_file():
+                safe_remove_file(p)
+            elif p.is_dir():
+                safe_rmtree(p)
+    except Exception as e:
+        print("[CLEAN] Failed to clean merge dir:", merge_dir, "-", e)
+
 # -------- Entry point --------
 
 def main():
-    # This script lives at: <project_root>/knowledge/clean_history.py
     knowledge_dir = Path(__file__).resolve().parent
     osm_dir = knowledge_dir / "osm"
+    merge_dir = knowledge_dir / "merge"
 
     remove_known_files(knowledge_dir)
     purge_osm_workspaces(osm_dir)
+    purge_merge_dir(merge_dir)
 
 if __name__ == "__main__":
     main()

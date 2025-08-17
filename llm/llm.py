@@ -46,6 +46,7 @@ for d in (RUNTIME_DIR, OSM_DIR, BRIEFS_DIR):
 # --- Massing graph endpoints ---
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GRAPH_PATH = os.path.join(REPO_ROOT, "knowledge", "massing_graph.json")
+MASTERPLAN_PATH = os.path.join(REPO_ROOT, "knowledge", "merge", "masterplan_graph.json")
 
 # Serve files at /files/* from knowledge/osm for debugging (optional)
 app.mount("/files", StaticFiles(directory=str(OSM_DIR)), name="files")
@@ -608,6 +609,30 @@ def get_massing_graph():
 def get_massing_mtime():
     try:
         return {"mtime": os.path.getmtime(GRAPH_PATH)}
+    except:
+        return {"mtime": 0.0}
+
+@app.get("/graph/masterplan")
+def get_masterplan_graph():
+    try:
+        if not os.path.exists(MASTERPLAN_PATH):
+                        return {"nodes": [], "links": [], "edges": [], "meta": {"missing": True}}
+        with open(MASTERPLAN_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        links = data.get("links", data.get("edges", []))
+        return {
+            "nodes": data.get("nodes", []),
+            "links": links,
+            "edges": links,
+            "meta": data.get("meta", {})
+        }
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.get("/graph/masterplan/mtime")
+def get_masterplan_mtime():
+    try:
+        return {"mtime": os.path.getmtime(MASTERPLAN_PATH)}
     except:
         return {"mtime": 0.0}
 
