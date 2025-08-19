@@ -890,14 +890,20 @@ _CHANGE_COMMANDS = set([
     "Align","SetPt","RemapCPlane",
     "Array","ArrayLinear","ArrayPolar","ArrayCrv","ArraySrf",
     "BooleanUnion","BooleanDifference","BooleanIntersection","Split","MergeAllFaces","Join","Explode","OffsetSrf",
-    "GumballMove","GumballRotate","GumballScale",
-    "Delete"
+    "GumballMove","GumballRotate","GumballScale","Delete",
+    
+    "Line","Polyline","Polyline3D","Rectangle","Curve","InterpCrv","InterpCrvOnSrf",
+    "Arc","Circle","Ellipse","Offset","Fillet","Chamfer","Extend","Trim"
 ])
 
 def on_end_command(sender, e):
     try:
         name = e.CommandEnglishName if hasattr(e, "CommandEnglishName") else ""
-        if name in _CHANGE_COMMANDS:
+        # patrón amplio para curvas
+        is_curve_cmd = any(tok in name for tok in (
+            "Line","Polyline","Curve","Crv","Rectangle","Arc","Circle","Ellipse","Offset","Fillet","Chamfer","Extend","Trim"
+        ))
+        if name in _CHANGE_COMMANDS or is_curve_cmd:
             Rhino.RhinoApp.WriteLine("[rhino_listener] EndCommand '{0}' -> export scheduled (fallback).".format(name))
             _mark_massing_dirty()
             debounce_trigger()
