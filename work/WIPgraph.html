@@ -45,7 +45,11 @@
         color: #888; font-size: 12px; flex: 0 0 auto;
       }
     </style>
-    <script src="https://unpkg.com/3d-force-graph"></script>
+
+    <!-- 1) Load THREE first (global) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+    <!-- 2) Then load the UMD build of 3d-force-graph that uses window.THREE -->
+    <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.5/dist/3d-force-graph.min.js"></script>
   </head>
 
   <body>
@@ -57,12 +61,15 @@
     <div id="graph"></div>
 
     <script>
+      // sanity check
+      if (!window.THREE) {
+        console.error('THREE is not defined. Check script order/CDN reachability.');
+      }
+
       const mount = document.getElementById('graph');
-      const Graph = ForceGraph3D()(mount)
-        .nodeLabel(n => tagHtml(n));
+      const Graph = ForceGraph3D()(mount).nodeLabel(n => tagHtml(n));
 
       // ------------ palette + color map ------------
-      // Plotly/D3 Category10-ish palette; cycles if categories > palette length.
       const PALETTE = [
         '#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd',
         '#8c564b','#e377c2','#7f7f7f','#bcbd22','#17becf',
@@ -134,11 +141,56 @@
         return `<div style="max-width:360px">${title}${rows}</div>`;
       }
 
+      // --- Canvas-based text sprite using global THREE ---
+      function makeTextSprite(text) {
+        const fontSize = 60;
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // initial measure
+        ctx.font = `600 ${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif`;
+        const textW = ctx.measureText(text).width;
+        const textH = fontSize * 1.4;
+
+        canvas.width = Math.ceil(textW + 30);
+        canvas.height = Math.ceil(textH + 20);
+
+        // redraw after resize
+        ctx.font = `600 ${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif`;
+        // background
+        ctx.fillStyle = 'rgba(255,255,255,0.96)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, 0, canvas.width, canvas.height);
+        // text
+        ctx.fillStyle = '#111';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, 15, canvas.height / 2);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+        texture.minFilter = THREE.LinearFilter;
+
+        const material = new THREE.SpriteMaterial({
+          map: texture,
+          transparent: true,
+          depthWrite: false
+        });
+
+        const sprite = new THREE.Sprite(material);
+        // scale canvas pixels to world units (tweak if needed)
+        sprite.scale.set(canvas.width * 0.1, canvas.height * 0.1, 1);
+        return sprite;
+      }
+
+      // ------------ data preparation ------------
       function prepareData(data) {
         const nodes = (data.nodes || []).map(n => {
+          const lvl = (n.level ?? levelIndex(n.id || '')) ?? 0;
+          const bld = n.building_id || '';
           n.programKey = derivePrimaryProgram(n) || 'unassigned';
-          n._label = `${n.building_id || ''} L${n.level ?? levelIndex(n.id || '')}`;
-          n.tags = tagsFromNode(n).map(([k, v]) => `${k}:${v}`);
+          n._alwaysLabel = `L${lvl}${bld ? ' ' + bld : ''}`;
           return n;
         });
         const links = data.links || data.edges || [];
@@ -149,43 +201,33 @@
         const legend = document.getElementById('legend');
         const container = document.getElementById('legend-items');
         container.innerHTML = '';
-
-        // Count nodes per category
         const counts = nodes.reduce((acc, n) => {
           const k = n.programKey || 'unassigned';
           acc[k] = (acc[k] || 0) + 1;
           return acc;
         }, {});
-
-        // Stable order: unassigned last, otherwise by label
         const cats = Array.from(colorMap.keys()).sort((a, b) => {
           if (a === 'unassigned') return 1;
           if (b === 'unassigned') return -1;
           return a.localeCompare(b);
         });
-
         cats.forEach(cat => {
           const item = document.createElement('div');
           item.className = 'legend-item';
-
           const swatch = document.createElement('span');
           swatch.className = 'legend-swatch';
           swatch.style.background = colorMap.get(cat);
           item.appendChild(swatch);
-
           const label = document.createElement('span');
           label.className = 'legend-label';
           label.textContent = cat;
           item.appendChild(label);
-
           const count = document.createElement('span');
           count.className = 'legend-count';
           count.textContent = counts[cat] ?? 0;
           item.appendChild(count);
-
           container.appendChild(item);
         });
-
         legend.hidden = cats.length === 0;
       }
 
@@ -193,41 +235,54 @@
         Graph.nodeColor(node => colorMap.get(node.programKey) || UNASSIGNED_COLOR);
       }
 
+      // ------------ load + sticky labels ------------
       function loadGraph(data) {
         const prepared = prepareData(data);
 
-        // Build a color map from current categories
+        // degree to detect leaves
+        const deg = new Map();
+        prepared.nodes.forEach(n => deg.set(n.id, 0));
+        prepared.links.forEach(l => {
+          const a = l.source?.id ?? l.source;
+          const b = l.target?.id ?? l.target;
+          if (deg.has(a)) deg.set(a, deg.get(a) + 1);
+          if (deg.has(b)) deg.set(b, deg.get(b) + 1);
+        });
+        prepared.nodes.forEach(n => { n._isLeaf = (deg.get(n.id) ?? 0) <= 1; });
+
         const categories = new Set(prepared.nodes.map(n => n.programKey || 'unassigned'));
         const colorMap = buildColorMap(categories);
-
-        // Apply colors + legend, then render
         applyColors(prepared.nodes, colorMap);
         updateLegend(colorMap, prepared.nodes);
+
+        // define sprites before setting data
+        Graph
+          .nodeThreeObjectExtend(true)
+          .nodeThreeObject(node => {
+            if (!node._isLeaf || !window.THREE) return null;
+            const sprite = makeTextSprite(node._alwaysLabel);
+            sprite.position.set(0, 8, 0);
+            return sprite;
+          });
+
         Graph.graphData(prepared);
       }
 
       // ------------ default load ------------
-      const defaultPath = '../knowledge/massing_graph_enriched.json'; // adjust if needed
+      const defaultPath = '../knowledge/massing_graph.json';
       fetch(defaultPath)
-        .then(res => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.json();
-        })
+        .then(res => res.ok ? res.json() : Promise.reject(res.status))
         .then(loadGraph)
         .catch(err => console.warn('Could not load default graph:', err));
 
-      // ------------ file input ------------
+      // file input
       document.getElementById('file').addEventListener('change', e => {
         const f = e.target.files[0];
         if (!f) return;
         const r = new FileReader();
         r.onload = () => {
-          try {
-            const data = JSON.parse(r.result);
-            loadGraph(data);
-          } catch (err) {
-            console.error('Invalid JSON:', err);
-          }
+          try { loadGraph(JSON.parse(r.result)); }
+          catch (err) { console.error('Invalid JSON:', err); }
         };
         r.readAsText(f);
       });
