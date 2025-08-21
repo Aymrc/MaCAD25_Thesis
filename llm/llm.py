@@ -1,5 +1,5 @@
 import os, sys, io, re, json, csv, glob, uuid, shutil, subprocess
-import requests, PyPDF2, uvicorn
+import requests, PyPDF2, uvicorn, logging
 
 from collections import defaultdict
 from datetime import datetime
@@ -708,11 +708,26 @@ def _massing_context_text(max_nodes: int = 200, max_edges: int = 200, include_st
 
     return "\n".join(summary)
 
+# ---- Quiet Uvicorn access logs for mtime polling ----
+ACCESS_LOG_MUTE_ENDPOINTS = ("/graph/massing/mtime") # ("/graph/massing/mtime", "...") add whatever we need to clean
+
+def _install_access_log_filter():
+    """Silence polluting mtime polling endpoint in Uvicorn access logs"""
+    class _MutePolling(logging.Filter):
+        def filter(self, record):
+            try:
+                msg = record.getMessage()
+            except Exception:
+                return True
+            return not any(ep in msg for ep in ACCESS_LOG_MUTE_ENDPOINTS)
+    logging.getLogger("uvicorn.access").addFilter(_MutePolling())
+
 
 # ============================
 # Server entry point
 # ============================
 def run_llm(reload=False):
+    _install_access_log_filter()
     print("[LLM] Starting the server for LLM access ...")
     uvicorn.run("llm:app",
                 host="127.0.0.1",
