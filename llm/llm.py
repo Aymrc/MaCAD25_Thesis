@@ -739,5 +739,5 @@ if __name__ == "__main__":
         run_llm(reload=True)
     except Exception as e:
         print("LLM crashed:", e)
-        raw_input = input  # ensure name exists in case of IronPython call
+        raw_input = input
         raw_input("Press Enter to close...")
