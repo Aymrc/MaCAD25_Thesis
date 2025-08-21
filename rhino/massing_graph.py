@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-# massing_graph.py
+# massing_graph.py (street-compat)
 #
-# Build a graph (nodes + links) from Rhino geometry on MASSING/PLOT layers and save to JSON.
-# - Breps -> buildings (level nodes + vertical edges)
-# - Curves (Line/Polyline/PolyCurve/NurbsCurve) -> line network (endpoints & intersections as nodes + edges)
-# - Optional building ↔ line-network connectors ("access" edges)
+# Build a graph (nodes + edges) from Rhino geometry on MASSING/PLOT layers and save to JSON.
+# Compatible with graph_context street schema:
+#   - Street nodes: id = "street_v#", type = "street", x, y
+#   - Street edges: u/v endpoints, type = "street", distance (2D), line = [[x,y], [x,y], ...]
+#   - All edges use u/v (not source/target). For backward compatibility we also output "links" mirroring "edges".
 #
 # Notes:
 # - Python 2.7 / IronPython compatible (no 'nonlocal'; use list counter).
@@ -50,6 +51,10 @@ STK_DEBOUNCE_FLAG = "massing_graph_debounce_flag"
 # Friendlier IDs
 USE_CLEAN_NODE_IDS = True
 INCLUDE_RANDOM_UID = False
+
+# --- Graph-context compatibility ---
+STREET_SCHEMA_IDS_PREFIX = "street_v"    # prefix for street node ids
+EXPORT_EDGES_AND_LINKS   = True           # write both 'edges' and 'links' for compatibility
 
 # =========================
 # utils
@@ -283,12 +288,12 @@ def build_graph_from_active_doc(floor_h, tol):
             nodes.append(node_obj)
             node_id[(bl, int(lvl))] = nid
 
-        # vertical edges
+        # vertical edges (use u/v)
         lvls = sorted([int(k) for k in levels_dict.keys()])
         for i in range(len(lvls)-1):
             l0, l1 = lvls[i], lvls[i+1]
             if (bl,l0) in node_id and (bl,l1) in node_id:
-                edges.append({"source": node_id[(bl,l0)], "target": node_id[(bl,l1)],
+                edges.append({"u": node_id[(bl,l0)], "v": node_id[(bl,l1)],
                               "type": "vertical", "weight": 1.0})
 
         # keep L0 (or lowest) for access
@@ -297,19 +302,7 @@ def build_graph_from_active_doc(floor_h, tol):
             building_ground_node[bl] = node_id[(bl,base)]
 
     # ---------------------------------------------------------------------
-    # // PLOT hub (disabled): we no longer connect buildings to a PLOT node
-    # // because building connectivity will be resolved via the street graph.
-    # //
-    # // pc = _get_plot_center()
-    # // if pc:
-    # //     nodes.append({"id":"PLOT","type":"plot","centroid":[float(pc.X),float(pc.Y),float(pc.Z)]})
-    # //     for bl, levels_dict in per_building_levels.items():
-    # //         nid = node_id.get((bl,0))
-    # //         if nid is None:
-    # //             avail = sorted([int(k) for k in levels_dict.keys()])
-    # //             if avail: nid = node_id.get((bl, avail[0]))
-    # //         if nid:
-    # //             edges.append({"source": nid, "target": "PLOT", "type": "plot", "weight": 1.0})
+    # // PLOT hub (disabled): use street graph instead
     # ---------------------------------------------------------------------
 
     # --- 2) Curves → line network (nodes + edges) ---
@@ -318,26 +311,21 @@ def build_graph_from_active_doc(floor_h, tol):
     line_node_seq = [0]  # mutable counter (Py2.7 compatible)
 
     def _ensure_line_node(pt):
+        """Create a street node compatible with graph_context (street_v#, x/y/type)."""
         k = _pt_key(pt, tol)
         nid = line_node_ids.get(k)
         if nid:
             return nid
         line_node_seq[0] += 1
         seq = line_node_seq[0]
-        if USE_CLEAN_NODE_IDS:
-            nid   = "N%05d" % seq
-            label = "N%d" % seq
-            clean = "N%d" % seq
-        else:
-            nid   = "N|%d|%s" % (seq, uuid.uuid4().hex[:6])
-            label = "N%d" % seq
-            clean = label
+        # id style: 'street_v#'
+        nid = "%s%d" % (STREET_SCHEMA_IDS_PREFIX, seq)
+        # 2D node with 'x','y' and type:'street'
         nodes.append({
             "id": nid,
-            "type": "line_node",
-            "centroid": [float(pt.X), float(pt.Y), float(pt.Z)],
-            "label": label,
-            "clean_id": clean
+            "type": "street",
+            "x": float(pt.X),
+            "y": float(pt.Y)
         })
         line_node_ids[k] = nid
         line_nodes_pts[nid] = rg.Point3d(pt.X, pt.Y, pt.Z)
@@ -404,11 +392,16 @@ def build_graph_from_active_doc(floor_h, tol):
                     continue
                 na = _ensure_line_node(pa)
                 nb = _ensure_line_node(pb)
+                # graph_context-compatible street edge
                 edges.append({
-                    "source": na,
-                    "target": nb,
-                    "type": "line_edge",
-                    "weight": float(pa.DistanceTo(pb))
+                    "u": na,
+                    "v": nb,
+                    "type": "street",
+                    "distance": float(math.hypot(pb.X - pa.X, pb.Y - pa.Y)),
+                    "line": [
+                        [float(pa.X), float(pa.Y)],
+                        [float(pb.X), float(pb.Y)]
+                    ]
                 })
 
     # --- 3) Connect buildings to nearest line node (access) ---
@@ -428,13 +421,17 @@ def build_graph_from_active_doc(floor_h, tol):
                     best, best_d2 = lnid, d2
             if best:
                 edges.append({
-                    "source": nid,
-                    "target": best,
+                    "u": nid,
+                    "v": best,
                     "type": "access",
-                    "weight": math.sqrt(best_d2)
+                    "distance": float(math.sqrt(best_d2))
                 })
 
-    return {"nodes": nodes, "links": edges, "meta": meta}
+    # Return graph (edges + links mirror)
+    out = {"nodes": nodes, "edges": edges, "meta": meta}
+    if EXPORT_EDGES_AND_LINKS:
+        out["links"] = edges
+    return out
 
 # =========================
 # save
@@ -444,9 +441,12 @@ def save_graph(path=KNOWLEDGE_PATH, floor_h=FLOOR_HEIGHT, tol=TOL):
         data = build_graph_from_active_doc(floor_h, tol)
         _ensure_dir(path)
         with open(path, "w") as f:
-            json.dump({"nodes": data["nodes"], "links": data["links"], "meta": data["meta"]}, f, indent=2)
+            payload = {"nodes": data["nodes"], "edges": data["edges"], "meta": data["meta"]}
+            if EXPORT_EDGES_AND_LINKS:
+                payload["links"] = data["edges"]
+            json.dump(payload, f, indent=2)
         Rhino.RhinoApp.WriteLine("[massing_graph_export] Saved graph to: {0}".format(path))
-        Rhino.RhinoApp.WriteLine("[massing_graph_export] Nodes: {0}, Edges: {1}".format(len(data["nodes"]), len(data["links"])))
+        Rhino.RhinoApp.WriteLine("[massing_graph_export] Nodes: {0}, Edges: {1}".format(len(data["nodes"]), len(data["edges"])) )
     except Exception as e:
         Rhino.RhinoApp.WriteLine("[massing_graph_export] Save error: {0}".format(e))
 
@@ -454,6 +454,7 @@ def save_graph(path=KNOWLEDGE_PATH, floor_h=FLOOR_HEIGHT, tol=TOL):
 # minimal listener (optional)
 # =========================
 _is_debouncing = False
+
 def _debounce_trigger():
     global _is_debouncing
     if _is_debouncing:

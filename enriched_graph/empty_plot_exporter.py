@@ -2,15 +2,16 @@
 """
 empty_plot_exporter.py  (IronPython 2.7 compatible)
 
-Construye knowledge/merge/empty_plot_graph.json **ya simplificado** a partir del
-grafo original del job OSM:
-- Lee JOB_DIR/graph.json (contexto original) y JOB_DIR/boundary.json (polígono de parcela).
-- Mantiene sólo nodos FUERA de la parcela y asegura un nodo PLOT (id="PLOT").
-- Mantiene aristas sólo si ambos extremos sobreviven (fuera->fuera).
-- Luego simplifica (contracción de cadenas de calle con grado 2, como graph_builder.py).
+Builds knowledge/merge/empty_plot_graph.json **already simplified** from the
+original OSM job graph but leaves the graph **open** at the plot boundary:
+- Reads JOB_DIR/graph.json (original context) and JOB_DIR/boundary.json (plot polygon).
+- Keeps only nodes **outside** the plot (inside ones are removed).
+- Keeps only edges if **both endpoints** survive (outside→outside).
+- **Does NOT** create any central "PLOT" node. (Reconnection happens later in masterplan_graph.py.)
+- Then simplifies (contracts street chains of degree 2 and reattaches POIs).
 
-Salida:
-    knowledge/merge/empty_plot_graph.json  (versión simplificada)
+Output:
+    knowledge/merge/empty_plot_graph.json  (simplified, no PLOT node)
 """
 
 import os
@@ -26,6 +27,7 @@ OSM_ROOT = os.path.join(KNOWLEDGE_DIR, "osm")
 MERGE_DIR = os.path.join(KNOWLEDGE_DIR, "merge")
 OUT_PATH = os.path.join(MERGE_DIR, "empty_plot_graph.json")
 
+# ----------------- I/O helpers -----------------
 
 def _ensure_dir(p):
     try:
@@ -36,6 +38,7 @@ def _ensure_dir(p):
 
 
 def _latest_osm_dir(root):
+    """Return most recently modified 'osm_*' directory under knowledge/osm."""
     try:
         items = []
         for name in os.listdir(root):
@@ -51,6 +54,7 @@ def _latest_osm_dir(root):
 
 
 def _resolve_job_dir(job_dir):
+    """Resolve JOB_DIR from argument, env var, or latest osm_* dir."""
     if job_dir and os.path.isdir(job_dir):
         return job_dir
     env = os.environ.get("JOB_DIR")
@@ -60,6 +64,7 @@ def _resolve_job_dir(job_dir):
 
 
 def _file_ready(path, checks=3, interval=0.2):
+    """Wait until file size/mtime stabilizes (best effort)."""
     if not os.path.exists(path):
         return False
     last = None
@@ -81,6 +86,7 @@ def _file_ready(path, checks=3, interval=0.2):
 
 
 def _read_text(path):
+    """Read bytes, strip BOM if present, decode as UTF-8 with fallback."""
     f = open(path, "rb")
     try:
         b = f.read()
@@ -99,6 +105,7 @@ def _read_text(path):
 
 
 def _sanitize_json_text(s):
+    """Replace NaN/Infinity tokens and trailing commas so JSON loads."""
     s = re.sub(r'(?<!")\bNaN\b(?!")', 'null', s)
     s = re.sub(r'(?<!")\bInfinity\b(?!")', 'null', s)
     s = re.sub(r'(?<!")\b-Infinity\b(?!")', 'null', s)
@@ -107,6 +114,7 @@ def _sanitize_json_text(s):
 
 
 def _load_json_robust(path, label):
+    """Heuristic loader tolerant to late writes and minor format issues."""
     if not _file_ready(path, checks=4, interval=0.2):
         if not _file_ready(path, checks=2, interval=0.2):
             raise RuntimeError("%s not ready at: %s" % (label, path))
@@ -122,7 +130,10 @@ def _load_json_robust(path, label):
             raise RuntimeError("Failed to parse %s at %s: %s" % (label, path, str(e2)))
 
 
+# ----------------- Normalization / geometry helpers -----------------
+
 def _normalize_graph(raw):
+    """Normalize edge keys to have 'u','v' instead of 'source','target'."""
     nodes = raw.get("nodes", []) or []
     e_raw = raw.get("edges", raw.get("links", [])) or []
     edges = []
@@ -145,6 +156,7 @@ def _normalize_graph(raw):
 
 
 def _node_xy(n):
+    """Extract (x,y) coordinates from a node if present."""
     x = n.get("x", n.get("X"))
     y = n.get("y", n.get("Y"))
     try:
@@ -154,19 +166,19 @@ def _node_xy(n):
 
 
 def _point_in_polygon(x, y, poly):
+    """Ray casting with inclusive on-edge detection."""
     n = len(poly or [])
     if n < 3:
         return False
-    if poly[0] != poly[-1]:
-        pts = list(poly) + [poly[0]]
-    else:
-        pts = poly
+    pts = list(poly)
+    if pts[0] != pts[-1]:
+        pts.append(pts[0])
     inside = False
     for i in range(len(pts) - 1):
         x1, y1 = pts[i]
         x2, y2 = pts[i + 1]
 
-        # borde (inclusivo)
+        # on-edge (inclusive)
         if (min(x1, x2) <= x <= max(x1, x2)) and (min(y1, y2) <= y <= max(y1, y2)):
             dx = (x2 - x1); dy = (y2 - y1)
             if abs(dx) >= abs(dy) and abs(dx) > 1e-12:
@@ -180,6 +192,7 @@ def _point_in_polygon(x, y, poly):
                 if -1e-9 <= t <= 1.0 + 1e-9 and abs(x - x_line) <= 1e-6:
                     return True
 
+        # crossing number
         if ((y1 > y) != (y2 > y)):
             try:
                 xinters = x1 + (y - y1) * (x2 - x1) / float(y2 - y1)
@@ -190,34 +203,22 @@ def _point_in_polygon(x, y, poly):
     return inside
 
 
-def _ensure_plot_node(nodes, boundary_xy):
-    # Si ya existe "PLOT", conservarlo
-    for n in nodes:
-        if n.get("id") == "PLOT":
-            return nodes
-    # Si no, crearlo (centroide aproximado del polígono)
-    cx = 0.0; cy = 0.0
-    pts = boundary_xy or []
-    if pts:
-        for (px, py) in pts:
-            try:
-                cx += float(px); cy += float(py)
-            except:
-                pass
-        m = float(len(pts))
-        if m > 0:
-            cx /= m; cy /= m
-    nodes.append({"id": "PLOT", "label": "Plot", "x": cx, "y": cy, "type": "plot"})
-    return nodes
+# ----------------- Graph simplifier -----------------
 
-
-# ----------------- Simplificador (estilo graph_builder.simplify_graph) -----------------
 def _simplify_graph(data):
-    # data: {"nodes":[{id,x,y,type,...}], "edges":[{u,v,type,distance,line,...}]}
+    """Contract street degree-2 chains and reattach POI→street links.
+
+    Expects:
+        data = {"nodes":[{id,x,y,type,...}], "edges":[{u,v,type,distance,line,...}]}
+    Returns:
+        {"nodes": [...], "edges": [...]} simplified
+    """
     from collections import defaultdict, deque
 
     nodes = data.get("nodes", []) or []
     edges = data.get("edges", []) or []
+
+    # id → node map
     node_by_id = {}
     for n in nodes:
         nid = n.get("id")
@@ -228,7 +229,7 @@ def _simplify_graph(data):
         nd = node_by_id.get(nid) or {}
         return nd.get("type", "unknown")
 
-    # Adyacencias
+    # build adjacencies
     adj_all = defaultdict(list)
     adj_street = defaultdict(list)
     edges_by_pair = defaultdict(list)
@@ -244,7 +245,7 @@ def _simplify_graph(data):
             adj_street[u].append(v)
             adj_street[v].append(u)
 
-    # Nodos de calle removibles: grado 2 y vecinos de tipo 'street'
+    # candidate street nodes to remove: deg==2 and both neighbors are street
     to_remove = set()
     for n in nodes:
         if n.get("type") != "street":
@@ -278,7 +279,7 @@ def _simplify_graph(data):
             return r
         return line
 
-    # Contraer cadenas de calle
+    # contract degree-2 chains
     visited_pairs = set()
     contracted_edges = []
     for start in list(kept_nodes):
@@ -297,7 +298,7 @@ def _simplify_graph(data):
                     pass
                 seg = _oriented_line(prev, curr, e0)
                 merged_line.extend(seg)
-            # avanzar por la cadena de grado-2
+            # walk along degree-2 chain
             while curr in to_remove:
                 nbrs = adj_street.get(curr, [])
                 if len(nbrs) != 2:
@@ -327,7 +328,7 @@ def _simplify_graph(data):
                 "distance": total_dist, "line": merged_line
             })
 
-    # Conservar aristas street directas entre kept-kept no cubiertas
+    # keep direct street edges between kept-kept not covered above
     for e in edges:
         if e.get("type") != "street":
             continue
@@ -338,7 +339,8 @@ def _simplify_graph(data):
                 visited_pairs.add(key)
                 contracted_edges.append(e)
 
-    # Reenganchar aristas de POI si su vértice street fue eliminado
+    # reattach POI→street (building/green connected to street) if its street
+    # endpoint was removed; find nearest kept street along the chain
     def _nearest_kept_street(start_removed):
         q = deque([start_removed])
         seen = set([start_removed])
@@ -381,7 +383,8 @@ def _simplify_graph(data):
     return {"nodes": new_nodes, "edges": contracted_edges + other_edges}
 
 
-# ----------------- Pipeline principal -----------------
+# ----------------- Main pipeline -----------------
+
 def build(job_dir=None):
     job_dir = _resolve_job_dir(job_dir)
     if not job_dir or not os.path.isdir(job_dir):
@@ -394,58 +397,65 @@ def build(job_dir=None):
     raw = _load_json_robust(gpath, "original graph.json")
     G = _normalize_graph(raw)
 
-    # Particionar nodos por boundary
+    # Partition nodes by boundary
     outside_ids = set()
     inside_ids = set()
     kept_nodes = []
+    removed_nodes = 0
     for n in G["nodes"]:
         nid = n.get("id")
         if nid is None:
             continue
         (x, y) = _node_xy(n)
         if (x is None) or (y is None):
-            # Sin coords: conservamos como "fuera" para no romper hubs
+            # no coords → keep as outside to avoid breaking hubs
             outside_ids.add(nid)
             kept_nodes.append(n)
             continue
         if _point_in_polygon(x, y, boundary_xy):
             inside_ids.add(nid)
+            removed_nodes += 1
         else:
             outside_ids.add(nid)
             kept_nodes.append(n)
 
-    # Asegurar nodo PLOT
-    kept_nodes = _ensure_plot_node(kept_nodes, boundary_xy)
+    # IMPORTANT: do NOT create a PLOT node; the graph remains open.
 
-    # Conservar sólo aristas cuyos extremos sobreviven (en formato u/v)
+    # Keep only edges whose endpoints survive (enforce u/v)
     kept_edges = []
+    removed_edges = 0
     for e in G["edges"]:
         u = e.get("u"); v = e.get("v")
         if u is None or v is None:
             continue
         if (u in outside_ids) and (v in outside_ids):
             d = dict(e)
-            d["u"] = u
-            d["v"] = v
-            # limpiar source/target si existían
+            d["u"], d["v"] = u, v
             if "source" in d: del d["source"]
             if "target" in d: del d["target"]
             kept_edges.append(d)
+        else:
+            removed_edges += 1
 
-    # Simplificar (contracción de calles grado-2, reenganche de POIs)
+    # Simplify (contract degree-2 street chains, reattach POIs)
     simplified = _simplify_graph({"nodes": kept_nodes, "edges": kept_edges})
 
     meta = {
         "job_dir": job_dir,
         "source": "empty_plot_exporter",
-        "note": "Outside-of-plot context, simplified (street chains contracted). "
-                "Access edges to PLOT (si se necesitan) los añade masterplan_graph.py."
+        "note": "Outside-of-plot context, simplified. No PLOT created; reconnection to massing will happen later.",
+        "stats": {
+            "nodes_in_removed": int(len(inside_ids)),
+            "nodes_out_kept": int(len(outside_ids)),
+            "edges_removed": int(removed_edges),
+            "nodes_removed_count": int(removed_nodes)
+        }
     }
 
     out = {"nodes": simplified["nodes"], "edges": simplified["edges"], "meta": meta}
 
     _ensure_dir(MERGE_DIR)
-    # Escritura segura en UTF-8 (IronPython-friendly)
+    # Safe UTF-8 write (IronPython-friendly)
     txt = json.dumps(out, indent=2, ensure_ascii=False)
     f = io.open(OUT_PATH, "w", encoding="utf-8")
     try:
@@ -458,7 +468,7 @@ def build(job_dir=None):
         except: pass
 
     try:
-        print("[empty_plot_exporter] written (simplified):", OUT_PATH)
+        print("[empty_plot_exporter] written (simplified, open-boundary):", OUT_PATH)
     except:
         pass
     return OUT_PATH
