@@ -1,104 +1,85 @@
 # -*- coding: utf-8 -*-
-# massing_graph_grouped_midplanes_mesh_fallback_with_branches_by_sections.py
-#
-# - Groups multiple Breps into a single "building" (by touching or by sublayer)
-# - Slices per-building using group-aligned mid-planes (robust, mesh fallback)
-# - NEW: Podium→Tower branching detected from per-level section curves,
-#        so it works even when podium+towers are a single joined Brep.
-# - Per-branch, per-level areas are computed from the component curves (no double count).
-# - Same JSON shape, preview, and listener as before.
+# rhino/massing_graph.py — robust MASSING scan + Surface handling + tower branching (IronPython-safe)
 
 import os, uuid, json, time, math
 import Rhino
 import Rhino.Geometry as rg
 import Rhino.Geometry.Intersect as rgi
 import scriptcontext as sc
-import rhinoscriptsyntax as rs
 from System.Drawing import Color
 from collections import defaultdict
 
-# =========================
-# CONFIG
-# =========================
+# ========== CONFIG ==========
 LAYER_MASSING_ROOT = "MASSING"
-LAYER_PLOT         = "PLOT"
+LAYER_PLOT = "PLOT"
 
 FLOOR_HEIGHT_METERS = 3.0
 
 # "none" | "by_touching" | "by_sublayer"
 GROUPING_MODE = "by_touching"
-GROUP_GAP_TOL = (sc.doc.ModelAbsoluteTolerance or 0.001) * 2.0  # doc units
+GROUP_GAP_TOL = (sc.doc.ModelAbsoluteTolerance or 0.001) * 2.0
 
-# Branching (podium→towers) from section components
-BRANCHING_ENABLED   = True
-BRANCH_MATCH_PAD    = GROUP_GAP_TOL
-BRANCH_Z_TOLERANCE  = (sc.doc.ModelAbsoluteTolerance or 0.001)
+BRANCHING_ENABLED  = True
+BRANCH_MATCH_PAD   = GROUP_GAP_TOL
 
-# Keep a zero-area node when a level has no section in a branch
 KEEP_EMPTY_LEVEL_NODES = True
-
-# Minimum area (m²) to keep a node; 0 = keep all
 MIN_LEVEL_AREA_M2 = 0.0
 
-# JSON output path
-CURRENT_DIR   = os.path.dirname(os.path.abspath(__file__))
-PROJECT_DIR   = os.path.dirname(CURRENT_DIR)
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(THIS_DIR)
 KNOWLEDGE_PATH = os.path.join(PROJECT_DIR, "knowledge", "massing_graph.json")
 
-# Listener
-ENABLE_LISTENER  = False
-DEBOUNCE_SECONDS = 0.8
-
-# Preview
 SHOW_CONTOUR_PREVIEW = False
 PREVIEW_LINE_WIDTH   = 2
 PREVIEW_PALETTE = [
-    Color.FromArgb(255, 230,  25,  75),
-    Color.FromArgb(255,  60, 180,  75),
-    Color.FromArgb(255,   0, 130, 200),
-    Color.FromArgb(255, 245, 130,  48),
-    Color.FromArgb(255, 145,  30, 180),
-    Color.FromArgb(255,  70, 240, 240),
-    Color.FromArgb(255, 240,  50, 230),
+    Color.FromArgb(255, 230, 25, 75),
+    Color.FromArgb(255, 60, 180, 75),
+    Color.FromArgb(255, 0, 130, 200),
+    Color.FromArgb(255, 245, 130, 48),
+    Color.FromArgb(255, 145, 30, 180),
+    Color.FromArgb(255, 70, 240, 240),
+    Color.FromArgb(255, 240, 50, 230),
 ]
 
-# Node IDs
 USE_CLEAN_NODE_IDS = True
 INCLUDE_RANDOM_UID = False
-
 UNION_TOL_MULT = 4.0
 
-# =========================
-# UNITS
-# =========================
+# ========== UNITS ==========
 def _uu(src, dst):
     try: return Rhino.RhinoMath.UnitScale(src, dst)
     except: return 1.0
 
-def _doc_len_from_meters(L):
-    return float(L) * _uu(Rhino.UnitSystem.Meters, sc.doc.ModelUnitSystem)
-
-def _meters_from_doc_len(L):
-    return float(L) * _uu(sc.doc.ModelUnitSystem, Rhino.UnitSystem.Meters)
-
+def _doc_len_from_meters(L):       return float(L) * _uu(Rhino.UnitSystem.Meters, sc.doc.ModelUnitSystem)
+def _meters_from_doc_len(L):       return float(L) * _uu(sc.doc.ModelUnitSystem, Rhino.UnitSystem.Meters)
 def _m2_from_doc_area(a_doc):
     s = _uu(sc.doc.ModelUnitSystem, Rhino.UnitSystem.Meters)
     return float(a_doc) * (s ** 2)
 
-# =========================
-# UTILS
-# =========================
+# ========== UTILS ==========
 def _ensure_dir(path):
     d = os.path.dirname(path)
     if d and not os.path.exists(d):
         try: os.makedirs(d)
-        except: Rhino.RhinoApp.WriteLine("[massing_graph] Could not create folder: {0}".format(d))
+        except: Rhino.RhinoApp.WriteLine("[massing_graph] Could not create folder: " + d)
 
 def _to_brep(g):
-    if isinstance(g, rg.Brep): return g
-    if isinstance(g, rg.Extrusion):
-        try: return g.ToBrep(True)
-        except: return None
+    # Accept Brep, Extrusion, and Surface (convert to Brep)
+    try:
+        if isinstance(g, rg.Brep):
+            return g
+        if isinstance(g, rg.Extrusion):
+            return g.ToBrep(True)
+        if isinstance(g, rg.Surface):
+            b = rg.Brep.CreateFromSurface(g)
+            if b: return b
+        # Handle SubD as best-effort (Rhino 7/8)
+        if hasattr(rg, "SubD") and isinstance(g, rg.SubD):
+            try:
+                b = rg.Brep.CreateFromSubD(g)
+                if b: return b
+            except: pass
+    except: pass
     return None
 
 def _bbox_union(bb, other):
@@ -114,44 +95,43 @@ def _bbox_z(b):
     except:
         return 0.0, 0.0, None
 
-def _layer_indices_under(root_name):
-    idx_root = sc.doc.Layers.Find(root_name, True)
-    if idx_root < 0: return []
-    res = []
-    for i, lyr in enumerate(sc.doc.Layers):
-        try:
-            if lyr is None: continue
-            p = lyr
-            while p is not None and p.ParentLayerId != Rhino.Geometry.Unset.InstanceGuid:
-                p = sc.doc.Layers.FindId(p.ParentLayerId)
-            if p and p.Name == root_name:
-                res.append(i)
-        except: pass
-    return res
+# ---- MASSING layer helpers (very permissive) ----
+def _path_has_segment(fullpath, name):
+    try:
+        parts = (fullpath or "").split("::")
+        n = (name or "").lower()
+        for p in parts:
+            if (p or "").strip().lower() == n:
+                return True
+    except:
+        pass
+    return False
 
 def _iter_massing_breps():
-    idxs = _layer_indices_under(LAYER_MASSING_ROOT)
-    if not idxs: return
-    for obj in sc.doc.Objects:
+    objs = sc.doc.Objects or []
+    root = LAYER_MASSING_ROOT.lower()
+    for obj in objs:
         try:
-            if obj is None: continue
-            if obj.Attributes.LayerIndex not in idxs: continue
+            lyr = sc.doc.Layers[obj.Attributes.LayerIndex]
+            full = getattr(lyr, "FullPath", lyr.Name) or lyr.Name
+            if not _path_has_segment(full, root):
+                continue
             b = _to_brep(obj.Geometry)
             if b: yield (obj, b)
         except: pass
 
 def _get_plot_center():
     try:
-        idx = sc.doc.Layers.Find(LAYER_PLOT, True)
-        if idx < 0: return None
-        rhobjs = sc.doc.Objects.FindByLayer(LAYER_PLOT)
-        bb = None
-        for o in rhobjs:
-            try: bb = _bbox_union(bb, o.Geometry.GetBoundingBox(True))
-            except: pass
-        if bb:
-            c = bb.Center
-            return (c.X, c.Y, c.Z)
+        for lyr in sc.doc.Layers:
+            if lyr and _path_has_segment(lyr.FullPath or lyr.Name, LAYER_PLOT):
+                rhobjs = sc.doc.Objects.FindByLayer(lyr.Index)
+                bb = None
+                for o in rhobjs:
+                    try: bb = _bbox_union(bb, o.Geometry.GetBoundingBox(True))
+                    except: pass
+                if bb:
+                    c = bb.Center
+                    return (c.X, c.Y, c.Z)
     except: pass
     return None
 
@@ -173,9 +153,7 @@ def _bbox_overlap(bb1, bb2, pad=0.0):
         bb1.Max.Z + pad < bb2.Min.Z or bb2.Max.Z + pad < bb1.Min.Z
     )
 
-# =========================
-# GROUPING
-# =========================
+# ========== GROUPING ==========
 def _group_breps_by_sublayer(obj_breps):
     groups = {}
     for (obj, b) in obj_breps:
@@ -192,8 +170,7 @@ def _group_breps_by_sublayer(obj_breps):
 def _group_breps_by_touching(obj_breps, pad):
     items = []
     for (obj, b) in obj_breps:
-        try:
-            items.append({"pair": (obj, b), "bb": b.GetBoundingBox(True), "brep": b})
+        try: items.append({"pair": (obj, b), "bb": b.GetBoundingBox(True), "brep": b})
         except: pass
     n = len(items)
     visited = [False]*n
@@ -204,13 +181,11 @@ def _group_breps_by_touching(obj_breps, pad):
         comp = [items[i]["pair"]]
         while queue:
             a = queue.pop()
-            bb_a = items[a]["bb"]; bA = items[a]["brep"]
+            bb_a = items[a]["bb"]
             for j in range(n):
                 if visited[j]: continue
-                bb_b = items[j]["bb"]
-                if not _bbox_overlap(bb_a, bb_b, pad): 
+                if not _bbox_overlap(bb_a, items[j]["bb"], pad): 
                     continue
-                # permissive: bbox touch is enough
                 visited[j] = True
                 queue.append(j)
                 comp.append(items[j]["pair"])
@@ -218,27 +193,21 @@ def _group_breps_by_touching(obj_breps, pad):
     return groups
 
 def _make_building_groups(obj_breps):
-    if GROUPING_MODE == "by_sublayer":
-        return _group_breps_by_sublayer(obj_breps)
-    if GROUPING_MODE == "by_touching":
-        return _group_breps_by_touching(obj_breps, GROUP_GAP_TOL)
+    if GROUPING_MODE == "by_sublayer":  return _group_breps_by_sublayer(obj_breps)
+    if GROUPING_MODE == "by_touching":  return _group_breps_by_touching(obj_breps, GROUP_GAP_TOL)
     return [[p] for p in obj_breps]
 
-# =========================
-# AREA / SECTIONS
-# =========================
+# ========== AREA / SECTIONS ==========
 def _area_union_centroid_on_plane(curves, plane, tol):
     if not curves: return 0.0, None, []
     projected = []
     for c in curves:
         try: projected.append(rg.Curve.ProjectToPlane(c, plane))
         except: pass
-    # Join candidates before Area
     try:
         joined = rg.Curve.JoinCurves(projected, float(tol) * float(UNION_TOL_MULT)) or []
     except:
         joined = projected
-    # Close where possible
     candidates = []
     for c in joined:
         if c is None: continue
@@ -257,13 +226,10 @@ def _area_union_centroid_on_plane(curves, plane, tol):
                     a = amp.Area; cp = amp.Centroid
                     total += a; cx += cp.X * a; cy += cp.Y * a
         except: pass
-    if total > 0.0:
-        return total, (cx/total, cy/total), candidates
+    if total > 0.0: return total, (cx/total, cy/total), candidates
     return 0.0, None, candidates
 
-# =========================
-# PREVIEW
-# =========================
+# ========== PREVIEW ==========
 class _ContourPreviewConduit(Rhino.Display.DisplayConduit):
     def __init__(self, by_level_idx_curves):
         super(_ContourPreviewConduit, self).__init__()
@@ -301,9 +267,7 @@ def _preview_off():
             sc.doc.Views.Redraw()
     except: pass
 
-# =========================
-# MESH FALLBACK
-# =========================
+# ========== MESH FALLBACK ==========
 def _mesh_from_brep(b):
     try:
         mp = Rhino.Geometry.MeshingParameters.Default
@@ -333,9 +297,7 @@ def _polylines_to_nurbs_curves(pls):
         except: pass
     return crvs
 
-# =========================
-# LEVEL SPANS
-# =========================
+# ========== LEVEL SPANS ==========
 def _level_spans_from_bbox(zmin, zmax, H, tol_z):
     height = max(0.0, zmax - zmin)
     if H <= tol_z or height <= tol_z: return []
@@ -350,9 +312,7 @@ def _level_spans_from_bbox(zmin, zmax, H, tol_z):
         spans.append((i, z0, mid, z1))
     return spans
 
-# =========================
-# BRANCHING FROM SECTION CURVES
-# =========================
+# ========== BRANCHING FROM SECTION CURVES ==========
 def _curve_bbox_xy(curve):
     bb = curve.GetBoundingBox(True)
     return rg.BoundingBox(rg.Point3d(bb.Min.X, bb.Min.Y, 0.0),
@@ -397,31 +357,21 @@ def _area_centroid_of_curves(curves):
                     a = amp.Area; cp = amp.Centroid
                     area += a; cx += cp.X*a; cy += cp.Y*a
         except: pass
-    if area > 0.0:
-        return area, cx/area, cy/area
+    if area > 0.0: return area, cx/area, cy/area
     return 0.0, 0.0, 0.0
 
 def _build_branches_from_section_components(bl, spans, curves_by_level, pad, bb_group):
-    """
-    curves_by_level: dict level_idx -> list[rg.Curve] (closed, on plane)
-    returns branches dict (branch -> {level_idx -> rec}) and split_idx
-    """
-    if not spans:
-        return {bl:{}}, None
-
+    if not spans: return {bl:{}}, None
     N = len(spans)
-    # 1) Compute components per band from curve XY overlap
-    comp_per_band = []      # list of list of components; component = list of curve indices
-    compinfo_per_band = []  # list of list of {"area_doc":..., "cx":..., "cy":...}
+
+    compinfo_per_band = []
     for k in range(N):
         curves = curves_by_level.get(k) or []
         if not curves:
-            comp_per_band.append([])
             compinfo_per_band.append([])
             continue
         items = [(i, _curve_bbox_xy(curves[i])) for i in range(len(curves))]
         comps = _connected_components_xy(items, pad=pad)
-        comp_per_band.append(comps)
         infos = []
         for comp in comps:
             comp_curves = [curves[i] for i in comp]
@@ -429,7 +379,6 @@ def _build_branches_from_section_components(bl, spans, curves_by_level, pad, bb_
             infos.append({"idxs": comp, "area_doc":a_doc, "cx":cx, "cy":cy})
         compinfo_per_band.append(infos)
 
-    # 2) Find first split band
     split_idx = None
     for k, infos in enumerate(compinfo_per_band):
         if len(infos) >= 2:
@@ -438,24 +387,16 @@ def _build_branches_from_section_components(bl, spans, curves_by_level, pad, bb_
 
     branches = defaultdict(dict)
 
-    # Helper to make a record
     def make_rec(k, a_doc, cx, cy):
         idx, z0, mid, z1 = spans[k]
-        return {
-            "area_doc": float(a_doc),
-            "cx": float(cx), "cy": float(cy), "cz": float(mid),
-            "z0": float(z0), "z1": float(z1),
-            "bbox": bb_group
-        }
+        return {"area_doc": float(a_doc), "cx": float(cx), "cy": float(cy),
+                "cz": float(mid), "z0": float(z0), "z1": float(z1), "bbox": bb_group}
 
     if split_idx is None:
-        # Single column all the way: merge everything into podium branch
-        for k in range(N):
-            infos = compinfo_per_band[k]
+        for k, infos in enumerate(compinfo_per_band):
             if not infos: continue
             a_doc = sum(ci["area_doc"] for ci in infos)
-            # centroid: area-weighted
-            if a_doc > 0:
+            if a_doc > 0.0:
                 cx = sum(ci["cx"]*ci["area_doc"] for ci in infos)/a_doc
                 cy = sum(ci["cy"]*ci["area_doc"] for ci in infos)/a_doc
             else:
@@ -463,25 +404,22 @@ def _build_branches_from_section_components(bl, spans, curves_by_level, pad, bb_
             branches[bl][k] = make_rec(k, a_doc, cx, cy)
         return branches, None
 
-    # 3) Below split → podium (merge)
     for k in range(0, split_idx):
         infos = compinfo_per_band[k]
         if not infos: continue
         a_doc = sum(ci["area_doc"] for ci in infos)
-        if a_doc > 0:
+        if a_doc > 0.0:
             cx = sum(ci["cx"]*ci["area_doc"] for ci in infos)/a_doc
             cy = sum(ci["cy"]*ci["area_doc"] for ci in infos)/a_doc
         else:
             cx = cy = 0.0
         branches[bl][k] = make_rec(k, a_doc, cx, cy)
 
-    # 4) Name towers at split, ordered by (x,y) centroid
     split_infos = compinfo_per_band[split_idx]
     towers_sorted = sorted(split_infos, key=lambda ci: (ci["cx"], ci["cy"]))
     ref_centroids = [(ci["cx"], ci["cy"]) for ci in towers_sorted]
     tower_names = ["{}{}".format(bl, i+1) for i in range(len(ref_centroids))]
 
-    # 5) From split upward, assign each band component to nearest ref centroid
     def nearest_ref(cx, cy):
         best_i = 0; best_d2 = 1e99
         for i, (rx, ry) in enumerate(ref_centroids):
@@ -492,13 +430,11 @@ def _build_branches_from_section_components(bl, spans, curves_by_level, pad, bb_
 
     for k in range(split_idx, N):
         infos = compinfo_per_band[k]
-        if not infos: 
-            continue
-        # aggregate per tower
+        if not infos: continue
         agg = [ {"a":0.0,"cx":0.0,"cy":0.0} for _ in ref_centroids ]
         for ci in infos:
             i = nearest_ref(ci["cx"], ci["cy"])
-            a = ci["area_doc"]; 
+            a = ci["area_doc"]
             agg[i]["a"]  += a
             agg[i]["cx"] += ci["cx"] * a
             agg[i]["cy"] += ci["cy"] * a
@@ -510,14 +446,12 @@ def _build_branches_from_section_components(bl, spans, curves_by_level, pad, bb_
 
     return branches, split_idx
 
-# =========================
-# CORE GRAPH
-# =========================
+# ========== CORE GRAPH ==========
 def build_graph_from_active_doc(floor_h_doc, tol):
     obj_breps = list(_iter_massing_breps()) or []
-    Rhino.RhinoApp.WriteLine("[massing_graph] Polysurfaces under MASSING: {0}".format(len(obj_breps)))
-    nodes, edges = [], []
+    Rhino.RhinoApp.WriteLine("[massing_graph] MASSING objects found: " + str(len(obj_breps)))
 
+    nodes, edges = [], []
     meta = {
         "source": "ActiveDoc",
         "gfa_mode": "grouped_midplanes_mesh_fallback",
@@ -533,9 +467,8 @@ def build_graph_from_active_doc(floor_h_doc, tol):
     H = float(floor_h_doc)
     tol_z = float(tol)
 
-    # Group into buildings
     groups = _make_building_groups(obj_breps)
-    Rhino.RhinoApp.WriteLine("[massing_graph] Building groups: {0}".format(len(groups)))
+    Rhino.RhinoApp.WriteLine("[massing_graph] Building groups: " + str(len(groups)))
     building_ids = [ _excel_label(i) for i in range(len(groups)) ]
 
     preview_curves = {}
@@ -547,26 +480,24 @@ def build_graph_from_active_doc(floor_h_doc, tol):
         if not breps: 
             continue
 
-        # Group bbox and Z extents
         zmin_g = +1e20; zmax_g = -1e20; bb_group = None
         for b in breps:
             zmin_b, zmax_b, bb = _bbox_z(b)
             zmin_g = min(zmin_g, zmin_b)
             zmax_g = max(zmax_g, zmax_b)
             bb_group = _bbox_union(bb_group, bb)
-        if zmax_g <= zmin_g + tol_z:
+        if zmax_g <= zmin_g + tol_z:  # flat
             continue
 
         spans = _level_spans_from_bbox(zmin_g, zmax_g, H, tol_z)
-        Rhino.RhinoApp.WriteLine("  [{}] spans: {}".format(bl, len(spans)))
+        Rhino.RhinoApp.WriteLine("  [" + bl + "] spans: " + str(len(spans)))
 
         mesh_cache = [ _mesh_from_brep(b) for b in breps ]
-        building_accum = {}  # per level (merged) for diagnostics
+        building_accum = {}
 
         mesh_fallback_hits = 0
         empty_kept = 0
 
-        # Slice each brep at each mid-plane
         for (obj, b), mesh in zip(group, mesh_cache):
             zmin_b, zmax_b, _ = _bbox_z(b)
             for idx, z0, mid, z1 in spans:
@@ -574,7 +505,6 @@ def build_graph_from_active_doc(floor_h_doc, tol):
                     continue
                 plane = rg.Plane(rg.Point3d(0,0,mid), rg.Vector3d.ZAxis)
 
-                # Brep slice
                 crvs = []
                 try:
                     rc, crv_list, pts = rgi.Intersection.BrepPlane(b, plane, float(tol))
@@ -583,12 +513,9 @@ def build_graph_from_active_doc(floor_h_doc, tol):
 
                 a_doc, xy_c, joined = _area_union_centroid_on_plane(crvs, plane, float(tol))
 
-                # Mesh fallback
                 if a_doc <= 0.0 and mesh is not None:
-                    try:
-                        pls = rgi.Intersection.MeshPlane(mesh, plane)
-                    except:
-                        pls = None
+                    try: pls = rgi.Intersection.MeshPlane(mesh, plane)
+                    except: pls = None
                     if pls and len(pls) > 0:
                         crvs2 = _polylines_to_nurbs_curves(pls)
                         a2, c2, j2 = _area_union_centroid_on_plane(crvs2, plane, float(tol))
@@ -596,7 +523,6 @@ def build_graph_from_active_doc(floor_h_doc, tol):
                             a_doc, xy_c, joined = a2, c2, j2
                             mesh_fallback_hits += 1
 
-                # Accumulate per-building (diagnostics)
                 if a_doc > 0.0:
                     rec = building_accum.get(idx) or {"area_doc":0.0, "cx":0.0, "cy":0.0, "cz":mid, "z0":z0, "z1":z1, "bbox":bb_group}
                     rec["area_doc"] += a_doc
@@ -606,12 +532,10 @@ def build_graph_from_active_doc(floor_h_doc, tol):
                     rec["bbox"] = _bbox_union(rec.get("bbox"), bb_group)
                     building_accum[idx] = rec
 
-                # Keep all joined curves for branching-from-sections
                 if joined:
                     key = (bl, idx); lstp = preview_curves.get(key) or []
                     lstp.extend(joined); preview_curves[key] = lstp
 
-        # Fill empties for diagnostics
         if KEEP_EMPTY_LEVEL_NODES:
             for idx, z0, mid, z1 in spans:
                 if idx not in building_accum:
@@ -626,33 +550,28 @@ def build_graph_from_active_doc(floor_h_doc, tol):
             "empty_nodes_kept": empty_kept
         }
 
-        # -------- Branches from section components (works for single joined Brep) --------
         curves_by_level = { idx: (preview_curves.get((bl, idx)) or []) for (idx,_,_,_) in spans }
         if BRANCHING_ENABLED:
             branches, split_idx = _build_branches_from_section_components(bl, spans, curves_by_level, BRANCH_MATCH_PAD, bb_group)
         else:
-            # single branch using diagnostics accumulation
-            branches = defaultdict(dict)
+            branches, split_idx = defaultdict(dict), None
             for idx, z0, mid, z1 in spans:
                 rec = building_accum.get(idx)
                 if rec: branches[bl][idx] = rec
-            split_idx = None
 
-        # -------- Emit nodes/edges --------
         node_id = {}  # (branch, level_idx) -> node_id
 
         def _emit_node(branch_name, lvl_idx, rec):
             area_doc = float(rec.get("area_doc", 0.0))
-            area_m2 = float(_m2_from_doc_area(area_doc)) if area_doc > 0.0 else 0.0
-            if MIN_LEVEL_AREA_M2 > 0.0 and area_m2 < MIN_LEVEL_AREA_M2:
-                return None
+            area_m2  = float(_m2_from_doc_area(area_doc)) if area_doc > 0.0 else 0.0
+            if MIN_LEVEL_AREA_M2 > 0.0 and area_m2 < MIN_LEVEL_AREA_M2: return None
             w = area_doc if area_doc != 0.0 else 1.0
             cx = rec.get("cx",0.0)/w; cy = rec.get("cy",0.0)/w; cz = rec.get("cz",0.0)
             z0 = rec.get("z0", cz - 0.5*H); z1 = rec.get("z1", cz + 0.5*H)
             bb = rec.get("bbox") or rg.BoundingBox(rg.Point3d(cx,cy,z0), rg.Point3d(cx,cy,z1))
 
-            clean_id = "{0}-L{1:02d}".format(branch_name, int(lvl_idx))
-            nid = clean_id if USE_CLEAN_NODE_IDS else "{0}|L{1:02d}|{2}".format(branch_name, int(lvl_idx), uuid.uuid4().hex[:6])
+            clean_id = branch_name + "-L" + str(int(lvl_idx)).zfill(2)
+            nid = clean_id if USE_CLEAN_NODE_IDS else (branch_name + "|L" + str(int(lvl_idx)).zfill(2) + "|" + uuid.uuid4().hex[:6])
             uid = uuid.uuid4().hex[:6] if INCLUDE_RANDOM_UID else None
 
             node_obj = {
@@ -675,38 +594,34 @@ def build_graph_from_active_doc(floor_h_doc, tol):
             node_id[(branch_name, lvl_idx)] = nid
             return nid
 
-        # emit vertical edges per branch
+        # vertical edges per branch
         for branch_name, lvlmap in branches.items():
             idxs = sorted(lvlmap.keys())
             prev_n = None
             for k in idxs:
                 rec = lvlmap.get(k)
                 if rec is None and KEEP_EMPTY_LEVEL_NODES:
-                    # fabricate empty
                     i, z0, mid, z1 = spans[k]
                     rec = {"area_doc":0.0,"cx":0.0,"cy":0.0,"cz":mid,"z0":z0,"z1":z1,"bbox":bb_group}
-                if rec is None:
-                    continue
+                if rec is None: continue
                 nid = _emit_node(branch_name, k, rec)
                 if prev_n and nid:
                     edges.append({"source": prev_n, "target": nid, "type": "vertical", "weight": 1.0})
                 if nid: prev_n = nid
 
-        # split edges from last podium node to each tower’s first node
+        # split edges
         if BRANCHING_ENABLED and split_idx is not None and split_idx > 0:
             podium_node = node_id.get((bl, split_idx-1))
             if podium_node:
-                for bname in branches.keys():
-                    if bname == bl: 
-                        continue
+                for bname in list(branches.keys()):
+                    if bname == bl: continue
                     tower_node = node_id.get((bname, split_idx))
                     if tower_node:
                         edges.append({"source": podium_node, "target": tower_node, "type": "split", "weight": 1.0})
 
-    # Optional PLOT node
     pc = _get_plot_center()
     if pc:
-        nodes.append({"id":"PLOT", "type":"plot", "center_doc": list(map(float, pc))})
+        nodes.append({"id":"PLOT", "type":"plot", "center_doc": [float(pc[0]), float(pc[1]), float(pc[2])]})
         by_building_branch = defaultdict(list)
         for n in nodes:
             if n.get("type") == "level":
@@ -719,18 +634,14 @@ def build_graph_from_active_doc(floor_h_doc, tol):
     meta["diagnostics_per_building"] = diagnostics
     return {"nodes": nodes, "links": edges, "meta": meta, "_preview": preview_curves}
 
-# =========================
-# SAVE / DIAGNOSTICS / PREVIEW
-# =========================
+# ========== SAVE ==========
 def _diagnose_level_counts(nodes, H_m):
     from collections import defaultdict
     by_bld = defaultdict(list)
     for n in nodes:
         if n.get("type") == "level":
             by_bld[n["building_id"]].append(n)
-
-    tol_z_m = (sc.doc.ModelAbsoluteTolerance or 0.001) * _uu(sc.doc.ModelUnitSystem, Rhino.UnitSystem.Meters)
-    Rhino.RhinoApp.WriteLine("— Level diagnostics (H = {:.3f} m) —".format(H_m))
+    Rhino.RhinoApp.WriteLine("— Level diagnostics —  floor_h_m=" + str(round(H_m, 3)))
     for bl, lst in sorted(by_bld.items()):
         if not lst:
             Rhino.RhinoApp.WriteLine(" {} : no levels".format(bl))
@@ -738,11 +649,12 @@ def _diagnose_level_counts(nodes, H_m):
         zmins = [n["z_span_m"][0] for n in lst]
         zmaxs = [n["z_span_m"][1] for n in lst]
         zmin = min(zmins); zmax = max(zmaxs); height = max(0.0, zmax - zmin)
-        q = int(math.floor(height / H_m))
-        rem = height - q * H_m
-        expected = q + (1 if rem > tol_z_m else 0)
-        Rhino.RhinoApp.WriteLine(" {} : bboxHeight={:.3f} m | floors_expected={} | nodes={}".format(
-            bl, height, expected, len(lst)
+        try:
+            expected = int(math.floor(height / H_m)) + (1 if (height % H_m) > 1e-6 else 0)
+        except:
+            expected = 0
+        Rhino.RhinoApp.WriteLine(" {} : bboxHeight={} m | floors_expected={} | nodes={}".format(
+            bl, round(height,3), expected, len(lst)
         ))
 
 def save_graph(path=KNOWLEDGE_PATH):
@@ -752,11 +664,10 @@ def save_graph(path=KNOWLEDGE_PATH):
         res = build_graph_from_active_doc(floor_h_doc, tol)
         data = {"nodes": res["nodes"], "links": res["links"], "meta": res["meta"]}
 
-        # quick totals
         levels = [n for n in data["nodes"] if n.get("type") == "level"]
         total_area_m2 = sum(float(n.get("area_m2", 0.0)) for n in levels)
 
-        # reference footprint: sum of max level area per building
+        from collections import defaultdict
         by_bld = defaultdict(list)
         for n in levels: by_bld[n.get("building_id","?")].append(n)
         site_footprint_ref_m2 = 0.0
@@ -768,113 +679,24 @@ def save_graph(path=KNOWLEDGE_PATH):
         with open(path, "w") as f:
             json.dump(data, f, indent=2)
 
-        Rhino.RhinoApp.WriteLine("[massing_graph] Saved: {0}".format(path))
-        Rhino.RhinoApp.WriteLine("[massing_graph] Nodes: {0}, Edges: {1}".format(len(data["nodes"]), len(data["links"])))
-        Rhino.RhinoApp.WriteLine("[massing_graph] Level nodes (total): {0}".format(len(levels)))
-        Rhino.RhinoApp.WriteLine("[massing_graph] Total GFA: {:.3f} m²".format(total_area_m2))
-        Rhino.RhinoApp.WriteLine("[massing_graph] Sum(max level per building): {:.3f} m²".format(site_footprint_ref_m2))
+        Rhino.RhinoApp.WriteLine("[massing_graph] Saved: " + path)
+        Rhino.RhinoApp.WriteLine("[massing_graph] Nodes: " + str(len(data["nodes"])) + ", Edges: " + str(len(data["links"])))
+        Rhino.RhinoApp.WriteLine("[massing_graph] Level nodes (total): " + str(len(levels)))
+        Rhino.RhinoApp.WriteLine("[massing_graph] Total GFA: " + str(round(total_area_m2, 3)) + " m^2")
+        Rhino.RhinoApp.WriteLine("[massing_graph] Sum(max level per building): " + str(round(site_footprint_ref_m2, 3)) + " m^2")
 
-        _diagnose_level_counts(data["nodes"], data["meta"]["floor_height_m"])
+        try: _diagnose_level_counts(data["nodes"], data["meta"]["floor_height_m"])
+        except: Rhino.RhinoApp.WriteLine("[massing_graph] (diagnostics skipped)")
 
-        if SHOW_CONTOUR_PREVIEW and res.get("_preview"):
-            _preview_on(res.get("_preview") or {})
-        else:
-            _preview_off()
+        if SHOW_CONTOUR_PREVIEW and res.get("_preview"): _preview_on(res.get("_preview") or {})
+        else: _preview_off()
 
     except Exception as e:
-        Rhino.RhinoApp.WriteLine("[massing_graph] Save error: {0}".format(e))
+        Rhino.RhinoApp.WriteLine("[massing_graph] Save error: " + str(e))
 
-# =========================
-# LISTENER
-# =========================
-_is_debouncing = False
-def _debounce_trigger():
-    global _is_debouncing
-    if _is_debouncing: return
-    _is_debouncing = True
-    def _run_later():
-        time.sleep(DEBOUNCE_SECONDS)
-        try:
-            save_graph()
-            Rhino.RhinoApp.WriteLine("[massing_graph] Debounced export complete.")
-        except Exception as e:
-            Rhino.RhinoApp.WriteLine("[massing_graph] Export error: {0}".format(e))
-        finally:
-            global _is_debouncing
-            _is_debouncing = False
-    import threading
-    threading.Thread(target=_run_later).start()
-
-def _layer_name_from_event_obj(eobj):
-    try: return sc.doc.Layers[eobj.Attributes.LayerIndex].FullPath
-    except: return ""
-
-def _layer_matches(path):
-    return path.startswith(LAYER_MASSING_ROOT) or path == LAYER_PLOT
-
-def _is_on_watched_layer(ro):
-    try:
-        path = sc.doc.Layers[ro.Attributes.LayerIndex].FullPath
-        return _layer_matches(path)
-    except:
-        return False
-
-def _on_add(sender, e):
-    try:
-        if e and e.TheObject and _is_on_watched_layer(e.TheObject):
-            _debounce_trigger()
-    except: pass
-
-def _on_modify(sender, e):
-    try:
-        ro = e.RhinoObject
-        if ro and _is_on_watched_layer(ro):
-            _debounce_trigger()
-    except: pass
-
-def _on_replace(sender, e):
-    try:
-        ro = e.NewRhinoObject
-        if ro and _is_on_watched_layer(ro):
-            _debounce_trigger()
-    except: pass
-
-def _on_delete(sender, e):
-    try:
-        if e and e.ObjectId:
-            _debounce_trigger()
-    except: pass
-
-def setup_listener():
-    if sc.sticky.get("massing_graph_listener_on"):
-        Rhino.RhinoApp.WriteLine("[massing_graph] Listener already active.")
-        return
-    Rhino.RhinoDoc.AddRhinoObject += _on_add
-    Rhino.RhinoDoc.ModifyObjectAttributes += _on_modify
-    Rhino.RhinoDoc.ReplaceRhinoObject += _on_replace
-    Rhino.RhinoDoc.DeleteRhinoObject += _on_delete
-    sc.sticky["massing_graph_listener_on"] = True
-    Rhino.RhinoApp.WriteLine("[massing_graph] Listener attached (MASSING/PLOT).")
-
-def remove_listener():
-    try: Rhino.RhinoDoc.AddRhinoObject -= _on_add
-    except: pass
-    try: Rhino.RhinoDoc.ModifyObjectAttributes -= _on_modify
-    except: pass
-    try: Rhino.RhinoDoc.ReplaceRhinoObject -= _on_replace
-    except: pass
-    try: Rhino.RhinoDoc.DeleteRhinoObject -= _on_delete
-    except: pass
-    sc.sticky["massing_graph_listener_on"] = False
-    Rhino.RhinoApp.WriteLine("[massing_graph] Listener removed.")
-
-# =========================
-# ENTRY
-# =========================
+# ========== ENTRY ==========
 def main():
     save_graph()
-    if ENABLE_LISTENER:
-        setup_listener()
 
 if __name__ == "__main__":
     main()
