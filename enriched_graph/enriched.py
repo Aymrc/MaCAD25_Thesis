@@ -3,6 +3,7 @@
 # Output: human-readable only (no machine-JSON logs except --stdout graph dump).
 
 import os, sys, csv, json, re, math, random, time, argparse
+import statistics as stats
 from copy import deepcopy
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -142,6 +143,28 @@ def extract_programs_from_brief(brief_graph: Dict[str, Any]) -> Tuple[Dict[str, 
     program_need = {k: float(v) for k, v in program_need.items() if v and v > 0}
     return program_need, program_meta
 
+def _auto_base_granularity(level_nodes: List[Dict[str, Any]]) -> float:
+    """Derive a sensible grain from the massing so the user never has to tune it.
+    ~half the median level area, clamped to a sane band."""
+    areas = [get_area_from_node(n) for n in level_nodes if get_area_from_node(n) > 0]
+    if not areas:
+        return 400.0  # safe fallback
+    med = stats.median(areas)
+    return max(200.0, min(1200.0, 0.5 * med))
+
+def _split_budget_for_pass(need: float, chunk: float, user_cap: Optional[int]) -> int:
+    """Ensure we always have enough steps to finish the pass; never blocks."""
+    if chunk <= 0:
+        chunk = 1.0
+    est = max(1, math.ceil(need / chunk))               # how many steps to finish at this chunk
+    buf = max(10, int(0.35 * est))                      # 35% buffer
+    budget = est + buf
+    # IMPORTANT: do not let a low user cap block the run — lift to at least the budget.
+    if user_cap is None:
+        return budget
+    return max(budget, user_cap)
+
+
 # =============================================================================
 # Core enrichment
 # =============================================================================
@@ -156,10 +179,16 @@ def enrich_without_changing_topology(
     min_chunk_sqm: float = 60,
     max_splits_per_program: int = 400,
 ) -> Dict[str, Any]:
+    """
+    Assign programs to level nodes (no topology change).
+    Now uses an adaptive coarse→fine chunk schedule and a non-blocking split budget,
+    so fulfillment is only limited by actual capacity — not by granularity or caps.
+    """
     if rng_seed is None:
         rng_seed = int(time.time() * 1000) % (2**31 - 1)
     rng = random.Random(rng_seed)
 
+    # Load helpers
     def _load(x):
         if isinstance(x, (str, Path)):
             with open(x, "r", encoding="utf-8") as f:
@@ -169,11 +198,13 @@ def enrich_without_changing_topology(
     massing_graph = _load(massing_graph_or_path)
     brief_graph = _load(brief_graph_or_path)
 
+    # Copy & basics
     g = deepcopy(massing_graph)
     nodes = g.get("nodes", [])
     link_key = "links" if "links" in g else ("edges" if "edges" in g else "links")
     links = g.get(link_key, [])
 
+    # Level helpers
     def is_level(node: Dict[str, Any]) -> bool:
         if node.get("type") == "level":
             return True
@@ -201,9 +232,11 @@ def enrich_without_changing_topology(
         }
         return out
 
+    # Capacities
     capacities = {n["id"]: float(get_area_from_node(n)) for n in level_nodes}
     used = defaultdict(float)
 
+    # Simple degree centrality
     degree = defaultdict(int)
     for e in links:
         s, t = e.get("source"), e.get("target")
@@ -212,6 +245,7 @@ def enrich_without_changing_topology(
         if t:
             degree[t] += 1
 
+    # Plot connectivity
     plot_edges = [e for e in links if e.get("type") == "plot"]
     plot_connected_ids = set()
     for e in plot_edges:
@@ -221,13 +255,16 @@ def enrich_without_changing_topology(
         if t and t != "PLOT":
             plot_connected_ids.add(t)
 
+    # Brief programs
     program_need, program_meta = extract_programs_from_brief(brief_graph)
 
+    # Site-like vs building programs
     building_program_ids = [pid for pid in program_need.keys()
                             if norm_typ(program_meta.get(pid, {}).get("typology", pid)) not in SITE_LIKE_SET]
     site_program_ids = [pid for pid in program_need.keys()
                         if norm_typ(program_meta.get(pid, {}).get("typology", pid)) in SITE_LIKE_SET]
 
+    # Level weights (soft tendencies + noise)
     def base_weight(level_node: Dict[str, Any], program_id: str) -> float:
         typ = norm_typ(program_meta.get(program_id, {}).get("typology") or program_id)
         nid = level_node["id"]
@@ -282,61 +319,124 @@ def enrich_without_changing_topology(
         for pid in building_program_ids
     }
 
+    # === Adaptive chunk schedule (coarse → normal → polish) ===
+    base_gran = assign_split_granularity_sqm if assign_split_granularity_sqm and assign_split_granularity_sqm > 0 \
+                else _auto_base_granularity(level_nodes)
+    passes = [
+        max(min_chunk_sqm, 4.0 * base_gran),
+        max(min_chunk_sqm, 1.0 * base_gran),
+        max(min_chunk_sqm, 0.5 * base_gran),
+    ]
+
+    # Allocation
     program_order = list(building_program_ids)
     random.Random(rng_seed + 13).shuffle(program_order)
 
-    allocations = defaultdict(list)
+    allocations = defaultdict(list)  # level_id -> List[(program_id, typology, area)]
     remaining = {pid: float(program_need[pid]) for pid in building_program_ids}
     allocation_trace = []
+
+    def total_capacity_left() -> float:
+        return sum(max(0.0, capacities[lid] - used[lid]) for lid in level_ids)
 
     for pid in program_order:
         need = remaining[pid]
         typ = norm_typ(program_meta.get(pid, {}).get("typology") or pid)
-        splits = 0
+        splits_total = 0
 
-        while need > 1e-6 and splits < max_splits_per_program:
-            cand = {}
-            for lid in level_ids:
-                cap_left = capacities[lid] - used[lid]
-                if cap_left > 1e-6:
-                    w = base_weights[pid][lid] + jitter(rng)
-                    if any(a[0] == pid for a in allocations[lid]):
-                        w += 0.15
-                    w += 0.01 * math.log(max(cap_left, 1.0))
-                    cand[lid] = w
-
-            if not cand:
+        for pass_chunk in passes:
+            if need <= 1e-6 or total_capacity_left() <= 1e-6:
                 break
 
-            chosen = softmax_choice(cand, rng)
-            if chosen is None:
-                break
+            # Non-blocking, auto-lifted split budget for this pass
+            step_budget = _split_budget_for_pass(need, pass_chunk, max_splits_per_program)
+            steps = 0
 
-            cap_left = capacities[chosen] - used[chosen]
-            if cap_left <= 1e-6:
-                continue
+            while need > 1e-6 and steps < step_budget and total_capacity_left() > 1e-6:
+                # candidate levels with capacity
+                cand = {}
+                for lid in level_ids:
+                    cap_left = capacities[lid] - used[lid]
+                    if cap_left > 1e-6:
+                        w = base_weights[pid][lid] + jitter(rng)
+                        if any(a[0] == pid for a in allocations[lid]):
+                            w += 0.15  # mild clustering preference
+                        w += 0.01 * math.log(max(cap_left, 1.0))
+                        cand[lid] = w
 
-            base_chunk = assign_split_granularity_sqm
-            chunk = max(min_chunk_sqm, base_chunk * (0.6 + 0.8 * rng.random()))
-            take = float(min(cap_left, need, chunk))
-            if take <= 1e-6:
-                break
+                if not cand:
+                    break
 
-            allocations[chosen].append((pid, typ, take))
-            used[chosen] += take
-            need -= take
-            splits += 1
+                chosen = softmax_choice(cand, rng)
+                if chosen is None:
+                    break
 
-            allocation_trace.append({
-                "program_id": pid,
-                "typology": typ,
-                "chosen_level": chosen,
-                "take_sqm": round(take, 3),
-                "need_remaining": round(need, 3),
-            })
+                cap_left = capacities[chosen] - used[chosen]
+                if cap_left <= 1e-6:
+                    break
+
+                # draw a chunk around the pass size, honoring min_chunk and available cap/need
+                chunk = max(min_chunk_sqm, pass_chunk * (0.6 + 0.8 * rng.random()))
+                take = float(min(cap_left, need, chunk))
+                if take <= 1e-6:
+                    break
+
+                allocations[chosen].append((pid, typ, take))
+                used[chosen] += take
+                need -= take
+                splits_total += 1
+                steps += 1
+
+                allocation_trace.append({
+                    "program_id": pid,
+                    "typology": typ,
+                    "chosen_level": chosen,
+                    "take_sqm": round(take, 3),
+                    "need_remaining": round(need, 3),
+                })
+
+        # Emergency polish if some need remains and capacity still exists (use very small chunks)
+        if need > 1e-6 and total_capacity_left() > 1e-6:
+            tiny_chunk = max(1.0, 0.5 * min_chunk_sqm)
+            step_budget = _split_budget_for_pass(need, tiny_chunk, max_splits_per_program)
+            steps = 0
+            while need > 1e-6 and steps < step_budget and total_capacity_left() > 1e-6:
+                cand = {}
+                for lid in level_ids:
+                    cap_left = capacities[lid] - used[lid]
+                    if cap_left > 1e-6:
+                        w = base_weights[pid][lid] + jitter(rng)
+                        if any(a[0] == pid for a in allocations[lid]):
+                            w += 0.15
+                        w += 0.01 * math.log(max(cap_left, 1.0))
+                        cand[lid] = w
+                if not cand:
+                    break
+                chosen = softmax_choice(cand, rng)
+                if chosen is None:
+                    break
+                cap_left = capacities[chosen] - used[chosen]
+                if cap_left <= 1e-6:
+                    break
+                chunk = max(1.0, tiny_chunk * (0.6 + 0.8 * rng.random()))
+                take = float(min(cap_left, need, chunk))
+                if take <= 1e-6:
+                    break
+                allocations[chosen].append((pid, typ, take))
+                used[chosen] += take
+                need -= take
+                steps += 1
+                allocation_trace.append({
+                    "program_id": pid,
+                    "typology": typ,
+                    "chosen_level": chosen,
+                    "take_sqm": round(take, 3),
+                    "need_remaining": round(need, 3),
+                })
 
         remaining[pid] = float(need)
 
+    # Annotate nodes
     for n in nodes:
         nid = n.get("id")
         if nid not in capacities:
@@ -349,6 +449,7 @@ def enrich_without_changing_topology(
         n["remaining_area"] = float(capacities.get(nid, 0.0) - used.get(nid, 0.0))
         n["primary_program"] = (max(assigned, key=lambda x: x[2])[0] if assigned else None)
 
+    # Output
     out = {k: deepcopy(v) for k, v in g.items()}
     out["nodes"] = nodes
     out[link_key] = links
@@ -372,9 +473,10 @@ def enrich_without_changing_topology(
         "timestamp": utc_now_isoz(),
         "version": VERSION,
         "trace_sample": allocation_trace[:2000],
-        "notes": "Soft weights + randomness. Topology unchanged; only level node attributes were added.",
+        "notes": "Soft weights + randomness. Adaptive coarse→fine chunking; split budget auto-lifted to avoid blocking.",
     }
     return out
+
 
 # =============================================================================
 # Filenames: auto-incrementing it{N}.json
