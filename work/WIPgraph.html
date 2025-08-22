@@ -269,7 +269,7 @@
       }
 
       // ------------ default load ------------
-      const defaultPath = '../knowledge/it1.json';
+      const defaultPath = '../enriched_graph/iteration/it1.json';
       fetch(defaultPath)
         .then(res => res.ok ? res.json() : Promise.reject(res.status))
         .then(loadGraph)

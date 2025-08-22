@@ -684,9 +684,19 @@ def save_graph(path=KNOWLEDGE_PATH):
         Rhino.RhinoApp.WriteLine("[massing_graph] Level nodes (total): " + str(len(levels)))
         Rhino.RhinoApp.WriteLine("[massing_graph] Total GFA: " + str(round(total_area_m2, 3)) + " m^2")
         Rhino.RhinoApp.WriteLine("[massing_graph] Sum(max level per building): " + str(round(site_footprint_ref_m2, 3)) + " m^2")
+        
+        # Explicit total sqm for the masterplan in RHINO 
+        try:
+            Rhino.RhinoApp.WriteLine("[massing_graph] Masterplan total sqm: {0:.2f} m^2".format(total_area_m2))
+        except:
+            Rhino.RhinoApp.WriteLine("[massing_graph] Masterplan total sqm: " + str(round(total_area_m2, 2)) + " m^2")
 
-        try: _diagnose_level_counts(data["nodes"], data["meta"]["floor_height_m"])
-        except: Rhino.RhinoApp.WriteLine("[massing_graph] (diagnostics skipped)")
+        Rhino.RhinoApp.WriteLine("[massing_graph] Sum(max level per building): " + str(round(site_footprint_ref_m2, 3)) + " m^2")
+
+        try:
+            _diagnose_level_counts(data["nodes"], data["meta"]["floor_height_m"])
+        except:
+            Rhino.RhinoApp.WriteLine("[massing_graph] (diagnostics skipped)")
 
         if SHOW_CONTOUR_PREVIEW and res.get("_preview"): _preview_on(res.get("_preview") or {})
         else: _preview_off()
