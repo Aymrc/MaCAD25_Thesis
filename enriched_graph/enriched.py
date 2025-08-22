@@ -68,7 +68,7 @@ def resolve_default_outdir(massing_path: Optional[Union[str, Path]] = None) -> P
     else:
         script_dir = Path(__file__).resolve().parent
         project_root = _find_project_root(script_dir)
-    return project_root / "enriched_graph" / "iteration"
+    return project_root / "knowledge" / "iteration"
 
 # =============================================================================
 # Utils: robust field access
