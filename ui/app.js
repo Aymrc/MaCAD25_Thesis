@@ -4,6 +4,8 @@ const API_BASE = "http://localhost:8000";
 const CONTEXT_GRAPH_PATH = `${API_BASE}/graph/context`;
 const MASSING_GRAPH_PATH = `${API_BASE}/graph/massing`;
 const MASSING_MTIME_PATH = `${API_BASE}/graph/massing/mtime`;
+const ENRICHED_DIR_URL    = `${API_BASE}/enriched_graph/iteration/`;
+
 
 /** Retry helper for JSON fetches with small backoff. Treats empty graphs as retryable. */
 async function fetchJsonWithRetry(url, attempts = 3, delayMs = 800) {
@@ -116,9 +118,124 @@ async function loadContextGraphOnce() {
   }
 }
 
-// === Tab switching (visual) ===
+let _enrichedPoll = null;
+let _enrichedLastTag = null;
+
+async function fetchTextRetry(url, attempts = 3, delayMs = 800) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const r = await fetch(url, { cache: "no-store" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return await r.text();
+    } catch (e) {
+      lastErr = e;
+      if (i < attempts - 1) await new Promise(r => setTimeout(r, delayMs * (1 + i)));
+    }
+  }
+  throw lastErr;
+}
+
+/* Try to locate the latest it*.json */
+async function fetchEnrichedIfExists(n) {
+  const url = `${ENRICHED_DIR_URL}it${n}.json`;
+  try {
+    const j = await fetchJsonWithRetry(url, 1, 0); // 1 attempt; other errors should bubble
+    return { exists: true, n, data: j };
+  } catch (e) {
+    // Treat 404 as "doesn't exist", bubble other errors
+    if (String(e).includes("HTTP 404")) return { exists: false, n };
+    throw e;
+  }
+}
+
+async function findLatestEnrichedCandidate() {
+  // Exponential probe to find an upper bound above the latest present file
+  let n = 1;
+  let lastOk = 0;
+
+  while (true) {
+    const res = await fetchEnrichedIfExists(n);
+    if (res.exists) {
+      lastOk = n;
+      if (n > 1 << 20) break; // safety cutoff at ~1M
+      n *= 2;
+    } else {
+      break;
+    }
+  }
+
+  if (lastOk === 0) {
+    throw new Error("No enriched iterations found (no it[i].json).");
+  }
+
+  // Binary search in (lastOk, n-1] to find highest existing
+  let lo = lastOk + 1, hi = n - 1, best = await fetchEnrichedIfExists(lastOk);
+
+  while (lo <= hi) {
+    const mid = lo + ((hi - lo) >> 1);
+    const res = await fetchEnrichedIfExists(mid);
+    if (res.exists) {
+      best = res;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+
+  const data = best.data;
+  const nodes = Array.isArray(data?.nodes) ? data.nodes : [];
+  const links = Array.isArray(data?.links) ? data.links : Array.isArray(data?.edges) ? data.edges : [];
+  const tag = `it${best.n}.json:${nodes.length}:${links.length}`;
+  return { source: "probe", data, tag };
+}
+
+
+
+async function loadEnrichedGraphOnce() {
+  const cand = await findLatestEnrichedCandidate();
+  const adapted = adaptGraph(cand.data);
+  if (typeof window.showGraph3DBackground === "function") {
+    window.showGraph3DBackground(adapted);
+  }
+  _enrichedLastTag = cand.tag;
+}
+
+function stopEnrichedPolling() {
+  if (_enrichedPoll) {
+    clearInterval(_enrichedPoll);
+    _enrichedPoll = null;
+  }
+}
+
+async function startEnrichedPolling() {
+  stopEnrichedPolling();
+  try {
+    await loadEnrichedGraphOnce();
+  } catch (e) {
+    console.warn("[UI] Could not fetch enriched graph:", e);
+    if (typeof window.clearGraph === "function") window.clearGraph();
+  }
+  _enrichedPoll = setInterval(async () => {
+    try {
+      const cand = await findLatestEnrichedCandidate();
+      if (cand.tag !== _enrichedLastTag) {
+        const adapted = adaptGraph(cand.data);
+        if (typeof window.showGraph3DBackground === "function") {
+          window.showGraph3DBackground(adapted);
+        }
+        _enrichedLastTag = cand.tag;
+      }
+    } catch {
+      /* keep polling silently */
+    }
+  }, 3000);
+}
+
+// === Tab switching (buttons) ===
 document.querySelectorAll(".tab button").forEach(btn => {
   btn.addEventListener("click", async () => {
+    // toggle active state
     document.querySelectorAll(".tab button").forEach(b => {
       b.classList.remove("active");
       b.setAttribute("aria-selected", "false");
@@ -130,12 +247,14 @@ document.querySelectorAll(".tab button").forEach(btn => {
 
     if (tab === "context") {
       stopMassingPolling();
+      stopEnrichedPolling();
       await loadContextGraphOnce();
       return;
     }
 
     if (tab === "brief") {
       stopMassingPolling();
+      stopEnrichedPolling();
       if (window._briefGraph && typeof window.showGraph3DBackground === "function") {
         window.showGraph3DBackground(window._briefGraph);
       } else if (typeof window.clearGraph === "function") {
@@ -145,15 +264,53 @@ document.querySelectorAll(".tab button").forEach(btn => {
     }
 
     if (tab === "massing") {
+      stopEnrichedPolling();
       await loadMassingGraphOnce();
       startMassingPolling();
       return;
     }
 
-    // masterplan or others: clear + stop any massing poll
+    if (tab === "enriched") {
+      stopMassingPolling();
+      startEnrichedPolling();
+      return;
+    }
+
+    // default / other
     stopMassingPolling();
-    if (typeof window.clearGraph === "function") window.clearGraph(); // TODO: replace with masterplan graph when available
+    stopEnrichedPolling();
+    if (typeof window.clearGraph === "function") window.clearGraph();
   });
+});
+
+// === Tab switching (visual) ===
+document.addEventListener("DOMContentLoaded", async () => {
+  const activeBtn = document.querySelector('.tab button.active');
+  const activeTab = activeBtn?.dataset?.tab;
+
+  if (activeTab === "massing") {
+    await loadMassingGraphOnce();
+    startMassingPolling();
+  } else if (activeTab === "context") {
+    await loadContextGraphOnce();
+  } else if (activeTab === "brief") {
+    if (window._briefGraph && typeof window.showGraph3DBackground === "function") {
+      window.showGraph3DBackground(window._briefGraph);
+    } else if (typeof window.clearGraph === "function") {
+      window.clearGraph();
+    }
+  } else if (activeTab === "enriched") {
+    startEnrichedPolling();
+  } else {
+    stopMassingPolling();
+    stopEnrichedPolling();
+    if (typeof window.clearGraph === "function") window.clearGraph();
+  }
+});
+
+window.addEventListener("beforeunload", () => {
+  stopMassingPolling();
+  stopEnrichedPolling();
 });
 
 // === Resizable chat history ===
