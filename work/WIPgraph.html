@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Massing Graph Viewer</title>
+    <title>Massing Graph Viewer — Simplified Tags</title>
     <style>
       html, body, #graph { margin:0; height:100%; overflow:hidden; }
       #file { position:absolute; z-index:10; top:10px; left:10px; background:#fff; }
@@ -17,7 +17,7 @@
         border-radius: 8px;
         box-shadow: 0 6px 20px rgba(0,0,0,0.08);
         padding: 10px 12px;
-        max-width: 260px;
+        max-width: 280px;
         max-height: 60vh;
         overflow: auto;
         font: 13px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -44,6 +44,16 @@
       .legend-count {
         color: #888; font-size: 12px; flex: 0 0 auto;
       }
+      .legend-controls {
+        margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e6e6e6;
+        color: #666; font-size: 12px;
+      }
+      .legend-controls label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+      .kbd {
+        display: inline-block; padding: 1px 5px; border: 1px solid #ccc; border-bottom-width: 2px;
+        border-radius: 4px; font: 12px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        background: #fff; color: #333;
+      }
     </style>
 
     <!-- 1) Load THREE first (global) -->
@@ -57,17 +67,26 @@
     <div id="legend" hidden>
       <h4>Program legend</h4>
       <div id="legend-items"></div>
+      <div class="legend-controls">
+        <label title="Toggle raw JSON-like tooltips">
+          <input type="checkbox" id="toggle-raw" />
+          Show raw properties
+          <span style="margin-left:auto; opacity:.7">(<span class="kbd">R</span>)</span>
+        </label>
+      </div>
     </div>
     <div id="graph"></div>
 
     <script>
-      // sanity check
       if (!window.THREE) {
         console.error('THREE is not defined. Check script order/CDN reachability.');
       }
 
       const mount = document.getElementById('graph');
-      const Graph = ForceGraph3D()(mount).nodeLabel(n => tagHtml(n));
+      // Label mode: false = human-friendly (default), true = raw
+      let SHOW_RAW = false;
+
+      const Graph = ForceGraph3D()(mount).nodeLabel(n => SHOW_RAW ? rawTagHtml(n) : humanLabelHtml(n));
 
       // ------------ palette + color map ------------
       const PALETTE = [
@@ -110,20 +129,59 @@
         return arr[0].program_id || 'unassigned';
       }
 
-      function tagsFromNode(node) {
-        const entries = [];
-        for (const [k, v] of Object.entries(node)) {
-          if (k === 'x' || k === 'y' || k === 'z') continue;
-          if (k === 'program_assignments' && Array.isArray(v)) {
-            const txt = v.map(p => `${p.program_id}:${(p.area ?? 0).toFixed(1)}sqm`).join(', ');
-            entries.push([k, txt]);
-          } else if (typeof v === 'object' && v !== null) {
-            entries.push([k, JSON.stringify(v)]);
-          } else {
-            entries.push([k, String(v)]);
+      // --- NEW: curated, human-friendly label content ---
+      function humanLabelRows(n) {
+        const rows = [];
+
+        // Name/ID at top handled in HTML builder
+
+        // Program (top 1-2 with % if areas present)
+        const arr = Array.isArray(n.program_assignments) ? n.program_assignments.slice() : [];
+        if (arr.length) {
+          arr.sort((a,b) => (b.area ?? 0) - (a.area ?? 0));
+          const total = arr.reduce((s,p) => s + (p.area ?? 0), 0);
+          const top2 = arr.slice(0,2).map(p => {
+            const pct = total > 0 ? Math.round(((p.area ?? 0) / total) * 100) : null;
+            return pct != null ? `${p.program_id} (${pct}%)` : String(p.program_id);
+          }).join(', ');
+          const extra = arr.length > 2 ? ` +${arr.length - 2} more` : '';
+          rows.push(['Program', top2 + extra]);
+        } else {
+          rows.push(['Program', derivePrimaryProgram(n)]);
+        }
+
+        // Level & Building
+        const lvl = (n.level ?? levelIndex(n.id || ''));
+        if (Number.isFinite(lvl)) rows.push(['Level', `L${lvl}`]);
+        if (n.building_id) rows.push(['Building', n.building_id]);
+
+        // Area (choose best available numeric key)
+        const areaKey = ['area','net_area','gross_area','gfa','sqm','m2'].find(k => Number.isFinite(Number(n[k])));
+        if (areaKey) {
+          try {
+            const val = Number(n[areaKey]);
+            rows.push(['Area', `${val.toLocaleString(undefined, {maximumFractionDigits:1})} m²`]);
+          } catch(_) {
+            rows.push(['Area', `${n[areaKey]} m²`]);
           }
         }
-        return entries;
+
+        // Optional: other human-ish fields if present
+        const OPTIONALS = [
+          ['type','Type'],
+          ['use','Use'],
+          ['status','Status'],
+          ['capacity','Capacity'],
+          ['height','Height'],
+          ['name','Name'],
+          ['zone','Zone'],
+        ];
+        OPTIONALS.forEach(([key, label]) => {
+          const v = n[key];
+          if (v != null && typeof v !== 'object') rows.push([label, String(v)]);
+        });
+
+        return rows;
       }
 
       function escapeHtml(s) {
@@ -132,7 +190,33 @@
         }[m]));
       }
 
-      function tagHtml(n) {
+      function humanLabelHtml(n) {
+        const title = n.id ? `<div style="font-weight:700;margin-bottom:6px">${escapeHtml(n.id)}</div>` : '';
+        const rows = humanLabelRows(n).map(([k, v]) =>
+          `<div><span style="opacity:.7">${escapeHtml(k)}:</span> ${escapeHtml(v)}</div>`
+        ).join('');
+        return `<div style="max-width:320px">${title}${rows}</div>`;
+      }
+
+      // --- Raw fallback (previous behavior) ---
+      function tagsFromNode(n) {
+        const entries = [];
+        for (const [k, v] of Object.entries(n)) {
+          if (k === 'x' || k === 'y' || k === 'z') continue;
+          if (k.startsWith('_')) continue; // hide internal
+          if (k === 'program_assignments' && Array.isArray(v)) {
+            const txt = v.map(p => `${p.program_id}:${(p.area ?? 0).toFixed(1)}sqm`).join(', ');
+            entries.push([k, txt]);
+          } else if (typeof v === 'object' && v !== null) {
+            // keep objects terse
+            entries.push([k, '[object]']);
+          } else {
+            entries.push([k, String(v)]);
+          }
+        }
+        return entries;
+      }
+      function rawTagHtml(n) {
         const tags = tagsFromNode(n);
         const title = n.id ? `<div style="font-weight:700;margin-bottom:6px">${escapeHtml(n.id)}</div>` : '';
         const rows = tags.map(([k, v]) =>
@@ -147,7 +231,6 @@
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
 
-        // initial measure
         ctx.font = `600 ${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif`;
         const textW = ctx.measureText(text).width;
         const textH = fontSize * 1.4;
@@ -155,15 +238,12 @@
         canvas.width = Math.ceil(textW + 30);
         canvas.height = Math.ceil(textH + 20);
 
-        // redraw after resize
         ctx.font = `600 ${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif`;
-        // background
         ctx.fillStyle = 'rgba(255,255,255,0.96)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.strokeStyle = 'rgba(0,0,0,0.12)';
         ctx.lineWidth = 2;
         ctx.strokeRect(0, 0, canvas.width, canvas.height);
-        // text
         ctx.fillStyle = '#111';
         ctx.textBaseline = 'middle';
         ctx.fillText(text, 15, canvas.height / 2);
@@ -179,7 +259,6 @@
         });
 
         const sprite = new THREE.Sprite(material);
-        // scale canvas pixels to world units (tweak if needed)
         sprite.scale.set(canvas.width * 0.1, canvas.height * 0.1, 1);
         return sprite;
       }
@@ -229,6 +308,13 @@
           container.appendChild(item);
         });
         legend.hidden = cats.length === 0;
+
+        // wire toggle each time legend is updated
+        const toggle = document.getElementById('toggle-raw');
+        if (toggle) {
+          toggle.checked = SHOW_RAW;
+          toggle.onchange = () => { SHOW_RAW = toggle.checked; };
+        }
       }
 
       function applyColors(nodes, colorMap) {
@@ -255,7 +341,6 @@
         applyColors(prepared.nodes, colorMap);
         updateLegend(colorMap, prepared.nodes);
 
-        // define sprites before setting data
         Graph
           .nodeThreeObjectExtend(true)
           .nodeThreeObject(node => {
@@ -267,6 +352,15 @@
 
         Graph.graphData(prepared);
       }
+
+      // key toggle for raw labels
+      document.addEventListener('keydown', (e) => {
+        if (e.key.toLowerCase() === 'r') {
+          SHOW_RAW = !SHOW_RAW;
+          const toggle = document.getElementById('toggle-raw');
+          if (toggle) toggle.checked = SHOW_RAW;
+        }
+      });
 
       // ------------ default load ------------
       const defaultPath = '../enriched_graph/iteration/it1.json';
