@@ -1,5 +1,5 @@
 import os, sys, io, re, json, csv, glob, uuid, shutil, subprocess
-import requests, PyPDF2, uvicorn
+import requests, PyPDF2, uvicorn, logging
 
 from collections import defaultdict
 from datetime import datetime
@@ -39,6 +39,7 @@ RUNTIME_DIR = CONTEXT_DIR / "runtime"
 KNOWLEDGE_DIR = PROJECT_DIR / "knowledge"
 OSM_DIR = KNOWLEDGE_DIR / "osm"
 BRIEFS_DIR = KNOWLEDGE_DIR / "briefs"       # unified briefs folder
+ENRICHED_DIR = PROJECT_DIR / "enriched_graph" / "iteration"
 
 for d in (RUNTIME_DIR, OSM_DIR, BRIEFS_DIR):
     os.makedirs(d, exist_ok=True)
@@ -733,11 +734,54 @@ def _massing_context_text(max_nodes: int = 200, max_edges: int = 200, include_st
 
     return "\n".join(summary)
 
+@app.get("/graph/enriched/latest")
+def get_enriched_latest():
+    if not ENRICHED_DIR.exists():
+        return JSONResponse({"nodes": [], "edges": [], "meta": {}}, status_code=404)
+
+    best_n, best_path = -1, None
+    for p in ENRICHED_DIR.glob("it*.json"):
+        m = re.fullmatch(r"it(\d+)\.json", p.name, flags=re.IGNORECASE)
+        if m:
+            n = int(m.group(1))
+            if n > best_n:
+                best_n, best_path = n, p
+
+    if best_path is None:
+        return JSONResponse({"nodes": [], "edges": [], "meta": {}}, status_code=404)
+
+    with open(best_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    links = data.get("links", data.get("edges", []))
+    data = {
+        "nodes": data.get("nodes", []),
+        "links": links,
+        "edges": links,
+        "meta": {**data.get("meta", {}), "iteration_file": best_path.name}
+    }
+    return JSONResponse(data)
+
+# ---- Quiet Uvicorn access logs for mtime polling ----
+ACCESS_LOG_MUTE_ENDPOINTS = ("/graph/massing/mtime", "/graph/enriched/mtime") # ("/graph/massing/mtime", "...") add whatever we need to clean
+
+def _install_access_log_filter():
+    """Silence polluting mtime polling endpoint in Uvicorn access logs"""
+    class _MutePolling(logging.Filter):
+        def filter(self, record):
+            try:
+                msg = record.getMessage()
+            except Exception:
+                return True
+            return not any(ep in msg for ep in ACCESS_LOG_MUTE_ENDPOINTS)
+    logging.getLogger("uvicorn.access").addFilter(_MutePolling())
+
 
 # ============================
 # Server entry point
 # ============================
 def run_llm(reload=False):
+    _install_access_log_filter()
     print("[LLM] Starting the server for LLM access ...")
     uvicorn.run("llm:app",
                 host="127.0.0.1",
@@ -749,5 +793,5 @@ if __name__ == "__main__":
         run_llm(reload=True)
     except Exception as e:
         print("LLM crashed:", e)
-        raw_input = input  # ensure name exists in case of IronPython call
+        raw_input = input
         raw_input("Press Enter to close...")

@@ -577,6 +577,84 @@
     }
   }
 
+  function initChatResizer() {
+    const panel = document.getElementById("chat-history");
+    const handle = document.getElementById("chat-resize-handle");
+    if (!panel || !handle) return;
+
+    const MIN_H = 60; // matches your CSS default
+    const MAX_H = Math.round(window.innerHeight * 0.5); // 50vh like your CSS
+    const LS_KEY = "chat_history_height";
+
+    // restore saved height
+    try {
+      const saved = localStorage.getItem(LS_KEY);
+      if (saved) panel.style.height = saved;
+    } catch {}
+
+    let dragging = false;
+    let startY = 0;
+    let startH = 0;
+    let raf = null;
+
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+    const onMove = (clientY) => {
+      if (!dragging) return;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const delta = startY - clientY; // drag up -> increase height
+        const newH = clamp(startH + delta, MIN_H, MAX_H);
+        panel.style.height = newH + "px";
+        try { localStorage.setItem(LS_KEY, panel.style.height); } catch {}
+      });
+    };
+
+    const onPointerDown = (e) => {
+      e.preventDefault();
+      dragging = true;
+      const rect = panel.getBoundingClientRect();
+      startH = rect.height;
+      startY = (e.touches ? e.touches[0].clientY : e.clientY);
+
+      window.addEventListener("mousemove", onMouseMove, { passive: false });
+      window.addEventListener("mouseup", onPointerUp, { passive: true });
+      window.addEventListener("touchmove", onTouchMove, { passive: false });
+      window.addEventListener("touchend", onPointerUp, { passive: true });
+      document.body.style.userSelect = "none";
+    };
+
+    const onMouseMove = (e) => { e.preventDefault(); onMove(e.clientY); };
+    const onTouchMove = (e) => { if (e.touches?.[0]) onMove(e.touches[0].clientY); };
+
+    const onPointerUp = () => {
+      dragging = false;
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onPointerUp);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onPointerUp);
+      document.body.style.userSelect = "";
+    };
+
+    handle.addEventListener("mousedown", onPointerDown);
+    handle.addEventListener("touchstart", onPointerDown, { passive: false });
+
+    // keyboard a11y (↑/↓ to resize)
+    handle.tabIndex = 0;
+    handle.addEventListener("keydown", (e) => {
+      const step = 24;
+      const rect = panel.getBoundingClientRect();
+      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        const delta = e.key === "ArrowDown" ? step : -step;
+        const newH = clamp(rect.height + delta, MIN_H, MAX_H);
+        panel.style.height = newH + "px";
+        try { localStorage.setItem(LS_KEY, panel.style.height); } catch {}
+        e.preventDefault();
+      }
+    });
+  }
+
+
   /* ---------------- Boot ---------------- */
   window.addEventListener("DOMContentLoaded", async () => {
     // Clear only messages (keep wrapper/handle)
@@ -618,6 +696,7 @@
 
     initChatControls();
     initUpload();
+    initChatResizer();
     setupStickyDropdown("contextPill", "contextForm");
     setupStickyDropdown("rhinoPill", "rhinoForm");
     bindRhinoPanel();

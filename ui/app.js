@@ -6,9 +6,11 @@ const MASSING_GRAPH_PATH     = `${API_BASE}/graph/massing`;
 const MASSING_MTIME_PATH     = `${API_BASE}/graph/massing/mtime`;
 const MASTERPLAN_GRAPH_PATH  = `${API_BASE}/graph/masterplan`;
 const MASTERPLAN_MTIME_PATH  = `${API_BASE}/graph/masterplan/mtime`;
+const ENRICHED_LATEST_PATH   = `${API_BASE}/graph/knowledge/iteration/latest`;
 
-/** Retry helper for JSON fetches with small backoff. Treats empty graphs as retryable. */
-async function fetchJsonWithRetry(url, attempts = 3, delayMs = 800) {
+/** Retry helper for JSON fetches with small backoff.
+    Pass {allowEmpty:true} when an empty graph should NOT be treated as an error. */
+async function fetchJsonWithRetry(url, attempts = 3, delayMs = 800, { allowEmpty = false } = {}) {
   let lastErr;
   for (let i = 0; i < attempts; i++) {
     try {
@@ -16,30 +18,30 @@ async function fetchJsonWithRetry(url, attempts = 3, delayMs = 800) {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const j = await r.json();
 
-      // Consider an empty graph as transient (retry)
       const maybeNodes = Array.isArray(j?.nodes) ? j.nodes : [];
       const maybeLinks = Array.isArray(j?.links) ? j.links
                         : Array.isArray(j?.edges) ? j.edges : [];
-      if (maybeNodes.length === 0 && maybeLinks.length === 0) {
+      if (!allowEmpty && maybeNodes.length === 0 && maybeLinks.length === 0) {
         throw new Error("Empty graph payload");
       }
       return j;
     } catch (e) {
       lastErr = e;
       if (i < attempts - 1) {
-        await new Promise(r => setTimeout(r, delayMs * (1 + i))); // small incremental backoff
+        await new Promise(r => setTimeout(r, delayMs * (1 + i)));
       }
     }
   }
   throw lastErr;
 }
 
-/** Graph adapter: normalize inputs (drop x/y; map u/v -> source/target; expose both edges/links). */
+/** Graph adapter: drop x/y; map u/v -> source/target; expose edges/links. */
 function adaptGraph(raw) {
   const inNodes = Array.isArray(raw?.nodes) ? raw.nodes : [];
   const inEdges = Array.isArray(raw?.links) ? raw.links
                : Array.isArray(raw?.edges) ? raw.edges
                : [];
+
   const nodes = inNodes.map(n => { const { x, y, ...rest } = (n || {}); return rest; });
 
   const edges = inEdges.map(e => {
@@ -55,20 +57,16 @@ function adaptGraph(raw) {
   return { nodes, edges, links: edges, meta: raw?.meta || {} };
 }
 
-// Expose adapter so chat.js can reuse the exact same normalizer.
 window.adaptGraph = adaptGraph;
 
-// --- Massing polling state ---
+// -------- Massing --------
 let _massingPoll = null;
 let _massingLastMtime = 0;
 
-// --- Masterplan polling state ---
-let _mpPoll = null;
-let _mpLastMtime = 0;
-
 async function loadMassingGraphOnce() {
   try {
-    const data = await fetchJsonWithRetry(MASSING_GRAPH_PATH, 3, 700);
+    // allowEmpty: true => an empty massing file is valid, not an error
+    const data = await fetchJsonWithRetry(MASSING_GRAPH_PATH, 3, 700, { allowEmpty: true });
     const adapted = adaptGraph(data);
     if (typeof window.showGraph3DBackground === "function") {
       window.showGraph3DBackground(adapted);
@@ -96,22 +94,27 @@ async function startMassingPolling() {
         await loadMassingGraphOnce();
       }
     } catch {
-      // keep polling silently
+      /* keep polling silently */
     }
   }, 2500);
 }
 
 function stopMassingPolling() {
-  if (_massingPoll) {
-    clearInterval(_massingPoll);
-    _massingPoll = null;
-  }
+  if (_massingPoll) { clearInterval(_massingPoll); _massingPoll = null; }
 }
 
-/** Load Context graph once with retries. */
+// -------- Context --------
 async function loadContextGraphOnce() {
   try {
-    const data = await fetchJsonWithRetry(CONTEXT_GRAPH_PATH, 3, 700);
+    // Gracefully handle 404 (means you don’t have a context graph yet)
+    const r = await fetch(CONTEXT_GRAPH_PATH, { cache: "no-store" });
+    if (r.status === 404) {
+      if (typeof window.clearGraph === "function") window.clearGraph();
+      return;
+    }
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+
+    const data = await r.json();
     const adapted = adaptGraph(data);
     if (typeof window.showGraph3DBackground === "function") {
       window.showGraph3DBackground(adapted);
@@ -121,6 +124,57 @@ async function loadContextGraphOnce() {
     if (typeof window.clearGraph === "function") window.clearGraph();
   }
 }
+
+// -------- Enriched (latest only) --------
+let _enrichedPoll = null;
+let _enrichedLastTag = null;
+
+async function findLatestEnrichedCandidate() {
+  const j = await fetchJsonWithRetry(ENRICHED_LATEST_PATH, 2, 600);
+  const nodes = Array.isArray(j?.nodes) ? j.nodes : [];
+  const links = Array.isArray(j?.links) ? j.links : Array.isArray(j?.edges) ? j.edges : [];
+  const tag = `api:${nodes.length}:${links.length}:${j?.meta?.iteration_file ?? ""}`;
+  return { source: "api", data: j, tag };
+}
+
+async function loadEnrichedGraphOnce() {
+  const cand = await findLatestEnrichedCandidate();
+  const adapted = adaptGraph(cand.data);
+  if (typeof window.showGraph3DBackground === "function") {
+    window.showGraph3DBackground(adapted);
+  }
+  _enrichedLastTag = cand.tag;
+}
+
+function stopEnrichedPolling() {
+  if (_enrichedPoll) { clearInterval(_enrichedPoll); _enrichedPoll = null; }
+}
+
+async function startEnrichedPolling() {
+  stopEnrichedPolling();
+  try {
+    await loadEnrichedGraphOnce();
+  } catch (e) {
+    console.warn("[UI] Could not fetch enriched graph:", e);
+    if (typeof window.clearGraph === "function") window.clearGraph();
+  }
+  _enrichedPoll = setInterval(async () => {
+    try {
+      const cand = await findLatestEnrichedCandidate();
+      if (cand.tag !== _enrichedLastTag) {
+        const adapted = adaptGraph(cand.data);
+        if (typeof window.showGraph3DBackground === "function") {
+          window.showGraph3DBackground(adapted);
+        }
+        _enrichedLastTag = cand.tag;
+      }
+    } catch { /* silent */ }
+  }, 3000);
+}
+
+// -------- Masterplan --------
+let _mpPoll = null;
+let _mpLastMtime = 0;
 
 /** Load Masterplan graph once with retries. */
 async function loadMasterplanGraphOnce() {
@@ -168,6 +222,7 @@ function stopMasterplanPolling() {
 // === Tab switching (visual) ===
 document.querySelectorAll(".tab button").forEach(btn => {
   btn.addEventListener("click", async () => {
+    // toggle active state
     document.querySelectorAll(".tab button").forEach(b => {
       b.classList.remove("active");
       b.setAttribute("aria-selected", "false");
@@ -179,6 +234,7 @@ document.querySelectorAll(".tab button").forEach(btn => {
 
     if (tab === "context") {
       stopMassingPolling();
+      stopEnrichedPolling();
       stopMasterplanPolling();
       await loadContextGraphOnce();
       return;
@@ -186,6 +242,7 @@ document.querySelectorAll(".tab button").forEach(btn => {
 
     if (tab === "brief") {
       stopMassingPolling();
+      stopEnrichedPolling();
       stopMasterplanPolling();
       if (window._briefGraph && typeof window.showGraph3DBackground === "function") {
         window.showGraph3DBackground(window._briefGraph);
@@ -196,14 +253,23 @@ document.querySelectorAll(".tab button").forEach(btn => {
     }
 
     if (tab === "massing") {
+      stopEnrichedPolling();
       stopMasterplanPolling();
       await loadMassingGraphOnce();
       startMassingPolling();
       return;
     }
 
+    if (tab === "enriched") {
+      stopMassingPolling();
+      stopMasterplanPolling();
+      startEnrichedPolling();
+      return;
+    }
+
     if (tab === "masterplan") {
       stopMassingPolling();
+      stopEnrichedPolling();
       await loadMasterplanGraphOnce();
       startMasterplanPolling();
       return;
@@ -211,76 +277,53 @@ document.querySelectorAll(".tab button").forEach(btn => {
 
     // default: clear + stop all pollers
     stopMassingPolling();
+    stopEnrichedPolling();
     stopMasterplanPolling();
     if (typeof window.clearGraph === "function") window.clearGraph();
   });
 });
 
-// === Resizable chat history ===
-const chatHistory = document.getElementById("chat-history");
-let isResizing = false;
-let startY = 0;
-let startHeight = 0;
-
-const resizeHandle = document.querySelector(".chat-resize-handle");
-if (resizeHandle && chatHistory) {
-  resizeHandle.addEventListener("mousedown", e => {
-    isResizing = true;
-    startY = e.clientY;
-    startHeight = chatHistory.offsetHeight;
-    document.body.style.userSelect = "none";
-    document.body.style.cursor = "ns-resize";
-  });
-
-  document.addEventListener("mousemove", e => {
-    if (!isResizing) return;
-    const dy = e.clientY - startY;
-    const maxH = Math.round(window.innerHeight * 0.5);
-    const next = Math.max(60, Math.min(maxH, startHeight - dy));
-    chatHistory.style.height = `${next}px`;
-  });
-
-  document.addEventListener("mouseup", () => {
-    isResizing = false;
-    document.body.style.userSelect = "";
-    document.body.style.cursor = "";
-  });
-}
-
-// --- boot: load the correct tab state on first paint ---
+// Initial boot: show the active tab’s graph once
 document.addEventListener("DOMContentLoaded", async () => {
-  const activeBtn = document.querySelector('.tab button.active');
-  const activeTab = activeBtn?.dataset?.tab;
-
+  const activeTab = document.querySelector('.tab button.active')?.dataset?.tab;
   if (activeTab === "massing") {
     stopMasterplanPolling();
+    stopEnrichedPolling();
     await loadMassingGraphOnce();
     startMassingPolling();
   } else if (activeTab === "context") {
     stopMassingPolling();
+    stopEnrichedPolling();
     stopMasterplanPolling();
     await loadContextGraphOnce();
   } else if (activeTab === "masterplan") {
     stopMassingPolling();
+    stopEnrichedPolling();
     await loadMasterplanGraphOnce();
     startMasterplanPolling();
   } else if (activeTab === "brief") {
     stopMassingPolling();
+    stopEnrichedPolling();
     stopMasterplanPolling();
     if (window._briefGraph && typeof window.showGraph3DBackground === "function") {
       window.showGraph3DBackground(window._briefGraph);
     } else if (typeof window.clearGraph === "function") {
       window.clearGraph();
     }
+  } else if (activeTab === "enriched") {
+    stopMassingPolling();
+    stopMasterplanPolling();
+    startEnrichedPolling();
   } else {
     stopMassingPolling();
+    stopEnrichedPolling();
     stopMasterplanPolling();
     if (typeof window.clearGraph === "function") window.clearGraph();
   }
 });
 
-// --- cleanup: stop polling when leaving page ---
 window.addEventListener("beforeunload", () => {
   stopMassingPolling();
+  stopEnrichedPolling();
   stopMasterplanPolling();
 });
