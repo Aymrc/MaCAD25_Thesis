@@ -52,6 +52,18 @@ MERGE_DIR = os.path.join(KNOWLEDGE_DIR, "merge")
 MASSING_JSON = os.path.join(KNOWLEDGE_DIR, "massing_graph.json")
 EMPTY_PLOT_JSON = os.path.join(MERGE_DIR, "empty_plot_graph.json")
 
+# --- Enriched package imports ---
+if PROJECT_DIR not in sys.path:
+    sys.path.append(PROJECT_DIR)
+
+from enriched_graph.enriched import (
+    generate_enriched_variants,
+    resolve_default_paths,
+    get_area_from_node,
+    extract_programs_from_brief,
+)
+
+
 # Ensure destination exists
 try:
     if not os.path.exists(OSM_DIR):
@@ -292,6 +304,60 @@ def _ensure_inputs_for_masterplan(job_dir):
     _sanitize_json_in_place(MASSING_JSON)
     return True
 
+
+# ===========================
+# Enriched graph precheck helpers 
+# ===========================
+def _compute_massing_total_sqm(massing_json):
+    """Sum massing level-area (sqm) using the same logic enriched.py uses."""
+    total = 0.0
+    for n in (massing_json or {}).get("nodes", []):
+        kind = str(n.get("type") or n.get("kind") or "").lower()
+        if kind == "level":
+            try:
+                total += float(get_area_from_node(n) or 0.0)
+            except:
+                pass
+    return float(total)
+
+def _compute_brief_total_sqm(brief_json):
+    """Sum brief program needs (sqm) using enriched.py’s extractor."""
+    need_by_program, _meta = extract_programs_from_brief(brief_json or {})
+    return float(sum(float(v or 0.0) for v in need_by_program.values()))
+
+def _should_run_enriched(job_dir=None):
+    """
+    Run enrichment only if:
+      - brief exists
+      - massing exists
+      - massing_total_sqm > brief_total_sqm
+    """
+    try:
+        # reuse sanitation/existence checks (ensures empty_plot + massing)
+        if not _ensure_inputs_for_masterplan(job_dir):
+            return False, "Prerequisites not ready"
+
+        massing_path, brief_path = resolve_default_paths()
+        if not os.path.isfile(massing_path) or not os.path.isfile(brief_path):
+            return False, "Missing massing or brief file"
+
+        with open(massing_path, "r") as f: massing_json = json.load(f)
+        with open(brief_path,   "r") as f: brief_json   = json.load(f)
+
+        massing_total = _compute_massing_total_sqm(massing_json)
+        brief_total   = _compute_brief_total_sqm(brief_json)
+
+        Rhino.RhinoApp.WriteLine(
+            "[rhino_listener] sqm check → massing={0:.2f} vs brief={1:.2f}".format(massing_total, brief_total)
+        )
+
+        if massing_total > brief_total:
+            return True, "OK"
+        return False, "Massing sqm <= Brief sqm"
+    except Exception as e:
+        return False, "Check error: {0}".format(e)
+
+
 # ===========================
 # Exporters orchestrators
 # ===========================
@@ -355,6 +421,38 @@ def _export_masterplan_graph_now(job_dir=None):
     except Exception as e:
         Rhino.RhinoApp.WriteLine("[rhino_listener] UI invoke failed for masterplan export ({0}); running inline.".format(e))
         _do()
+
+def _export_enriched_now(job_dir=None):
+    """Run enrichment — generates 10 variants if sq.m. check passes."""
+    def _do():
+        try:
+            ok, reason = _should_run_enriched(job_dir=job_dir)
+            if not ok:
+                Rhino.RhinoApp.WriteLine("[rhino_listener] Enriched skipped: {0}".format(reason))
+                return
+
+            massing_path, brief_path = resolve_default_paths()
+
+            out_paths = generate_enriched_variants(
+                str(massing_path),
+                str(brief_path),
+                n_variants=10,               # ← as requested
+                outdir=None,                 # default (knowledge/iteration/)
+                rng_seed=None,
+                noise_strength=1.0,
+                assign_split_granularity_sqm=220,
+                min_chunk_sqm=60,
+                stdout=False
+            )
+            Rhino.RhinoApp.WriteLine("[rhino_listener] Enriched graphs saved: {0}".format(out_paths))
+        except Exception as e:
+            Rhino.RhinoApp.WriteLine("[rhino_listener] Enriched export failed: {0}".format(e))
+    try:
+        Rhino.RhinoApp.InvokeOnUiThread(Action(_do))
+    except Exception as e:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] UI invoke failed for enriched export ({0}); running inline.".format(e))
+        _do()
+
 
 # ===========================
 # OSM importer
@@ -781,12 +879,15 @@ def handle_layer_change():
             if not wrote:
                 Rhino.RhinoApp.WriteLine("[rhino_listener] PLOT changed but boundary export failed.")
             else:
-                # After boundary succeeded: build empty-plot, ensure massing, then merge masterplan
+                # empty-plot
                 _export_empty_plot_graph_now(job_dir=job_dir)
-                # Ensure massing exists before masterplan (avoid "not found" race)
+                # make sure massing json exists / is fresh
                 if not _file_ready(MASSING_JSON, checks=2, interval=0.2):
                     _export_massing_graph_now()
+                # masterplan
                 _export_masterplan_graph_now(job_dir=job_dir)
+                # enriched (single call; self-checks & skips if not eligible)
+                _export_enriched_now(job_dir=job_dir)
 
         # Passive fallback: try exporting any valid PLOT boundary if nothing written
         if not wrote:
@@ -794,15 +895,21 @@ def handle_layer_change():
             if job_dir and os.path.isdir(job_dir):
                 wrote = _export_plot_boundary_to_job(job_dir, candidate_id=None) or False
                 if wrote:
+                    # empty-plot
                     _export_empty_plot_graph_now(job_dir=job_dir)
+                    # ensure massing
                     if not _file_ready(MASSING_JSON, checks=2, interval=0.2):
                         _export_massing_graph_now()
+                    # masterplan
                     _export_masterplan_graph_now(job_dir=job_dir)
+                    # enriched
+                    _export_enriched_now(job_dir=job_dir)
 
         # MASSING → graph (only when MASSING changed)
         if sc.sticky.get(STICKY_MASSING_DIRTY):
             sc.sticky[STICKY_MASSING_DIRTY] = False
             _export_massing_graph_now()
+            _export_enriched_now(job_dir=sc.sticky.get(STICKY_ACTIVE_JOB))
 
         # Try to enable evaluation preview if results are ready/updated
         job_dir = sc.sticky.get(STICKY_ACTIVE_JOB)
@@ -815,6 +922,7 @@ def handle_layer_change():
         Rhino.RhinoApp.WriteLine("[rhino_listener] Debounced change processed.")
     finally:
         is_running = False
+
 
 def debounce_trigger():
     global debounce_timer
