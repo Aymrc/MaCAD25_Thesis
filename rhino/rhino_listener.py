@@ -1158,7 +1158,7 @@ def shutdown_listener():
     remove_layer_listener()
     Rhino.RhinoApp.WriteLine("[rhino_listener] Listener shut down.")
 
-# Run once from Rhino:
-# _-RunPythonScript "C:\\...\\2_rhino\\rhino_listener.py"
+
+
 if __name__ == "__main__":
     setup_layer_listener()
