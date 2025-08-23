@@ -399,6 +399,16 @@ def _is_object_on_layer(ev_obj, target_name):
 def is_on_target_layer(rh_obj):
     return _is_object_on_layer(rh_obj, TARGET_LAYER_NAME)
 
+def _any_massing_geometry():
+    """True if the doc already contains any objects on the MASSING layer tree."""
+    try:
+        for obj in sc.doc.Objects or []:
+            if is_on_target_layer(obj):
+                return True
+    except:
+        pass
+    return False
+
 # === current-layer protection ===
 def _save_current_layer_index():
     try:
@@ -831,20 +841,45 @@ def debounce_trigger():
 # Event handlers
 # ===========================
 def on_add(sender, e):
-    _debug_event_layer(e.Object, "on_add")
+    """Fire when a new object is created (including Gumball ALT-copy).
+    Schedules a massing export if the object is on MASSING
+    """
+    try:
+        ro = getattr(e, "TheObject", None) or getattr(e, "Object", None)
+    except:
+        ro = None
 
-    if listener_active:
-        if is_on_target_layer(e.Object):
-            Rhino.RhinoApp.WriteLine("[rhino_listener] MASSING add detected -> export scheduled.")
-        else:
-            Rhino.RhinoApp.WriteLine("[rhino_listener] Add event (layer uncertain) -> export scheduled as fallback.")
+    # Debug (safe)
+    try:
+        _debug_event_layer(ro, "on_add")
+    except:
+        pass
+
+    # MASSING export (robust)
+    try:
+        if listener_active:
+            # If we can’t read the object yet, assume it’s relevant (failsafe)
+            if ro is None or is_on_target_layer(ro):
+                try:
+                    Rhino.RhinoApp.WriteLine("[rhino_listener] MASSING on_add → export scheduled.")
+                except:
+                    pass
+                _mark_massing_dirty()
+                debounce_trigger()
+    except Exception as ex:
+        # Never let the listener die on add; schedule anyway
+        try:
+            Rhino.RhinoApp.WriteLine("[rhino_listener] on_add error: " + str(ex) + " → export scheduled (failsafe).")
+        except:
+            pass
         _mark_massing_dirty()
         debounce_trigger()
 
+    # PLOT (unchanged, but robust to None)
     try:
-        if listener_active and _is_object_on_layer(e.Object, PLOT_LAYER_NAME):
-            _mark_plot_dirty(e.Object.Id)
-            Rhino.RhinoApp.WriteLine("[rhino_listener] PLOT on_add: guid={0}".format(e.Object.Id))
+        if listener_active and ro is not None and _is_object_on_layer(ro, PLOT_LAYER_NAME):
+            _mark_plot_dirty(ro.Id)
+            Rhino.RhinoApp.WriteLine("[rhino_listener] PLOT on_add: guid={0}".format(ro.Id))
             debounce_trigger()
     except:
         pass
@@ -883,15 +918,19 @@ def on_delete(sender, e):
     _mark_massing_dirty()
     debounce_trigger()
 
-# --- Command-end fallback ---
+# --- Command-end fallback for trigger ---
 _CHANGE_COMMANDS = set([
+    # Solids / surf ops
     "Box","Cylinder","Cone","Sphere","ExtrudeCrv","ExtrudeCrvTapered","ExtrudeSrf","Loft","Sweep1","Sweep2","Cap",
     "Copy","Paste","Move","Rotate","Rotate3D","Scale","Scale1D","Scale2D","Scale3D","ScaleNU",
     "Align","SetPt","RemapCPlane",
     "Array","ArrayLinear","ArrayPolar","ArrayCrv","ArraySrf",
     "BooleanUnion","BooleanDifference","BooleanIntersection","Split","MergeAllFaces","Join","Explode","OffsetSrf",
-    "GumballMove","GumballRotate","GumballScale","Delete",
-    
+    # Gumball ops
+    "GumballMove","GumballRotate","GumballScale",
+    # Delete
+    "Delete",
+    # Curve creation / editing (from main)
     "Line","Polyline","Polyline3D","Rectangle","Curve","InterpCrv","InterpCrvOnSrf",
     "Arc","Circle","Ellipse","Offset","Fillet","Chamfer","Extend","Trim"
 ])
@@ -1090,6 +1129,15 @@ def setup_layer_listener():
     _seed_active_job_dir_from_latest_done()
     _apply_ui_preview_state_if_changed()
 
+    # Seed massing graph from existing geometry (your branch’s behavior)
+    try:
+        if _any_massing_geometry():
+            Rhino.RhinoApp.WriteLine("[rhino_listener] Seeding massing graph from existing geometry.")
+            _mark_massing_dirty()
+            debounce_trigger()
+    except:
+        pass
+
 def remove_layer_listener():
     try: Rhino.RhinoDoc.AddRhinoObject -= on_add
     except: pass
@@ -1110,7 +1158,7 @@ def shutdown_listener():
     remove_layer_listener()
     Rhino.RhinoApp.WriteLine("[rhino_listener] Listener shut down.")
 
-# Run once from Rhino:
-# _-RunPythonScript "C:\\...\\2_rhino\\rhino_listener.py"
+
+
 if __name__ == "__main__":
     setup_layer_listener()
