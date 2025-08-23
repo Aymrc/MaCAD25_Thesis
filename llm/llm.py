@@ -117,12 +117,12 @@ def _job_candidates() -> list[Path]:
 
 def _purge_previous_osm_workspace():
     """
-    Elimina *todas* las carpetas de job previas en knowledge/osm antes de crear una nueva.
-    Borra tanto 'osm_*' (renombradas por Rhino) como carpetas con nombre UUID.
-    También limpia el legado 'knowledge/osm/_tmp' si existe.
+    Delete *all* previous job folders in knowledge/osm before creating a new one.
+    Removes both 'osm_*' (renamed by Rhino) and UUID-named folders.
+    Also cleans up the legacy 'knowledge/osm/_tmp' if it exists.
     """
     try:
-        # 1) Si el marcador apunta a una ruta existente, bórrala
+        # 1) If the marker points to an existing path, delete it
         if LAST_JOB_MARK.exists():
             prev_txt = LAST_JOB_MARK.read_text(encoding="utf-8").strip()
             if prev_txt:
@@ -130,20 +130,20 @@ def _purge_previous_osm_workspace():
                 if prev.exists() and prev.is_dir():
                     _delete_folder(prev)
 
-        # 2) Borra todas las carpetas de job detectadas (osm_* o UUID)
+        # 2) Delete all detected job folders (osm_* or UUID)
         cands = _job_candidates()
-        # Ordenamos por mtime descendente solo para log/depuración; igual se borran todas
+        # Sorted by mtime descending only for logging/debugging; all will be deleted anyway
         cands.sort(key=lambda p: p.stat().st_mtime, reverse=True)
         for p in cands:
             _delete_folder(p)
 
-        # 3) Limpieza de carpeta temporal antigua
+        # 3) Clean up old temporary folder
         legacy_tmp = OSM_DIR / "_tmp"
         if legacy_tmp.exists() and legacy_tmp.is_dir():
             _delete_folder(legacy_tmp)
 
     except Exception:
-        # silencioso: la limpieza no debe romper /osm/run
+        # Silent: cleanup should not break /osm/run
         pass
 
 
