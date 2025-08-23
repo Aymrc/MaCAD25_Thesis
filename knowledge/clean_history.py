@@ -119,16 +119,31 @@ def purge_merge_dir(merge_dir: Path) -> None:
     except Exception as e:
         print("[CLEAN] Failed to clean merge dir:", merge_dir, "-", e)
 
+def purge_iteration_dir(iter_dir: Path) -> None:
+    """Delete all files/folders inside knowledge/iteration (but keep the folder itself)."""
+    if not iter_dir.exists() or not iter_dir.is_dir():
+        return
+    try:
+        for p in iter_dir.iterdir():
+            if p.is_file():
+                safe_remove_file(p)
+            elif p.is_dir():
+                safe_rmtree(p)
+    except Exception as e:
+        print("[CLEAN] Failed to clean iteration dir:", iter_dir, "-", e)
+
 # -------- Entry point --------
 
 def main():
     knowledge_dir = Path(__file__).resolve().parent
     osm_dir = knowledge_dir / "osm"
     merge_dir = knowledge_dir / "merge"
+    iteration_dir = knowledge_dir / "iteration"
 
     remove_known_files(knowledge_dir)
     purge_osm_workspaces(osm_dir)
     purge_merge_dir(merge_dir)
+    purge_iteration_dir(iteration_dir)
 
 if __name__ == "__main__":
     main()
