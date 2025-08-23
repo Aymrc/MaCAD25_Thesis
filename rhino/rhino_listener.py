@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
 
 # rhino_listener.py
-
+#
 # Listen to the opened Rhino window, auto-import finished OSM jobs, export a boundary
 # from the PLOT layer, trigger evaluation, and enable evaluation preview (UI-thread safe).
 
-import os, sys, threading, time, json, imp
-
+import os, sys, threading, time, json, imp, re
 
 import Rhino
 import scriptcontext as sc
 import rhinoscriptsyntax as rs
 import Rhino.Geometry as rg
 from Rhino.Commands import Command
-
 
 import System
 from System import Action
@@ -24,8 +22,8 @@ from config import layer_name  # project variables from config.py
 # ===========================
 # Settings / Globals
 # ===========================
-TARGET_LAYER_NAME = layer_name # e.g. "MASSING"
-PLOT_LAYER_NAME = "PLOT" # boundary layer to watch
+TARGET_LAYER_NAME = layer_name  # e.g. "MASSING"
+PLOT_LAYER_NAME = "PLOT"        # boundary layer to watch
 DEBOUNCE_SECONDS = 1.5
 
 listener_active = True
@@ -37,7 +35,7 @@ STICKY_IMPORTED = "macad_imported_jobs"
 STICKY_ACTIVE_JOB = "active_job_dir"
 STICKY_PLOT_DIRTY = "plot_dirty"
 STICKY_PLOT_LAST = "plot_last_candidate"
-STICKY_EVAL_PREVIEW_MTIME = "eval_preview_mtime" # track last previewed evaluation.json mtime
+STICKY_EVAL_PREVIEW_MTIME = "eval_preview_mtime"
 STICKY_UI_STATE_MTIME = "ui_state_mtime"
 STICKY_MASSING_DIRTY = "massing_dirty"
 
@@ -49,7 +47,10 @@ PROJECT_DIR = os.path.dirname(THIS_DIR)
 
 # knowledge directory (all live state goes here)
 KNOWLEDGE_DIR = os.path.join(PROJECT_DIR, "knowledge")
-OSM_DIR = os.path.join(KNOWLEDGE_DIR, "osm") # OSM jobs root
+OSM_DIR = os.path.join(KNOWLEDGE_DIR, "osm")  # OSM jobs root
+MERGE_DIR = os.path.join(KNOWLEDGE_DIR, "merge")
+MASSING_JSON = os.path.join(KNOWLEDGE_DIR, "massing_graph.json")
+EMPTY_PLOT_JSON = os.path.join(MERGE_DIR, "empty_plot_graph.json")
 
 # Ensure destination exists
 try:
@@ -92,9 +93,10 @@ try:
 except Exception:
     EP = None
 
+# ===========================
+# Massing exporter (existing)
+# ===========================
 save_graph = None
-
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 MG_FILENAME = "massing_graph.py"
 MG_PATH = os.path.join(THIS_DIR, MG_FILENAME)
 
@@ -113,6 +115,250 @@ def _load_exporter():
         return None
 save_graph = _load_exporter()
 
+# ===========================
+# Masterplan + Empty-plot exporters (new)
+# ===========================
+ENRICHED_DIR = os.path.join(PROJECT_DIR, "enriched_graph")
+if ENRICHED_DIR not in sys.path:
+    sys.path.append(ENRICHED_DIR)
+
+save_masterplan = None   # enriched_graph/masterplan_graph.save_graph
+build_empty_plot = None  # enriched_graph/empty_plot_exporter.build
+
+def _load_masterplan_exporter():
+    """Load/Reload masterplan exporter; return callable or None."""
+    global save_masterplan
+    try:
+        mp_path = os.path.join(ENRICHED_DIR, "masterplan_graph.py")
+        if not os.path.exists(mp_path):
+            Rhino.RhinoApp.WriteLine("[rhino_listener] masterplan exporter not found: {0}".format(mp_path))
+            return None
+        mod = imp.load_source("masterplan_graph", mp_path)
+        fn = getattr(mod, "save_graph", None)
+        Rhino.RhinoApp.WriteLine("[rhino_listener] Masterplan exporter loaded; save_graph callable? {0}".format(callable(fn)))
+        save_masterplan = fn if callable(fn) else None
+        return save_masterplan
+    except Exception as _e:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] ERROR importing masterplan exporter: {0}".format(_e))
+        return None
+
+def _load_empty_plot_exporter():
+    """Load/Reload empty-plot exporter from enriched_graph; return callable or None."""
+    global build_empty_plot
+    try:
+        ep_path = os.path.join(ENRICHED_DIR, "empty_plot_exporter.py")
+        if not os.path.exists(ep_path):
+            Rhino.RhinoApp.WriteLine("[rhino_listener] empty-plot exporter not found: {0}".format(ep_path))
+            build_empty_plot = None
+            return None
+
+        mod = imp.load_source("empty_plot_exporter", ep_path)
+        fn = getattr(mod, "build", None)  # function signature: build(job_dir=None)
+
+        Rhino.RhinoApp.WriteLine("[rhino_listener] Empty-plot exporter loaded; build callable? {0}".format(callable(fn)))
+        build_empty_plot = fn if callable(fn) else None
+        return build_empty_plot
+
+    except Exception as _e:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] ERROR importing empty-plot exporter: {0}".format(_e))
+        build_empty_plot = None
+        return None
+
+# Initial loads
+_load_masterplan_exporter()
+_load_empty_plot_exporter()
+
+# ===========================
+# File readiness / encoding helpers
+# ===========================
+def _file_ready(path, checks=3, interval=0.2):
+    """Return True if file exists and is stable in size/mtime across checks."""
+    if not os.path.exists(path):
+        return False
+    last = None
+    for _ in range(max(1, checks)):
+        try:
+            st = os.stat(path)
+            sig = (st.st_size, st.st_mtime)
+        except:
+            sig = None
+        if last is not None and sig == last:
+            return True
+        last = sig
+        time.sleep(interval)
+    try:
+        st = os.stat(path)
+        return (st.st_size, st.st_mtime) == last
+    except:
+        return False
+
+def _sanitize_json_in_place(path):
+    """
+    Ensure the JSON file is valid UTF-8 and ASCII-safe if needed.
+    - Try to load as UTF-8 first.
+    - If that fails, load bytes as latin-1 and then re-dump with ensure_ascii=True.
+    """
+    try:
+        # Fast path: try utf-8 read
+        try:
+            # IronPython may not have io.open, use built-in open in text mode may trip on default encoding.
+            import io
+            with io.open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            # Re-write normalized UTF-8 (keep unicode if possible)
+            txt = json.dumps(data, indent=2, ensure_ascii=False)
+            with io.open(path, "w", encoding="utf-8") as f:
+                try:
+                    f.write(unicode(txt))  # IronPython
+                except NameError:
+                    f.write(txt)
+            return True
+        except Exception:
+            pass
+
+        # Fallback: binary read, decode latin-1, then dump ASCII-safe
+        try:
+            b = open(path, "rb").read()
+        except Exception as e:
+            Rhino.RhinoApp.WriteLine("[rhino_listener] sanitize read error for {0}: {1}".format(path, e))
+            return False
+
+        try:
+            s = b.decode("utf-8")
+        except Exception:
+            try:
+                s = b.decode("latin-1")
+            except Exception as e2:
+                Rhino.RhinoApp.WriteLine("[rhino_listener] sanitize decode error for {0}: {1}".format(path, e2))
+                return False
+
+        try:
+            data = json.loads(s)
+        except Exception as e3:
+            # Try a light scrub of trailing commas or NaN/Infinity
+            import re
+            s2 = re.sub(r'(?<!")\bNaN\b(?!")', 'null', s)
+            s2 = re.sub(r'(?<!")\bInfinity\b(?!")', 'null', s2)
+            s2 = re.sub(r'(?<!")\b-Infinity\b(?!")', 'null', s2)
+            s2 = re.sub(r',\s*([\]\}])', r'\1', s2)
+            try:
+                data = json.loads(s2)
+            except Exception as e4:
+                Rhino.RhinoApp.WriteLine("[rhino_listener] sanitize parse error for {0}: {1}".format(path, e4))
+                return False
+
+        # Write back ASCII-safe to avoid codec surprises in downstream readers
+        txt = json.dumps(data, indent=2, ensure_ascii=True)
+        try:
+            import io
+            with io.open(path, "w", encoding="utf-8") as f:
+                try:
+                    f.write(unicode(txt))  # IronPython
+                except NameError:
+                    f.write(txt)
+        except Exception as e5:
+            Rhino.RhinoApp.WriteLine("[rhino_listener] sanitize write error for {0}: {1}".format(path, e5))
+            return False
+
+        return True
+    except Exception as e:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] sanitize error for {0}: {1}".format(path, e))
+        return False
+
+def _ensure_inputs_for_masterplan(job_dir):
+    """
+    Ensure masterplan prerequisites exist and are stable:
+    - empty_plot_graph.json
+    - massing_graph.json (export now if missing)
+    Then sanitize both files to avoid codec issues under IronPython.
+    """
+    # 1) empty plot must exist
+    if not _file_ready(EMPTY_PLOT_JSON, checks=4, interval=0.2):
+        Rhino.RhinoApp.WriteLine("[rhino_listener] Waiting for empty_plot_graph.json...")
+        if not _file_ready(EMPTY_PLOT_JSON, checks=6, interval=0.2):
+            Rhino.RhinoApp.WriteLine("[rhino_listener] empty_plot_graph.json not ready.")
+            return False
+
+    # 2) massing must exist (export on demand if missing)
+    if not _file_ready(MASSING_JSON, checks=2, interval=0.2):
+        Rhino.RhinoApp.WriteLine("[rhino_listener] massing_graph.json missing -> exporting now.")
+        _export_massing_graph_now()
+        if not _file_ready(MASSING_JSON, checks=6, interval=0.25):
+            Rhino.RhinoApp.WriteLine("[rhino_listener] massing_graph.json still not ready.")
+            return False
+
+    # 3) sanitize both files to UTF-8 safe
+    _sanitize_json_in_place(EMPTY_PLOT_JSON)
+    _sanitize_json_in_place(MASSING_JSON)
+    return True
+
+# ===========================
+# Exporters orchestrators
+# ===========================
+def _export_empty_plot_graph_now(job_dir=None):
+    """Build knowledge/merge/empty_plot_graph.json (UI-thread safe)."""
+    def _do():
+        try:
+            if not callable(build_empty_plot):
+                _load_empty_plot_exporter()
+            if callable(build_empty_plot):
+                if job_dir and os.path.isdir(job_dir):
+                    try:
+                        os.environ["JOB_DIR"] = job_dir
+                    except Exception:
+                        pass
+                build_empty_plot()  # enriched_graph/empty_plot_exporter.build
+                Rhino.RhinoApp.WriteLine("[rhino_listener] empty_plot_graph.json exported.")
+            else:
+                Rhino.RhinoApp.WriteLine("[rhino_listener] empty-plot exporter not available.")
+        except Exception as e:
+            Rhino.RhinoApp.WriteLine("[rhino_listener] Empty-plot export failed: {0}".format(e))
+    try:
+        Rhino.RhinoApp.InvokeOnUiThread(Action(_do))
+    except Exception as e:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] UI invoke failed for empty-plot export ({0}); running inline.".format(e))
+        _do()
+
+def _export_masterplan_graph_now(job_dir=None):
+    """Merge into knowledge/merge/masterplan_graph.json (UI-thread safe)."""
+    def _do():
+        try:
+            # Make sure prerequisites are present and sanitized
+            if not _ensure_inputs_for_masterplan(job_dir):
+                Rhino.RhinoApp.WriteLine("[rhino_listener] Masterplan prerequisites not ready.")
+                return
+
+            # Reload exporter if needed
+            if not callable(save_masterplan):
+                _load_masterplan_exporter()
+
+            if callable(save_masterplan):
+                if job_dir and os.path.isdir(job_dir):
+                    try:
+                        os.environ["JOB_DIR"] = job_dir
+                    except Exception:
+                        pass
+                # Some IronPython environments choke on non-UTF default IO encoding.
+                try:
+                    os.environ["PYTHONIOENCODING"] = "utf-8"
+                except:
+                    pass
+
+                save_masterplan()  # enriched_graph/masterplan_graph.save_graph
+                Rhino.RhinoApp.WriteLine("[rhino_listener] masterplan_graph.json exported.")
+            else:
+                Rhino.RhinoApp.WriteLine("[rhino_listener] masterplan exporter not available.")
+        except Exception as e:
+            Rhino.RhinoApp.WriteLine("[rhino_listener] Masterplan export failed: {0}".format(e))
+    try:
+        Rhino.RhinoApp.InvokeOnUiThread(Action(_do))
+    except Exception as e:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] UI invoke failed for masterplan export ({0}); running inline.".format(e))
+        _do()
+
+# ===========================
+# OSM importer
+# ===========================
 try:
     import osm_importer  # from context/osm_importer.py
     Rhino.RhinoApp.WriteLine("[rhino_listener] osm_importer loaded from: {0}".format(IMPORTER_DIR))
@@ -134,7 +380,6 @@ def _layer_name_from_event_obj(ev_obj):
                 return full if full else layer.Name
     except:
         pass
-    # Fallback: query by GUID (works right after creation)
     try:
         return rs.ObjectLayer(ev_obj.Id)
     except:
@@ -164,18 +409,14 @@ def _any_massing_geometry():
         pass
     return False
 
-
 # === current-layer protection ===
 def _save_current_layer_index():
-    """Remember the user's current layer index."""
     try:
         return sc.doc.Layers.CurrentLayerIndex
     except:
         return None
 
-
 def _restore_current_layer_index(idx):
-    """Restore the user's current layer index if still valid."""
     try:
         if idx is None:
             return
@@ -184,12 +425,10 @@ def _restore_current_layer_index(idx):
     except:
         pass
 
-
 # ===========================
 # Debug helpers
 # ===========================
 def _debug_event_layer(ev_obj, tag):
-    """Print the layer name of the event object for debugging."""
     try:
         attrs = getattr(ev_obj, "Attributes", None) or getattr(ev_obj, "ObjectAttributes", None)
         idx = attrs.LayerIndex if attrs else -1
@@ -198,17 +437,14 @@ def _debug_event_layer(ev_obj, tag):
     except:
         Rhino.RhinoApp.WriteLine("[rhino_listener] {0}: layer=?".format(tag))
 
-
 # ===========================
 # Active job helpers
 # ===========================
 def _get_active_job_dir():
     return sc.sticky.get(STICKY_ACTIVE_JOB)
 
-
 def _set_active_job_dir(job_dir):
     sc.sticky[STICKY_ACTIVE_JOB] = job_dir
-
 
 def _list_job_dirs(osm_root):
     try:
@@ -217,9 +453,7 @@ def _list_job_dirs(osm_root):
     except:
         return []
 
-
 def _seed_active_job_dir_from_latest_done():
-    """Pick latest DONE job as active if none present (useful when listener starts after a job finished)."""
     try:
         if _get_active_job_dir():
             return
@@ -235,21 +469,23 @@ def _seed_active_job_dir_from_latest_done():
     except Exception as e:
         Rhino.RhinoApp.WriteLine("[rhino_listener] seed active job error: {0}".format(e))
 
-
 # ===========================
 # UI preview state helpers
 # ===========================
 def _read_ui_state():
     try:
         if os.path.exists(UI_STATE_PATH):
-            return json.load(open(UI_STATE_PATH, "r"))
+            f = open(UI_STATE_PATH, "r")
+            try:
+                return json.load(f)
+            finally:
+                try: f.close()
+                except: pass
     except:
         pass
     return {"context_preview": False, "plot_preview": False}
 
-
 def _apply_ui_preview_state():
-    """Enable/disable conduits according to ui_state.json without changing the current layer."""
     try:
         st = _read_ui_state()
         job_dir = _get_active_job_dir()
@@ -257,7 +493,6 @@ def _apply_ui_preview_state():
             Rhino.RhinoApp.WriteLine("[rhino_listener] No active job_dir to apply UI state.")
             return
 
-        # Context Graph
         try:
             if st.get("context_preview"):
                 if start_preview:
@@ -268,7 +503,6 @@ def _apply_ui_preview_state():
         except:
             pass
 
-        # Plot Graph
         try:
             if st.get("plot_preview") and EP:
                 EP.start_evaluation_preview(job_dir)
@@ -280,7 +514,6 @@ def _apply_ui_preview_state():
         except:
             pass
 
-        # Log context toggle status
         try:
             Rhino.RhinoApp.WriteLine("[rhino_listener] Context preview: {0}".format(
                 "ENABLED" if st.get("context_preview") else "DISABLED"))
@@ -290,9 +523,7 @@ def _apply_ui_preview_state():
     except Exception as e:
         Rhino.RhinoApp.WriteLine("[rhino_listener] apply_ui_preview_state error: {0}".format(e))
 
-
 def _apply_ui_preview_state_if_changed():
-    """Only re-apply when ui_state.json mtime changed."""
     try:
         if not os.path.exists(UI_STATE_PATH):
             return
@@ -304,7 +535,6 @@ def _apply_ui_preview_state_if_changed():
     except:
         pass
 
-
 # ===========================
 # PLOT boundary helpers
 # ===========================
@@ -314,13 +544,10 @@ def _guid_is_closed_planar(guid):
     except:
         return False
 
-
 def _curve_to_xy_list(curve, max_points=400, target_seg_len=1.0):
-    """Sample a closed planar curve to polyline and return [[x,y], ...]."""
     length = curve.GetLength()
     if length <= 0:
         return None
-    # sample count based on target segment length, clamped
     count = int(max(8, min(max_points, max(8, length / max(0.1, target_seg_len)))))
     t0, t1 = curve.Domain.T0, curve.Domain.T1
     ts = [t0 + (t1 - t0) * (i / float(count)) for i in range(count + 1)]
@@ -330,26 +557,20 @@ def _curve_to_xy_list(curve, max_points=400, target_seg_len=1.0):
         xy.append(xy[0])
     return xy
 
-
 def _collect_plot_guids_in_doc():
-    """Find objects that are on PLOT (also supports parent::PLOT)."""
     guids = []
     all_objs = rs.AllObjects() or []
     for g in all_objs:
         try:
-            layer_name = rs.ObjectLayer(g)  # returns full path "Parent::Child" or plain name
+            layer_name = rs.ObjectLayer(g)
             if _layer_matches(layer_name, PLOT_LAYER_NAME):
                 guids.append(g)
         except:
             pass
     return guids
 
-
 def _export_plot_boundary_to_job(job_dir, candidate_id=None):
-    """Export boundary.json from PLOT layer. Prefer candidate_id; fallback to largest-area closed planar curve."""
     try:
-        import Rhino.Geometry as rg
-
         if not job_dir or not os.path.isdir(job_dir):
             Rhino.RhinoApp.WriteLine("[rhino_listener] No active job dir for boundary export.")
             return False
@@ -361,11 +582,9 @@ def _export_plot_boundary_to_job(job_dir, candidate_id=None):
 
         chosen_curve = None
 
-        # Try candidate first (last event object)
         if candidate_id and candidate_id in guids and _guid_is_closed_planar(candidate_id):
             chosen_curve = rs.coercecurve(candidate_id)
 
-        # Fallback: largest-area among valid closed planar curves
         if chosen_curve is None:
             best_area = -1.0
             for g in guids:
@@ -399,7 +618,7 @@ def _export_plot_boundary_to_job(job_dir, candidate_id=None):
 
         Rhino.RhinoApp.WriteLine("[rhino_listener] boundary.json written to: {0}".format(out_path))
 
-        # Trigger evaluation AFTER boundary.json is written successfully
+        # Trigger evaluation after boundary.json is written successfully
         try:
             _trigger_evaluation(job_dir)
         except:
@@ -411,12 +630,10 @@ def _export_plot_boundary_to_job(job_dir, candidate_id=None):
         Rhino.RhinoApp.WriteLine("[rhino_listener] Boundary export error: {0}".format(e))
         return False
 
-
 def _mark_plot_dirty(guid=None):
     sc.sticky[STICKY_PLOT_DIRTY] = True
     if guid is not None:
         sc.sticky[STICKY_PLOT_LAST] = guid
-
 
 # ===========================
 # MASSING graph helpers
@@ -430,7 +647,6 @@ def _export_massing_graph_now():
         global save_graph
         try:
             if not callable(save_graph):
-                # Try to load right before exporting
                 save_graph = _load_exporter()
             if callable(save_graph):
                 save_graph()  # writes knowledge/massing_graph.json
@@ -444,7 +660,6 @@ def _export_massing_graph_now():
     except Exception as e:
         Rhino.RhinoApp.WriteLine("[rhino_listener] UI invoke failed ({0}); running inline.".format(e))
         _do()
-
 
 # ===========================
 # HTTP helpers / evaluation trigger
@@ -462,7 +677,6 @@ def _http_post_json(url, payload):
         Rhino.RhinoApp.WriteLine("[rhino_listener] HTTP POST error: {0}".format(e))
         return None
 
-
 def _trigger_evaluation(job_dir):
     try:
         url = "http://127.0.0.1:8000/evaluate/run"
@@ -472,9 +686,8 @@ def _trigger_evaluation(job_dir):
     except Exception as e:
         Rhino.RhinoApp.WriteLine("[rhino_listener] Eval trigger error: {0}".format(e))
 
-
 # ===========================
-# Evaluation preview (enable when evaluation.json appears/updates)
+# Evaluation preview
 # ===========================
 def _try_evaluation_preview(job_dir):
     try:
@@ -494,17 +707,14 @@ def _try_evaluation_preview(job_dir):
         Rhino.RhinoApp.WriteLine("[rhino_listener] Eval preview error: {0}".format(e))
     return False
 
-
 # ===========================
 # Job folder renaming (timestamped)
 # ===========================
 def _is_timestamped_job_name(name):
-    """Return True if name matches osm_YYYYMMDD_HHMMSS or osm_YYYYMMDD_HHMMSS_N."""
     try:
         return bool(re.match(r"^osm_\d{8}_\d{6}(?:_\d+)?$", name or ""))
     except:
         return False
-
 
 def _format_ts_from_epoch(ts):
     try:
@@ -512,13 +722,11 @@ def _format_ts_from_epoch(ts):
     except:
         return time.strftime("%Y%m%d_%H%M%S")
 
-
 def _rename_job_dir_to_timestamp(job_dir):
-    """Rename a finished job folder to osm_YYYYMMDD_HHMMSS[_N] based on DONE.txt mtime."""
     try:
         base = os.path.basename(job_dir.rstrip("\\/"))
         if _is_timestamped_job_name(base):
-            return job_dir  # already formatted
+            return job_dir
 
         done_flag = os.path.join(job_dir, "DONE.txt")
         if os.path.exists(done_flag):
@@ -553,7 +761,6 @@ def _rename_job_dir_to_timestamp(job_dir):
         Rhino.RhinoApp.WriteLine("[rhino_listener] _rename_job_dir_to_timestamp error: {0}".format(e))
         return job_dir
 
-
 # ===========================
 # Main change handler + debounce
 # ===========================
@@ -573,12 +780,24 @@ def handle_layer_change():
             wrote = _export_plot_boundary_to_job(job_dir, candidate_id=candidate) or False
             if not wrote:
                 Rhino.RhinoApp.WriteLine("[rhino_listener] PLOT changed but boundary export failed.")
+            else:
+                # After boundary succeeded: build empty-plot, ensure massing, then merge masterplan
+                _export_empty_plot_graph_now(job_dir=job_dir)
+                # Ensure massing exists before masterplan (avoid "not found" race)
+                if not _file_ready(MASSING_JSON, checks=2, interval=0.2):
+                    _export_massing_graph_now()
+                _export_masterplan_graph_now(job_dir=job_dir)
 
         # Passive fallback: try exporting any valid PLOT boundary if nothing written
         if not wrote:
             job_dir = sc.sticky.get(STICKY_ACTIVE_JOB)
             if job_dir and os.path.isdir(job_dir):
                 wrote = _export_plot_boundary_to_job(job_dir, candidate_id=None) or False
+                if wrote:
+                    _export_empty_plot_graph_now(job_dir=job_dir)
+                    if not _file_ready(MASSING_JSON, checks=2, interval=0.2):
+                        _export_massing_graph_now()
+                    _export_masterplan_graph_now(job_dir=job_dir)
 
         # MASSING → graph (only when MASSING changed)
         if sc.sticky.get(STICKY_MASSING_DIRTY):
@@ -597,7 +816,6 @@ def handle_layer_change():
     finally:
         is_running = False
 
-
 def debounce_trigger():
     global debounce_timer
     if debounce_timer and debounce_timer.is_alive():
@@ -608,10 +826,8 @@ def debounce_trigger():
         if not listener_active:
             return
         try:
-            # Run the whole handler on the UI thread so Rhino/rs calls are safe
             Rhino.RhinoApp.InvokeOnUiThread(Action(handle_layer_change))
         except Exception:
-            # If UI invoke fails for any reason, fall back (still do *something*)
             handle_layer_change()
 
     debounce_timer = threading.Thread(target=delayed)
@@ -621,12 +837,11 @@ def debounce_trigger():
         pass
     debounce_timer.start()
 
-
 # ===========================
 # Event handlers
 # ===========================
 def on_add(sender, e):
-    """Fire when a new object is created (inclunding Gumball ALT-copy).
+    """Fire when a new object is created (including Gumball ALT-copy).
     Schedules a massing export if the object is on MASSING
     """
     try:
@@ -640,7 +855,7 @@ def on_add(sender, e):
     except:
         pass
 
-    # MASSING export
+    # MASSING export (robust)
     try:
         if listener_active:
             # If we can’t read the object yet, assume it’s relevant (failsafe)
@@ -669,15 +884,11 @@ def on_add(sender, e):
     except:
         pass
 
-
-
 def on_modify(sender, e):
     _debug_event_layer(e.Object, "on_modify")
-    # Always schedule export (layer lookups can be unreliable right after transforms)
     if listener_active:
         _mark_massing_dirty()
         debounce_trigger()
-    # Keep PLOT logic as-is
     try:
         if listener_active and _is_object_on_layer(e.Object, PLOT_LAYER_NAME):
             _mark_plot_dirty(e.Object.Id)
@@ -686,14 +897,11 @@ def on_modify(sender, e):
     except:
         pass
 
-
 def on_replace(sender, e):
     _debug_event_layer(e.NewObject, "on_replace")
-    # Always schedule export
     if listener_active:
         _mark_massing_dirty()
         debounce_trigger()
-    # Keep PLOT logic as-is
     try:
         if listener_active and _is_object_on_layer(e.NewObject, PLOT_LAYER_NAME):
             _mark_plot_dirty(e.NewObject.Id)
@@ -701,8 +909,6 @@ def on_replace(sender, e):
             debounce_trigger()
     except:
         pass
-
-
 
 def on_delete(sender, e):
     try:
@@ -714,46 +920,46 @@ def on_delete(sender, e):
 
 # --- Command-end fallback for trigger ---
 _CHANGE_COMMANDS = set([
-    # creation / solids
+    # Solids / surf ops
     "Box","Cylinder","Cone","Sphere","ExtrudeCrv","ExtrudeCrvTapered","ExtrudeSrf","Loft","Sweep1","Sweep2","Cap",
-    # transforms / edits
     "Copy","Paste","Move","Rotate","Rotate3D","Scale","Scale1D","Scale2D","Scale3D","ScaleNU",
     "Align","SetPt","RemapCPlane",
-    # arrays
     "Array","ArrayLinear","ArrayPolar","ArrayCrv","ArraySrf",
-    # booleans & surf ops
     "BooleanUnion","BooleanDifference","BooleanIntersection","Split","MergeAllFaces","Join","Explode","OffsetSrf",
-    # gumball ops
-    "GumballMove","GumballRotate","GumballScale", "GumballRelocate"
-    # delete
-    "Delete"
+    # Gumball ops
+    "GumballMove","GumballRotate","GumballScale",
+    # Delete
+    "Delete",
+    # Curve creation / editing (from main)
+    "Line","Polyline","Polyline3D","Rectangle","Curve","InterpCrv","InterpCrvOnSrf",
+    "Arc","Circle","Ellipse","Offset","Fillet","Chamfer","Extend","Trim"
 ])
 
 def on_end_command(sender, e):
     try:
         name = e.CommandEnglishName if hasattr(e, "CommandEnglishName") else ""
-        if name in _CHANGE_COMMANDS:
-            Rhino.RhinoApp.WriteLine("[rhino_listener] EndCommand '{0}' → export scheduled (fallback).".format(name))
+        # patrón amplio para curvas
+        is_curve_cmd = any(tok in name for tok in (
+            "Line","Polyline","Curve","Crv","Rectangle","Arc","Circle","Ellipse","Offset","Fillet","Chamfer","Extend","Trim"
+        ))
+        if name in _CHANGE_COMMANDS or is_curve_cmd:
+            Rhino.RhinoApp.WriteLine("[rhino_listener] EndCommand '{0}' -> export scheduled (fallback).".format(name))
             _mark_massing_dirty()
             debounce_trigger()
     except Exception as ex:
         Rhino.RhinoApp.WriteLine("[rhino_listener] EndCommand hook error: {0}".format(ex))
 
-
-
 # ===========================
 # Import finished OSM jobs
-# =========================== 
+# ===========================
 def _job_id_from_path(p):
     try:
         return os.path.basename(p.rstrip("\\/"))
     except:
         return p
 
-
 def _import_job_on_ui(job_dir, job_id, imported_registry):
     def _do_import():
-        # Save current layer before any operation that might change it
         saved_layer_idx = _save_current_layer_index()
         try:
             Rhino.RhinoApp.WriteLine("[rhino_listener] Importing job {0} on UI thread...".format(job_id))
@@ -762,22 +968,17 @@ def _import_job_on_ui(job_dir, job_id, imported_registry):
             except:
                 pass
 
-            # Import/bake OSM content; this may change the current layer internally
             total = osm_importer.import_osm_folder(job_dir)
             Rhino.RhinoApp.WriteLine("[rhino_listener] OSM import complete ({0} elements).".format(total))
 
-            # Mark active job for boundary export and preview tracking
             _set_active_job_dir(job_dir)
             sc.sticky[STICKY_EVAL_PREVIEW_MTIME] = None
 
-            # Apply current UI preview state for this graph (does not touch current layer)
             _apply_ui_preview_state_if_changed()
 
-            # Graph preview info
             try:
                 gjson = os.path.join(job_dir, "graph.json")
                 if start_preview and os.path.exists(gjson):
-                    # start/stop handled by _apply_ui_preview_state_if_changed()
                     pass
                 else:
                     Rhino.RhinoApp.WriteLine("[rhino_listener] graph.json not found; no preview.")
@@ -787,7 +988,6 @@ def _import_job_on_ui(job_dir, job_id, imported_registry):
         except Exception as e:
             Rhino.RhinoApp.WriteLine("[rhino_listener] Import error for job {0}: {1}".format(job_id, e))
         finally:
-            # Always restore user's current layer
             _restore_current_layer_index(saved_layer_idx)
             try:
                 rs.EnableRedraw(True)
@@ -805,14 +1005,12 @@ def _import_job_on_ui(job_dir, job_id, imported_registry):
         Rhino.RhinoApp.WriteLine("[rhino_listener] InvokeOnUiThread failed ({0}); running inline.".format(e))
         _do_import()
 
-
 def _ensure_imported_registry():
     reg = sc.sticky.get(STICKY_IMPORTED)
     if reg is None:
         reg = set()
         sc.sticky[STICKY_IMPORTED] = reg
     return reg
-
 
 def _try_import_finished_job():
     if not osm_importer:
@@ -823,7 +1021,6 @@ def _try_import_finished_job():
     job_dirs = _list_job_dirs(OSM_DIR)
     if not job_dirs:
         return
-    # Newest first
     job_dirs.sort(key=lambda p: os.path.getmtime(p), reverse=True)
 
     imported = _ensure_imported_registry()
@@ -837,7 +1034,6 @@ def _try_import_finished_job():
         fail_flag = os.path.join(job_dir, "FAILED.txt")
         imported_flag = os.path.join(job_dir, "IMPORTED.txt")
 
-        # Skip if already imported in a previous session
         if os.path.exists(imported_flag):
             imported.add(job_id)
             continue
@@ -848,9 +1044,8 @@ def _try_import_finished_job():
             continue
 
         if not os.path.exists(done_flag):
-            continue # not finished yet
+            continue
 
-        # Ignore DONE older than watcher start
         try:
             done_mtime = os.path.getmtime(done_flag)
         except:
@@ -864,33 +1059,27 @@ def _try_import_finished_job():
 
         Rhino.RhinoApp.WriteLine("[rhino_listener] OSM job {0} finished. Queuing import...".format(job_id))
 
-        # Rename job folder to timestamp format before importing
         renamed_dir = _rename_job_dir_to_timestamp(job_dir)
         if renamed_dir != job_dir:
             job_dir = renamed_dir
             job_id = os.path.basename(job_dir.rstrip("\\/"))
 
         _import_job_on_ui(job_dir, job_id, imported)
-        # Handle one job per tick
         break
-
 
 def _watcher_loop():
     Rhino.RhinoApp.WriteLine("[rhino_listener] OSM watcher started. Folder: {0}".format(OSM_DIR))
     while listener_active:
         try:
             _try_import_finished_job()
-            # also poll for evaluation results to start preview automatically
             job_dir = _get_active_job_dir()
             if job_dir:
                 _try_evaluation_preview(job_dir)
-            # and reflect UI toggles if they changed (does not change current layer)
             _apply_ui_preview_state_if_changed()
         except Exception as e:
             Rhino.RhinoApp.WriteLine("[rhino_listener] Watcher error: {0}".format(e))
         time.sleep(3.0)
     Rhino.RhinoApp.WriteLine("[rhino_listener] OSM watcher stopped.")
-
 
 def _start_watcher_thread():
     t = threading.Thread(target=_watcher_loop)
@@ -901,13 +1090,11 @@ def _start_watcher_thread():
     t.start()
     return t
 
-
 # ===========================
 # Setup / teardown
 # ===========================
 def setup_layer_listener():
     global WATCHER_STARTED_AT
-    # If already active, restart cleanly so the new handlers are attached
     if sc.sticky.get(STICKY_KEY):
         Rhino.RhinoApp.WriteLine("[rhino_listener] Restarting listener on '{0}'.".format(TARGET_LAYER_NAME))
         remove_layer_listener()
@@ -928,7 +1115,7 @@ def setup_layer_listener():
     Rhino.RhinoDoc.ModifyObjectAttributes += on_modify
     Rhino.RhinoDoc.ReplaceRhinoObject += on_replace
     Rhino.RhinoDoc.DeleteRhinoObject += on_delete
-    Command.EndCommand += on_end_command   # <-- NEW
+    Command.EndCommand += on_end_command
 
     sc.sticky[STICKY_KEY] = True
     Rhino.RhinoApp.WriteLine("[rhino_listener] Layer-specific listener active on '{0}'.".format(TARGET_LAYER_NAME))
@@ -942,6 +1129,7 @@ def setup_layer_listener():
     _seed_active_job_dir_from_latest_done()
     _apply_ui_preview_state_if_changed()
 
+    # Seed massing graph from existing geometry (your branch’s behavior)
     try:
         if _any_massing_geometry():
             Rhino.RhinoApp.WriteLine("[rhino_listener] Seeding massing graph from existing geometry.")
@@ -949,7 +1137,6 @@ def setup_layer_listener():
             debounce_trigger()
     except:
         pass
-
 
 def remove_layer_listener():
     try: Rhino.RhinoDoc.AddRhinoObject -= on_add
@@ -960,19 +1147,16 @@ def remove_layer_listener():
     except: pass
     try: Rhino.RhinoDoc.DeleteRhinoObject -= on_delete
     except: pass
-    try: Command.EndCommand -= on_end_command   # <-- NEW
+    try: Command.EndCommand -= on_end_command
     except: pass
     sc.sticky[STICKY_KEY] = False
     Rhino.RhinoApp.WriteLine("[rhino_listener] Layer listener removed.")
-
-
 
 def shutdown_listener():
     global listener_active
     listener_active = False
     remove_layer_listener()
     Rhino.RhinoApp.WriteLine("[rhino_listener] Listener shut down.")
-
 
 # Run once from Rhino:
 # _-RunPythonScript "C:\\...\\2_rhino\\rhino_listener.py"

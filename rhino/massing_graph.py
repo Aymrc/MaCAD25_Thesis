@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # rhino/massing_graph.py — robust MASSING scan + Surface handling + tower branching (IronPython-safe)
+# + street-compat line network (nodes type:'street', edges type:'street' with u/v + 2D line)
 
 import os, uuid, json, time, math
 import Rhino
@@ -14,7 +15,9 @@ LAYER_MASSING_ROOT = "MASSING"
 LAYER_PLOT = "PLOT"
 
 FLOOR_HEIGHT_METERS = 3.0
+TOL = sc.doc.ModelAbsoluteTolerance or 0.001
 
+# Grouping / branching
 # "none" | "by_touching" | "by_sublayer"
 GROUPING_MODE = "by_touching"
 GROUP_GAP_TOL = (sc.doc.ModelAbsoluteTolerance or 0.001) * 2.0
@@ -45,6 +48,16 @@ USE_CLEAN_NODE_IDS = True
 INCLUDE_RANDOM_UID = False
 UNION_TOL_MULT = 4.0
 
+# ---- Street / line-network (from main) ----
+INCLUDE_LINE_NETWORK = True
+DETECT_LINE_INTERSECTIONS = True             # compute curve-curve intersections
+MAX_CURVE_PAIRS_FOR_INTERSECTIONS = 3000     # safety cap for O(n^2)
+CONNECT_BUILDINGS_TO_NEAREST_LINE = True     # add "access" edges from buildings to nearest line node
+ACCESS_SEARCH_RADIUS = 50.0                  # in doc units (0 = unlimited)
+
+STREET_SCHEMA_IDS_PREFIX = "street_v"        # id prefix for street nodes
+EXPORT_EDGES_AND_LINKS   = True              # write both 'edges' and 'links' for compatibility
+
 # ========== UNITS ==========
 def _uu(src, dst):
     try: return Rhino.RhinoMath.UnitScale(src, dst)
@@ -64,7 +77,7 @@ def _ensure_dir(path):
         except: Rhino.RhinoApp.WriteLine("[massing_graph] Could not create folder: " + d)
 
 def _to_brep(g):
-    # Accept Brep, Extrusion, and Surface (convert to Brep)
+    # Accept Brep, Extrusion, and Surface (convert to Brep); best-effort SubD
     try:
         if isinstance(g, rg.Brep):
             return g
@@ -73,7 +86,6 @@ def _to_brep(g):
         if isinstance(g, rg.Surface):
             b = rg.Brep.CreateFromSurface(g)
             if b: return b
-        # Handle SubD as best-effort (Rhino 7/8)
         if hasattr(rg, "SubD") and isinstance(g, rg.SubD):
             try:
                 b = rg.Brep.CreateFromSubD(g)
@@ -108,6 +120,7 @@ def _path_has_segment(fullpath, name):
     return False
 
 def _iter_massing_breps():
+    """Yield (object, Brep) for geometry under MASSING tree."""
     objs = sc.doc.Objects or []
     root = LAYER_MASSING_ROOT.lower()
     for obj in objs:
@@ -118,7 +131,23 @@ def _iter_massing_breps():
                 continue
             b = _to_brep(obj.Geometry)
             if b: yield (obj, b)
-        except: pass
+        except:
+            pass
+
+def _iter_massing_curves():
+    """Yield Rhino.Geometry.Curve under MASSING tree (drop near-zero length)."""
+    root = LAYER_MASSING_ROOT.lower()
+    for obj in sc.doc.Objects or []:
+        try:
+            lyr = sc.doc.Layers[obj.Attributes.LayerIndex]
+            full = getattr(lyr, "FullPath", lyr.Name) or lyr.Name
+            if not _path_has_segment(full, root):
+                continue
+            g = obj.Geometry
+            if isinstance(g, rg.Curve) and g.GetLength() > (TOL * 5.0):
+                yield g
+        except:
+            pass
 
 def _get_plot_center():
     try:
@@ -446,6 +475,31 @@ def _build_branches_from_section_components(bl, spans, curves_by_level, pad, bb_
 
     return branches, split_idx
 
+# ----- line-network helpers -----
+def _curve_segments(curve):
+    """Return simple segments from any curve type (polyline/polycurve expanded)."""
+    try:
+        if isinstance(curve, rg.PolyCurve):
+            segs = curve.DuplicateSegments()
+            if segs: return list(segs)
+        if isinstance(curve, rg.PolylineCurve):
+            segs = curve.DuplicateSegments()
+            if segs: return list(segs)
+        if isinstance(curve, rg.LineCurve):
+            return [curve]
+        return [curve]
+    except:
+        return [curve]
+
+def _pt_key(pt, tol):
+    """Quantize a point by tolerance to merge nearby nodes."""
+    q = 1.0 / max(tol, 1e-9)
+    return (int(round(pt.X * q)), int(round(pt.Y * q)), int(round(pt.Z * q)))
+
+def _dist2(a, b):
+    dx = a.X - b.X; dy = a.Y - b.Y; dz = a.Z - b.Z
+    return dx*dx + dy*dy + dz*dz
+
 # ========== CORE GRAPH ==========
 def build_graph_from_active_doc(floor_h_doc, tol):
     obj_breps = list(_iter_massing_breps()) or []
@@ -462,7 +516,7 @@ def build_graph_from_active_doc(floor_h_doc, tol):
         "branching": BRANCHING_ENABLED
     }
     if not obj_breps:
-        return {"nodes": [], "links": [], "meta": meta, "_preview": None}
+        return {"nodes": [], "links": [], "edges": [], "meta": meta, "_preview": None}
 
     H = float(floor_h_doc)
     tol_z = float(tol)
@@ -473,6 +527,9 @@ def build_graph_from_active_doc(floor_h_doc, tol):
 
     preview_curves = {}
     diagnostics = {}
+
+    # Keep lowest level node per building-branch for access edges
+    ground_node_per_branch = {}
 
     for gid, group in enumerate(groups):
         bl = building_ids[gid]
@@ -592,6 +649,9 @@ def build_graph_from_active_doc(floor_h_doc, tol):
             if uid: node_obj["uid"] = uid
             nodes.append(node_obj)
             node_id[(branch_name, lvl_idx)] = nid
+            # keep lowest for “access” connections later
+            if (branch_name, "ground") not in ground_node_per_branch or lvl_idx < ground_node_per_branch[(branch_name, "ground")][0]:
+                ground_node_per_branch[(branch_name, "ground")] = (lvl_idx, nid, node_obj)
             return nid
 
         # vertical edges per branch
@@ -606,7 +666,7 @@ def build_graph_from_active_doc(floor_h_doc, tol):
                 if rec is None: continue
                 nid = _emit_node(branch_name, k, rec)
                 if prev_n and nid:
-                    edges.append({"source": prev_n, "target": nid, "type": "vertical", "weight": 1.0})
+                    edges.append({"u": prev_n, "v": nid, "type": "vertical", "weight": 1.0})
                 if nid: prev_n = nid
 
         # split edges
@@ -617,22 +677,138 @@ def build_graph_from_active_doc(floor_h_doc, tol):
                     if bname == bl: continue
                     tower_node = node_id.get((bname, split_idx))
                     if tower_node:
-                        edges.append({"source": podium_node, "target": tower_node, "type": "split", "weight": 1.0})
+                        edges.append({"u": podium_node, "v": tower_node, "type": "split", "weight": 1.0})
 
+    # ---- optional PLOT hub (kept; light) ----
     pc = _get_plot_center()
     if pc:
         nodes.append({"id":"PLOT", "type":"plot", "center_doc": [float(pc[0]), float(pc[1]), float(pc[2])]})
+        # connect the first node of each building's main branch (original bl)
         by_building_branch = defaultdict(list)
         for n in nodes:
             if n.get("type") == "level":
                 by_building_branch[n["building_id"]].append(n)
         for bl, lst in by_building_branch.items():
-            lst_sorted = sorted(lst, key=lambda n: (n["branch_id"] != bl, n["level_index"]))
+            lst_sorted = sorted(lst, key=lambda n: (n.get("branch_id") != bl, n.get("level_index", 1e9)))
             if lst_sorted:
-                edges.append({"source": lst_sorted[0]["id"], "target": "PLOT", "type": "plot", "weight": 1.0})
+                edges.append({"u": lst_sorted[0]["id"], "v": "PLOT", "type": "plot", "weight": 1.0})
+
+    # ---------------------------------------------------------------------
+    # 2) Curves → street line network (from main; street schema compatible)
+    # ---------------------------------------------------------------------
+    line_node_ids = {}   # quantized point key -> node_id
+    line_nodes_pts = {}  # node_id -> Point3d
+    line_node_seq = [0]  # mutable counter for IronPython
+
+    def _ensure_line_node(pt):
+        k = _pt_key(pt, tol)
+        nid = line_node_ids.get(k)
+        if nid:
+            return nid
+        line_node_seq[0] += 1
+        seq = line_node_seq[0]
+        nid = "%s%d" % (STREET_SCHEMA_IDS_PREFIX, seq)
+        nodes.append({
+            "id": nid,
+            "type": "street",
+            "x": float(pt.X),
+            "y": float(pt.Y)
+        })
+        line_node_ids[k] = nid
+        line_nodes_pts[nid] = rg.Point3d(pt.X, pt.Y, pt.Z)
+        return nid
+
+    if INCLUDE_LINE_NETWORK:
+        curves = list(_iter_massing_curves())
+        simple_curves = []
+        for c in curves:
+            simple_curves.extend(_curve_segments(c))
+
+        # collect intersections per curve (normalized)
+        curve_to_t_hits = {}
+        if DETECT_LINE_INTERSECTIONS and len(simple_curves) > 1:
+            n = len(simple_curves)
+            max_pairs = min(MAX_CURVE_PAIRS_FOR_INTERSECTIONS, n*(n-1)//2)
+            cnt = 0
+            for i in range(n):
+                ci = simple_curves[i]; di = ci.Domain
+                for j in range(i+1, n):
+                    if cnt >= max_pairs:
+                        break
+                    cj = simple_curves[j]; dj = cj.Domain
+                    events = rgi.Intersection.CurveCurve(ci, cj, tol, tol)
+                    cnt += 1
+                    if events and events.Count > 0:
+                        for ev in events:
+                            try:
+                                ti = (ev.ParameterA - di.T0) / (di.T1 - di.T0) if (di.T1 - di.T0) != 0 else 0.0
+                                tj = (ev.ParameterB - dj.T0) / (dj.T1 - dj.T0) if (dj.T1 - dj.T0) != 0 else 0.0
+                            except:
+                                continue
+                            ti = max(0.0, min(1.0, float(ti)))
+                            tj = max(0.0, min(1.0, float(tj)))
+                            curve_to_t_hits.setdefault(ci, set()).add(ti)
+                            curve_to_t_hits.setdefault(cj, set()).add(tj)
+
+        # split by endpoints + intersections → street edges
+        for c in simple_curves:
+            d = c.Domain
+            ts = [0.0, 1.0]
+            if c in curve_to_t_hits:
+                ts.extend(list(curve_to_t_hits[c]))
+            ts = sorted(ts)
+            ts_clean = []
+            for t in ts:
+                if not ts_clean or abs(t - ts_clean[-1]) > 1e-6:
+                    ts_clean.append(t)
+            for a, b in zip(ts_clean[:-1], ts_clean[1:]):
+                if (b - a) < 1e-6:
+                    continue
+                ta = d.T0 + a * (d.T1 - d.T0)
+                tb = d.T0 + b * (d.T1 - d.T0)
+                pa = c.PointAt(ta)
+                pb = c.PointAt(tb)
+                if pa.DistanceTo(pb) < (tol * 2.0):
+                    continue
+                na = _ensure_line_node(pa)
+                nb = _ensure_line_node(pb)
+                edges.append({
+                    "u": na,
+                    "v": nb,
+                    "type": "street",
+                    "distance": float(math.hypot(pb.X - pa.X, pb.Y - pa.Y)),
+                    "line": [
+                        [float(pa.X), float(pa.Y)],
+                        [float(pb.X), float(pb.Y)]
+                    ]
+                })
+
+    # 3) Connect building ground nodes to nearest street node
+    if INCLUDE_LINE_NETWORK and CONNECT_BUILDINGS_TO_NEAREST_LINE and line_nodes_pts:
+        ln_items = list(line_nodes_pts.items())
+        for (branch_name, _), (lvl_idx, nid, node_obj) in ground_node_per_branch.items():
+            bp = rg.Point3d(node_obj["centroid_doc"][0], node_obj["centroid_doc"][1], node_obj["centroid_doc"][2])
+            best = None
+            best_d2 = None
+            for lnid, lpt in ln_items:
+                d2 = _dist2(bp, lpt)
+                if ACCESS_SEARCH_RADIUS > 0.0 and d2 > (ACCESS_SEARCH_RADIUS * ACCESS_SEARCH_RADIUS):
+                    continue
+                if (best is None) or (d2 < best_d2):
+                    best, best_d2 = lnid, d2
+            if best:
+                edges.append({
+                    "u": nid,
+                    "v": best,
+                    "type": "access",
+                    "distance": float(math.sqrt(best_d2))
+                })
 
     meta["diagnostics_per_building"] = diagnostics
-    return {"nodes": nodes, "links": edges, "meta": meta, "_preview": preview_curves}
+    out = {"nodes": nodes, "edges": edges, "meta": meta}
+    # Mirror to links for consumers that expect 'links'
+    out["links"] = edges
+    return out
 
 # ========== SAVE ==========
 def _diagnose_level_counts(nodes, H_m):
@@ -662,7 +838,10 @@ def save_graph(path=KNOWLEDGE_PATH):
         tol = sc.doc.ModelAbsoluteTolerance or 0.001
         floor_h_doc = _doc_len_from_meters(FLOOR_HEIGHT_METERS)
         res = build_graph_from_active_doc(floor_h_doc, tol)
-        data = {"nodes": res["nodes"], "links": res["links"], "meta": res["meta"]}
+
+        # ensure both 'edges' and 'links' are present
+        data = {"nodes": res["nodes"], "edges": res.get("edges") or res.get("links") or [], "meta": res["meta"]}
+        data["links"] = data["edges"]
 
         levels = [n for n in data["nodes"] if n.get("type") == "level"]
         total_area_m2 = sum(float(n.get("area_m2", 0.0)) for n in levels)
@@ -684,14 +863,10 @@ def save_graph(path=KNOWLEDGE_PATH):
         Rhino.RhinoApp.WriteLine("[massing_graph] Level nodes (total): " + str(len(levels)))
         Rhino.RhinoApp.WriteLine("[massing_graph] Total GFA: " + str(round(total_area_m2, 3)) + " m^2")
         Rhino.RhinoApp.WriteLine("[massing_graph] Sum(max level per building): " + str(round(site_footprint_ref_m2, 3)) + " m^2")
-        
-        # Explicit total sqm for the masterplan in RHINO 
         try:
             Rhino.RhinoApp.WriteLine("[massing_graph] Masterplan total sqm: {0:.2f} m^2".format(total_area_m2))
         except:
             Rhino.RhinoApp.WriteLine("[massing_graph] Masterplan total sqm: " + str(round(total_area_m2, 2)) + " m^2")
-
-        Rhino.RhinoApp.WriteLine("[massing_graph] Sum(max level per building): " + str(round(site_footprint_ref_m2, 3)) + " m^2")
 
         try:
             _diagnose_level_counts(data["nodes"], data["meta"]["floor_height_m"])
