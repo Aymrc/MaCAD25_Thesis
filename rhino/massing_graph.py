@@ -57,10 +57,10 @@ UNION_TOL_MULT = 4.0
 INCLUDE_LINE_NETWORK = True
 DETECT_LINE_INTERSECTIONS = True             # compute curve-curve intersections
 MAX_CURVE_PAIRS_FOR_INTERSECTIONS = 3000     # safety cap for O(n^2)
-CONNECT_BUILDINGS_TO_NEAREST_LINE = True     # add "access" edges from building ground to nearest street node
+CONNECT_BUILDINGS_TO_NEAREST_LINE = True
+CONNECT_ONLY_MAIN_BRANCH = True              # NUEVO: 1 conexión por edificio (rama principal)
+CONNECT_GROUND_ONLY_IF_NONEMPTY = True       # NUEVO: evita conectar niveles vacíos
 
-# IMPORTANT: Unlimited radius so we always connect to the closest street node.
-ACCESS_SEARCH_RADIUS = 0.0                   # in doc units (0 = unlimited)
 
 STREET_SCHEMA_IDS_PREFIX = "street_v"        # id prefix for street nodes
 EXPORT_EDGES_AND_LINKS   = True              # write both 'edges' and 'links' for compatibility
@@ -75,6 +75,8 @@ def _meters_from_doc_len(L):       return float(L) * _uu(sc.doc.ModelUnitSystem,
 def _m2_from_doc_area(a_doc):
     s = _uu(sc.doc.ModelUnitSystem, Rhino.UnitSystem.Meters)
     return float(a_doc) * (s ** 2)
+
+ACCESS_SEARCH_RADIUS = _doc_len_from_meters(60.0)                  # in doc units (0 = unlimited)
 
 # ========== UTILS ==========
 def _ensure_dir(path):
@@ -886,6 +888,12 @@ def build_graph_from_active_doc(floor_h_doc, tol):
     if INCLUDE_LINE_NETWORK and CONNECT_BUILDINGS_TO_NEAREST_LINE and line_nodes_pts:
         ln_items = list(line_nodes_pts.items())
         for (branch_name, _), (lvl_idx, nid, node_obj) in ground_node_per_branch.items():
+   
+            if CONNECT_ONLY_MAIN_BRANCH and branch_name != node_obj.get("building_id"):
+                continue
+            if CONNECT_GROUND_ONLY_IF_NONEMPTY and float(node_obj.get("area_doc", 0.0)) <= 0.0:
+                continue
+
             bp = rg.Point3d(
                 float(node_obj["centroid_doc"][0]),
                 float(node_obj["centroid_doc"][1]),
@@ -939,31 +947,65 @@ def _diagnose_level_counts(nodes, H_m):
         ))
 
 def save_graph(path=KNOWLEDGE_PATH):
+    """
+    Build and persist the massing graph JSON.
+    Writes the canonical file to `knowledge/massing_graph.json` and also
+    mirrors it to `knowledge/merge/massing_graph.json` for the UI.
+    Ensures both `edges` and `links` are present (same array).
+    Adds meta.updated_at to ease cache-busting in the UI.
+    """
     try:
         tol = sc.doc.ModelAbsoluteTolerance or 0.001
         floor_h_doc = _doc_len_from_meters(FLOOR_HEIGHT_METERS)
+
         res = build_graph_from_active_doc(floor_h_doc, tol)
 
-        # ensure both 'edges' and 'links' are present
-        data = {"nodes": res["nodes"], "edges": res.get("edges") or res.get("links") or [], "meta": res["meta"]}
+        # Compose payload and ensure both 'edges' and 'links'
+        data = {
+            "nodes": res.get("nodes", []),
+            "edges": res.get("edges") or res.get("links") or [],
+            "meta":  res.get("meta", {})
+        }
         data["links"] = data["edges"]
 
+        # Enrich meta to help UI cache-busting & diagnostics
+        try:
+            data["meta"]["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime())
+        except:
+            data["meta"]["updated_at"] = str(time.time())
+
+        # Quick stats (for Rhino console)
         levels = [n for n in data["nodes"] if n.get("type") == "level"]
         total_area_m2 = sum(float(n.get("area_m2", 0.0)) for n in levels)
 
         from collections import defaultdict
         by_bld = defaultdict(list)
-        for n in levels: by_bld[n.get("building_id","?")].append(n)
+        for n in levels:
+            by_bld[n.get("building_id", "?")].append(n)
+
         site_footprint_ref_m2 = 0.0
         for bl, lst in by_bld.items():
             if lst:
-                site_footprint_ref_m2 += max(float(n.get("area_m2",0.0)) for n in lst)
+                site_footprint_ref_m2 += max(float(n.get("area_m2", 0.0)) for n in lst)
 
-        _ensure_dir(path)
-        with open(path, "w") as f:
+        # Write canonical file
+        primary_path = path  # e.g. <repo>/knowledge/massing_graph.json
+        _ensure_dir(primary_path)
+        with open(primary_path, "w") as f:
             json.dump(data, f, indent=2)
 
-        Rhino.RhinoApp.WriteLine("[massing_graph] Saved: " + path)
+        # Also mirror to UI-friendly location (what many UIs expect)
+        ui_path = os.path.join(PROJECT_DIR, "knowledge", "merge", "massing_graph.json")
+        _ensure_dir(ui_path)
+        try:
+            with open(ui_path, "w") as f:
+                json.dump(data, f, indent=2)
+            Rhino.RhinoApp.WriteLine("[massing_graph] UI copy written to: " + ui_path)
+        except Exception as e:
+            Rhino.RhinoApp.WriteLine("[massing_graph] WARNING: could not write UI copy: " + str(e))
+
+        # Console diagnostics
+        Rhino.RhinoApp.WriteLine("[massing_graph] Saved: " + primary_path)
         Rhino.RhinoApp.WriteLine("[massing_graph] Nodes: " + str(len(data["nodes"])) + ", Edges: " + str(len(data["links"])))
         Rhino.RhinoApp.WriteLine("[massing_graph] Level nodes (total): " + str(len(levels)))
         Rhino.RhinoApp.WriteLine("[massing_graph] Total GFA: " + str(round(total_area_m2, 3)) + " m^2")
@@ -978,8 +1020,11 @@ def save_graph(path=KNOWLEDGE_PATH):
         except:
             Rhino.RhinoApp.WriteLine("[massing_graph] (diagnostics skipped)")
 
-        if SHOW_CONTOUR_PREVIEW and res.get("_preview"): _preview_on(res.get("_preview") or {})
-        else: _preview_off()
+        # Preview conduit toggle
+        if SHOW_CONTOUR_PREVIEW and res.get("_preview"):
+            _preview_on(res.get("_preview") or {})
+        else:
+            _preview_off()
 
     except Exception as e:
         Rhino.RhinoApp.WriteLine("[massing_graph] Save error: " + str(e))
