@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # enriched.py
 # Soft-weighted, randomized program allocation without changing topology.
 # Output: human-readable only (no machine-JSON logs except --stdout graph dump).

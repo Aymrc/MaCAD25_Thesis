@@ -321,7 +321,7 @@ def _compute_massing_total_sqm(massing_json):
     return float(total)
 
 def _compute_brief_total_sqm(brief_json):
-    """Sum brief program needs (sqm) using enriched.py’s extractor."""
+    """Sum brief program needs (sqm) using enriched.py's extractor."""
     need_by_program, _meta = extract_programs_from_brief(brief_json or {})
     return float(sum(float(v or 0.0) for v in need_by_program.values()))
 
@@ -348,7 +348,7 @@ def _should_run_enriched(job_dir=None):
         brief_total   = _compute_brief_total_sqm(brief_json)
 
         Rhino.RhinoApp.WriteLine(
-            "[rhino_listener] sqm check → massing={0:.2f} vs brief={1:.2f}".format(massing_total, brief_total)
+            "[rhino_listener] sqm check > massing={0:.2f} vs brief={1:.2f}".format(massing_total, brief_total)
         )
 
         if massing_total > brief_total:
@@ -423,7 +423,7 @@ def _export_masterplan_graph_now(job_dir=None):
         _do()
 
 def _export_enriched_now(job_dir=None):
-    """Run enrichment — generates 10 variants if sq.m. check passes."""
+    """Run enrichment - generates 10 variants if sq.m. check passes."""
     def _do():
         try:
             ok, reason = _should_run_enriched(job_dir=job_dir)
@@ -905,7 +905,7 @@ def handle_layer_change():
                     # enriched
                     _export_enriched_now(job_dir=job_dir)
 
-        # MASSING → graph (only when MASSING changed)
+        # MASSING > graph (only when MASSING changed)
         if sc.sticky.get(STICKY_MASSING_DIRTY):
             sc.sticky[STICKY_MASSING_DIRTY] = False
             _export_massing_graph_now()
@@ -966,10 +966,10 @@ def on_add(sender, e):
     # MASSING export (robust)
     try:
         if listener_active:
-            # If we can’t read the object yet, assume it’s relevant (failsafe)
+            # If we can't read the object yet, assume it's relevant (failsafe)
             if ro is None or is_on_target_layer(ro):
                 try:
-                    Rhino.RhinoApp.WriteLine("[rhino_listener] MASSING on_add → export scheduled.")
+                    Rhino.RhinoApp.WriteLine("[rhino_listener] MASSING on_add > export scheduled.")
                 except:
                     pass
                 _mark_massing_dirty()
@@ -977,7 +977,7 @@ def on_add(sender, e):
     except Exception as ex:
         # Never let the listener die on add; schedule anyway
         try:
-            Rhino.RhinoApp.WriteLine("[rhino_listener] on_add error: " + str(ex) + " → export scheduled (failsafe).")
+            Rhino.RhinoApp.WriteLine("[rhino_listener] on_add error: " + str(ex) + " > export scheduled (failsafe).")
         except:
             pass
         _mark_massing_dirty()
@@ -1237,7 +1237,7 @@ def setup_layer_listener():
     _seed_active_job_dir_from_latest_done()
     _apply_ui_preview_state_if_changed()
 
-    # Seed massing graph from existing geometry (your branch’s behavior)
+    # Seed massing graph from existing geometry (your branch's behavior)
     try:
         if _any_massing_geometry():
             Rhino.RhinoApp.WriteLine("[rhino_listener] Seeding massing graph from existing geometry.")
