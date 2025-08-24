@@ -1,13 +1,13 @@
 # --- Python bytecode & caches ---
-__pycache__/
+__pycache__/*
 /__pycache/*
-cache/
+cache/*
 llm/__pycache__/*
 
 # --- Project runtime ---
 knowledge/osm/
 knowledge/merge/
-lib/*
 knowledge/briefs/
-knowledge/iteration
-knowledge/merge
+knowledge/iteration/
+knowledge/merge/
+lib/*
