@@ -6,7 +6,7 @@ const MASSING_GRAPH_PATH     = `${API_BASE}/graph/massing`;
 const MASSING_MTIME_PATH     = `${API_BASE}/graph/massing/mtime`;
 const MASTERPLAN_GRAPH_PATH  = `${API_BASE}/graph/masterplan`;
 const MASTERPLAN_MTIME_PATH  = `${API_BASE}/graph/masterplan/mtime`;
-// const ENRICHED_LATEST_PATH   = `${API_BASE}/graph/knowledge/iteration/latest`;
+const ENRICHED_LATEST_PATH   = `${API_BASE}/graph/enriched/latest`;
 
 /** Retry helper for JSON fetches with small backoff.
     Pass {allowEmpty:true} when an empty graph should NOT be treated as an error. */

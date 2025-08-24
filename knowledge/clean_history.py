@@ -1,12 +1,14 @@
 # clean_history.py
 # Run with Python 3 (launched by main.py via an external interpreter).
 # - Deletes knowledge/massing_graph.json
+# - Deletes knowledge/osm/graph_context.json
 # - Purges knowledge/osm temporary workspaces:
 #     * folders named "_tmp"
 #     * folders starting with "osm_"
 #     * folders whose names look like UUIDs
 # - Removes knowledge/osm/_last_job.txt marker if present
 # - Deletes everything inside knowledge/merge
+# - Resets knowledge/iteration (recreates empty)
 
 import os
 import re
@@ -67,6 +69,15 @@ def safe_rmtree(p: Path) -> bool:
             print("[CLEAN] Failed to remove folder:", p, "-", e2)
             return False
 
+def ensure_empty_dir(p: Path) -> None:
+    """Remove directory if present and recreate it empty."""
+    safe_rmtree(p)
+    try:
+        p.mkdir(parents=True, exist_ok=True)
+        print("[CLEAN] Recreated empty folder:", p)
+    except Exception as e:
+        print("[CLEAN] Failed to recreate folder:", p, "-", e)
+
 # -------- Targeted cleanup --------
 
 def purge_osm_workspaces(osm_dir: Path) -> None:
@@ -119,18 +130,10 @@ def purge_merge_dir(merge_dir: Path) -> None:
     except Exception as e:
         print("[CLEAN] Failed to clean merge dir:", merge_dir, "-", e)
 
-def purge_iteration_dir(iter_dir: Path) -> None:
-    """Delete all files/folders inside knowledge/iteration (but keep the folder itself)."""
-    if not iter_dir.exists() or not iter_dir.is_dir():
-        return
-    try:
-        for p in iter_dir.iterdir():
-            if p.is_file():
-                safe_remove_file(p)
-            elif p.is_dir():
-                safe_rmtree(p)
-    except Exception as e:
-        print("[CLEAN] Failed to clean iteration dir:", iter_dir, "-", e)
+def reset_iteration_dir(knowledge_dir: Path) -> None:
+    """Reset knowledge/iteration (remove entirely and recreate empty)."""
+    iteration_dir = knowledge_dir / "iteration"
+    ensure_empty_dir(iteration_dir)
 
 # -------- Entry point --------
 
@@ -143,7 +146,7 @@ def main():
     remove_known_files(knowledge_dir)
     purge_osm_workspaces(osm_dir)
     purge_merge_dir(merge_dir)
-    purge_iteration_dir(iteration_dir)
+    reset_iteration_dir(knowledge_dir)
 
 if __name__ == "__main__":
     main()
