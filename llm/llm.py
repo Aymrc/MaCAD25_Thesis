@@ -38,8 +38,8 @@ CONTEXT_DIR = PROJECT_DIR / "context"
 RUNTIME_DIR = CONTEXT_DIR / "runtime"
 KNOWLEDGE_DIR = PROJECT_DIR / "knowledge"
 OSM_DIR = KNOWLEDGE_DIR / "osm"
-BRIEFS_DIR = KNOWLEDGE_DIR / "briefs"       # unified briefs folder
-ENRICHED_DIR = PROJECT_DIR / "enriched_graph" / "iteration"
+BRIEFS_DIR = KNOWLEDGE_DIR / "briefs"
+ENRICHED_FILE = KNOWLEDGE_DIR / "enriched" / "enriched_graph.json" 
 
 for d in (RUNTIME_DIR, OSM_DIR, BRIEFS_DIR):
     os.makedirs(d, exist_ok=True)
@@ -117,12 +117,12 @@ def _job_candidates() -> list[Path]:
 
 def _purge_previous_osm_workspace():
     """
-    Elimina *todas* las carpetas de job previas en knowledge/osm antes de crear una nueva.
-    Borra tanto 'osm_*' (renombradas por Rhino) como carpetas con nombre UUID.
-    También limpia el legado 'knowledge/osm/_tmp' si existe.
+    Delete *all* previous job folders in knowledge/osm before creating a new one.
+    Removes both 'osm_*' (renamed by Rhino) and UUID-named folders.
+    Also cleans up the legacy 'knowledge/osm/_tmp' if it exists.
     """
     try:
-        # 1) Si el marcador apunta a una ruta existente, bórrala
+        # 1) If the marker points to an existing path, delete it
         if LAST_JOB_MARK.exists():
             prev_txt = LAST_JOB_MARK.read_text(encoding="utf-8").strip()
             if prev_txt:
@@ -130,20 +130,20 @@ def _purge_previous_osm_workspace():
                 if prev.exists() and prev.is_dir():
                     _delete_folder(prev)
 
-        # 2) Borra todas las carpetas de job detectadas (osm_* o UUID)
+        # 2) Delete all detected job folders (osm_* or UUID)
         cands = _job_candidates()
-        # Ordenamos por mtime descendente solo para log/depuración; igual se borran todas
+        # Sorted by mtime descending only for logging/debugging; all will be deleted anyway
         cands.sort(key=lambda p: p.stat().st_mtime, reverse=True)
         for p in cands:
             _delete_folder(p)
 
-        # 3) Limpieza de carpeta temporal antigua
+        # 3) Clean up old temporary folder
         legacy_tmp = OSM_DIR / "_tmp"
         if legacy_tmp.exists() and legacy_tmp.is_dir():
             _delete_folder(legacy_tmp)
 
     except Exception:
-        # silencioso: la limpieza no debe romper /osm/run
+        # Silent: cleanup should not break /osm/run
         pass
 
 
@@ -736,31 +736,28 @@ def _massing_context_text(max_nodes: int = 200, max_edges: int = 200, include_st
 
 @app.get("/graph/enriched/latest")
 def get_enriched_latest():
-    if not ENRICHED_DIR.exists():
+    """Serve a single fixed enriched graph file."""
+    if not ENRICHED_FILE.exists():
         return JSONResponse({"nodes": [], "edges": [], "meta": {}}, status_code=404)
 
-    best_n, best_path = -1, None
-    for p in ENRICHED_DIR.glob("it*.json"):
-        m = re.fullmatch(r"it(\d+)\.json", p.name, flags=re.IGNORECASE)
-        if m:
-            n = int(m.group(1))
-            if n > best_n:
-                best_n, best_path = n, p
-
-    if best_path is None:
-        return JSONResponse({"nodes": [], "edges": [], "meta": {}}, status_code=404)
-
-    with open(best_path, "r", encoding="utf-8") as f:
+    with open(ENRICHED_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     links = data.get("links", data.get("edges", []))
-    data = {
+    return {
         "nodes": data.get("nodes", []),
         "links": links,
-        "edges": links,
-        "meta": {**data.get("meta", {}), "iteration_file": best_path.name}
+        "edges": links,  # keep both keys for the frontend adapter
+        "meta": {**data.get("meta", {}), "iteration_file": ENRICHED_FILE.name}
     }
-    return JSONResponse(data)
+
+@app.get("/graph/enriched/mtime")
+def get_enriched_mtime():
+    try:
+        return {"mtime": os.path.getmtime(ENRICHED_FILE)}
+    except:
+        return {"mtime": 0.0}
+
 
 # ---- Quiet Uvicorn access logs for mtime polling ----
 ACCESS_LOG_MUTE_ENDPOINTS = ("/graph/massing/mtime", "/graph/enriched/mtime") # ("/graph/massing/mtime", "...") add whatever we need to clean

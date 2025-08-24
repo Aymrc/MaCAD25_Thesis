@@ -11,8 +11,13 @@ from System.Drawing import Color
 from collections import defaultdict
 
 # ========== CONFIG ==========
+# Layers (we only listen to MASSING and its sublayers)
 LAYER_MASSING_ROOT = "MASSING"
 LAYER_PLOT = "PLOT"
+
+# Optional MASSING sublayer hints (used only for filtering inside MASSING)
+MASSING_BUILDING_SUBLAYERS = ["Buildings", "Building", "Masses"]
+MASSING_STREET_SUBLAYERS   = ["Streets", "Street", "Lines"]
 
 FLOOR_HEIGHT_METERS = 3.0
 TOL = sc.doc.ModelAbsoluteTolerance or 0.001
@@ -48,12 +53,14 @@ USE_CLEAN_NODE_IDS = True
 INCLUDE_RANDOM_UID = False
 UNION_TOL_MULT = 4.0
 
-# ---- Street / line-network (from main) ----
+# ---- Street / line-network ----
 INCLUDE_LINE_NETWORK = True
 DETECT_LINE_INTERSECTIONS = True             # compute curve-curve intersections
 MAX_CURVE_PAIRS_FOR_INTERSECTIONS = 3000     # safety cap for O(n^2)
-CONNECT_BUILDINGS_TO_NEAREST_LINE = True     # add "access" edges from buildings to nearest line node
-ACCESS_SEARCH_RADIUS = 50.0                  # in doc units (0 = unlimited)
+CONNECT_BUILDINGS_TO_NEAREST_LINE = True
+CONNECT_ONLY_MAIN_BRANCH = True              # NUEVO: 1 conexión por edificio (rama principal)
+CONNECT_GROUND_ONLY_IF_NONEMPTY = True       # NUEVO: evita conectar niveles vacíos
+
 
 STREET_SCHEMA_IDS_PREFIX = "street_v"        # id prefix for street nodes
 EXPORT_EDGES_AND_LINKS   = True              # write both 'edges' and 'links' for compatibility
@@ -68,6 +75,8 @@ def _meters_from_doc_len(L):       return float(L) * _uu(sc.doc.ModelUnitSystem,
 def _m2_from_doc_area(a_doc):
     s = _uu(sc.doc.ModelUnitSystem, Rhino.UnitSystem.Meters)
     return float(a_doc) * (s ** 2)
+
+ACCESS_SEARCH_RADIUS = _doc_len_from_meters(60.0)                  # in doc units (0 = unlimited)
 
 # ========== UTILS ==========
 def _ensure_dir(path):
@@ -109,9 +118,10 @@ def _bbox_z(b):
 
 # ---- MASSING layer helpers (very permissive) ----
 def _path_has_segment(fullpath, name):
+    """Return True if `name` exists as a segment in the layer FullPath (case-insensitive)."""
     try:
         parts = (fullpath or "").split("::")
-        n = (name or "").lower()
+        n = (name or "").strip().lower()
         for p in parts:
             if (p or "").strip().lower() == n:
                 return True
@@ -119,35 +129,88 @@ def _path_has_segment(fullpath, name):
         pass
     return False
 
+
+def _path_has_any_suffix(fullpath, suffix_names):
+    """
+    If MASSING is present, optionally check if any hint sublayer name exists in the path.
+    If suffix_names is empty or None, returns True (accept anything under MASSING).
+    """
+    try:
+        if not suffix_names:
+            return True
+        parts = [(p or "").strip().lower() for p in (fullpath or "").split("::")]
+        targets = [(s or "").strip().lower() for s in suffix_names]
+        return any(p in targets for p in parts)
+    except:
+        return True
+
+
 def _iter_massing_breps():
-    """Yield (object, Brep) for geometry under MASSING tree."""
+    """
+    Yield (object, Brep) for geometry under MASSING tree.
+    If MASSING_*_SUBLAYERS are set, prefer those; otherwise accept any Brep under MASSING.
+    """
     objs = sc.doc.Objects or []
-    root = LAYER_MASSING_ROOT.lower()
+    root = (LAYER_MASSING_ROOT or "").lower()
+    count_total = 0
+    count_used  = 0
     for obj in objs:
         try:
             lyr = sc.doc.Layers[obj.Attributes.LayerIndex]
             full = getattr(lyr, "FullPath", lyr.Name) or lyr.Name
             if not _path_has_segment(full, root):
                 continue
+            count_total += 1
+            # filter by optional sublayer hints (if provided)
+            if not _path_has_any_suffix(full, MASSING_BUILDING_SUBLAYERS):
+                # If you want to accept ANY Brep under MASSING (even if not in sublayer hints),
+                # comment-out the next line.
+                # continue
+                pass
             b = _to_brep(obj.Geometry)
-            if b: yield (obj, b)
+            if b:
+                count_used += 1
+                yield (obj, b)
         except:
             pass
+    try:
+        Rhino.RhinoApp.WriteLine("[massing_graph] MASSING candidates (all types): {0}, buildings kept: {1}".format(count_total, count_used))
+    except:
+        pass
+
 
 def _iter_massing_curves():
-    """Yield Rhino.Geometry.Curve under MASSING tree (drop near-zero length)."""
-    root = LAYER_MASSING_ROOT.lower()
+    """
+    Yield Curve objects under MASSING (sublayers like MASSING::Streets).
+    If MASSING_*_SUBLAYERS are set, prefer those; otherwise accept any Curve under MASSING.
+    """
+    root = (LAYER_MASSING_ROOT or "").lower()
+    total = 0
+    used  = 0
     for obj in sc.doc.Objects or []:
         try:
             lyr = sc.doc.Layers[obj.Attributes.LayerIndex]
             full = getattr(lyr, "FullPath", lyr.Name) or lyr.Name
             if not _path_has_segment(full, root):
                 continue
+            total += 1
+            # filter by optional sublayer hints (if provided)
+            if not _path_has_any_suffix(full, MASSING_STREET_SUBLAYERS):
+                # If you want to accept ANY curve under MASSING (even if not in sublayer hints),
+                # comment-out the next line.
+                # continue
+                pass
             g = obj.Geometry
             if isinstance(g, rg.Curve) and g.GetLength() > (TOL * 5.0):
+                used += 1
                 yield g
         except:
             pass
+    try:
+        Rhino.RhinoApp.WriteLine("[massing_graph] MASSING curves candidates: {0}, streets kept: {1}".format(total, used))
+    except:
+        pass
+
 
 def _get_plot_center():
     try:
@@ -213,7 +276,7 @@ def _group_breps_by_touching(obj_breps, pad):
             bb_a = items[a]["bb"]
             for j in range(n):
                 if visited[j]: continue
-                if not _bbox_overlap(bb_a, items[j]["bb"], pad): 
+                if not _bbox_overlap(bb_a, items[j]["bb"], pad):
                     continue
                 visited[j] = True
                 queue.append(j)
@@ -304,7 +367,7 @@ def _mesh_from_brep(b):
         if not parts: return None
         if isinstance(parts, (list, tuple)):
             m = Rhino.Geometry.Mesh()
-            for p in parts: 
+            for p in parts:
                 try: m.Append(p)
                 except: pass
             parts = m
@@ -418,8 +481,16 @@ def _build_branches_from_section_components(bl, spans, curves_by_level, pad, bb_
 
     def make_rec(k, a_doc, cx, cy):
         idx, z0, mid, z1 = spans[k]
-        return {"area_doc": float(a_doc), "cx": float(cx), "cy": float(cy),
-                "cz": float(mid), "z0": float(z0), "z1": float(z1), "bbox": bb_group}
+        return {
+            "area_doc": float(a_doc),
+            "cx": float(cx),
+            "cy": float(cy),
+            "_centroid_is_average": True,  # critical: prevent double division later
+            "cz": float(mid),
+            "z0": float(z0),
+            "z1": float(z1),
+            "bbox": bb_group
+        }
 
     if split_idx is None:
         for k, infos in enumerate(compinfo_per_band):
@@ -500,6 +571,12 @@ def _dist2(a, b):
     dx = a.X - b.X; dy = a.Y - b.Y; dz = a.Z - b.Z
     return dx*dx + dy*dy + dz*dz
 
+def _dist2_xy(a, b):
+    """Squared distance in the XY plane (ignore Z for street access)."""
+    dx = a.X - b.X
+    dy = a.Y - b.Y
+    return dx*dx + dy*dy
+
 # ========== CORE GRAPH ==========
 def build_graph_from_active_doc(floor_h_doc, tol):
     obj_breps = list(_iter_massing_breps()) or []
@@ -534,7 +611,7 @@ def build_graph_from_active_doc(floor_h_doc, tol):
     for gid, group in enumerate(groups):
         bl = building_ids[gid]
         breps = [b for (_, b) in group]
-        if not breps: 
+        if not breps:
             continue
 
         zmin_g = +1e20; zmax_g = -1e20; bb_group = None
@@ -622,10 +699,24 @@ def build_graph_from_active_doc(floor_h_doc, tol):
             area_doc = float(rec.get("area_doc", 0.0))
             area_m2  = float(_m2_from_doc_area(area_doc)) if area_doc > 0.0 else 0.0
             if MIN_LEVEL_AREA_M2 > 0.0 and area_m2 < MIN_LEVEL_AREA_M2: return None
-            w = area_doc if area_doc != 0.0 else 1.0
-            cx = rec.get("cx",0.0)/w; cy = rec.get("cy",0.0)/w; cz = rec.get("cz",0.0)
-            z0 = rec.get("z0", cz - 0.5*H); z1 = rec.get("z1", cz + 0.5*H)
+
+            # If record came from branching, cx/cy are already averaged.
+            if rec.get("_centroid_is_average", False):
+                cx = float(rec.get("cx", 0.0))
+                cy = float(rec.get("cy", 0.0))
+            else:
+                w = area_doc if area_doc != 0.0 else 1.0
+                cx = float(rec.get("cx", 0.0)) / w
+                cy = float(rec.get("cy", 0.0)) / w
+
+            cz = float(rec.get("cz", 0.0))
+            z0 = float(rec.get("z0", cz - 0.5*H)); z1 = float(rec.get("z1", cz + 0.5*H))
             bb = rec.get("bbox") or rg.BoundingBox(rg.Point3d(cx,cy,z0), rg.Point3d(cx,cy,z1))
+
+            # Fallback centroid for empty levels: use bbox center in XY
+            if area_doc == 0.0 and bb is not None:
+                cx = 0.5 * (bb.Min.X + bb.Max.X)
+                cy = 0.5 * (bb.Min.Y + bb.Max.Y)
 
             clean_id = branch_name + "-L" + str(int(lvl_idx)).zfill(2)
             nid = clean_id if USE_CLEAN_NODE_IDS else (branch_name + "|L" + str(int(lvl_idx)).zfill(2) + "|" + uuid.uuid4().hex[:6])
@@ -649,9 +740,19 @@ def build_graph_from_active_doc(floor_h_doc, tol):
             if uid: node_obj["uid"] = uid
             nodes.append(node_obj)
             node_id[(branch_name, lvl_idx)] = nid
-            # keep lowest for “access” connections later
-            if (branch_name, "ground") not in ground_node_per_branch or lvl_idx < ground_node_per_branch[(branch_name, "ground")][0]:
-                ground_node_per_branch[(branch_name, "ground")] = (lvl_idx, nid, node_obj)
+
+            # keep lowest for “access” connections later (prefer non-empty)
+            key = (branch_name, "ground")
+            prev = ground_node_per_branch.get(key)
+            cur_is_non_empty = (area_doc > 0.0)
+            if prev is None:
+                ground_node_per_branch[key] = (lvl_idx, nid, node_obj)
+            else:
+                prev_lvl, prev_nid, prev_obj = prev
+                prev_is_non_empty = (float(prev_obj.get("area_doc", 0.0)) > 0.0)
+                if (cur_is_non_empty and not prev_is_non_empty) or \
+                   ((cur_is_non_empty == prev_is_non_empty) and (lvl_idx < prev_lvl)):
+                    ground_node_per_branch[key] = (lvl_idx, nid, node_obj)
             return nid
 
         # vertical edges per branch
@@ -682,7 +783,7 @@ def build_graph_from_active_doc(floor_h_doc, tol):
     # ---- optional PLOT hub (kept; light) ----
     pc = _get_plot_center()
     if pc:
-        nodes.append({"id":"PLOT", "type":"plot", "center_doc": [float(pc[0]), float(pc[1]), float(pc[2])]})
+        nodes.append({"id":"PLOT", "type":"plot", "center_doc": [float(pc[0]), float(pc[1]), float(pc[2]) ]})
         # connect the first node of each building's main branch (original bl)
         by_building_branch = defaultdict(list)
         for n in nodes:
@@ -694,7 +795,7 @@ def build_graph_from_active_doc(floor_h_doc, tol):
                 edges.append({"u": lst_sorted[0]["id"], "v": "PLOT", "type": "plot", "weight": 1.0})
 
     # ---------------------------------------------------------------------
-    # 2) Curves → street line network (from main; street schema compatible)
+    # 2) Curves → street line network (street schema compatible)
     # ---------------------------------------------------------------------
     line_node_ids = {}   # quantized point key -> node_id
     line_nodes_pts = {}  # node_id -> Point3d
@@ -783,26 +884,38 @@ def build_graph_from_active_doc(floor_h_doc, tol):
                     ]
                 })
 
-    # 3) Connect building ground nodes to nearest street node
+    # 3) Connect building ground nodes to nearest street node (2D distance)
     if INCLUDE_LINE_NETWORK and CONNECT_BUILDINGS_TO_NEAREST_LINE and line_nodes_pts:
         ln_items = list(line_nodes_pts.items())
         for (branch_name, _), (lvl_idx, nid, node_obj) in ground_node_per_branch.items():
-            bp = rg.Point3d(node_obj["centroid_doc"][0], node_obj["centroid_doc"][1], node_obj["centroid_doc"][2])
+   
+            if CONNECT_ONLY_MAIN_BRANCH and branch_name != node_obj.get("building_id"):
+                continue
+            if CONNECT_GROUND_ONLY_IF_NONEMPTY and float(node_obj.get("area_doc", 0.0)) <= 0.0:
+                continue
+
+            bp = rg.Point3d(
+                float(node_obj["centroid_doc"][0]),
+                float(node_obj["centroid_doc"][1]),
+                float(node_obj["centroid_doc"][2])
+            )
             best = None
             best_d2 = None
             for lnid, lpt in ln_items:
-                d2 = _dist2(bp, lpt)
+                d2 = _dist2_xy(bp, lpt)  # 2D distance (ignore Z)
                 if ACCESS_SEARCH_RADIUS > 0.0 and d2 > (ACCESS_SEARCH_RADIUS * ACCESS_SEARCH_RADIUS):
                     continue
                 if (best is None) or (d2 < best_d2):
                     best, best_d2 = lnid, d2
-            if best:
+            if best is not None:
                 edges.append({
                     "u": nid,
                     "v": best,
                     "type": "access",
                     "distance": float(math.sqrt(best_d2))
                 })
+            else:
+                Rhino.RhinoApp.WriteLine("[massing_graph] WARNING: no street node found near " + nid)
 
     meta["diagnostics_per_building"] = diagnostics
     out = {"nodes": nodes, "edges": edges, "meta": meta}
@@ -834,31 +947,65 @@ def _diagnose_level_counts(nodes, H_m):
         ))
 
 def save_graph(path=KNOWLEDGE_PATH):
+    """
+    Build and persist the massing graph JSON.
+    Writes the canonical file to `knowledge/massing_graph.json` and also
+    mirrors it to `knowledge/merge/massing_graph.json` for the UI.
+    Ensures both `edges` and `links` are present (same array).
+    Adds meta.updated_at to ease cache-busting in the UI.
+    """
     try:
         tol = sc.doc.ModelAbsoluteTolerance or 0.001
         floor_h_doc = _doc_len_from_meters(FLOOR_HEIGHT_METERS)
+
         res = build_graph_from_active_doc(floor_h_doc, tol)
 
-        # ensure both 'edges' and 'links' are present
-        data = {"nodes": res["nodes"], "edges": res.get("edges") or res.get("links") or [], "meta": res["meta"]}
+        # Compose payload and ensure both 'edges' and 'links'
+        data = {
+            "nodes": res.get("nodes", []),
+            "edges": res.get("edges") or res.get("links") or [],
+            "meta":  res.get("meta", {})
+        }
         data["links"] = data["edges"]
 
+        # Enrich meta to help UI cache-busting & diagnostics
+        try:
+            data["meta"]["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime())
+        except:
+            data["meta"]["updated_at"] = str(time.time())
+
+        # Quick stats (for Rhino console)
         levels = [n for n in data["nodes"] if n.get("type") == "level"]
         total_area_m2 = sum(float(n.get("area_m2", 0.0)) for n in levels)
 
         from collections import defaultdict
         by_bld = defaultdict(list)
-        for n in levels: by_bld[n.get("building_id","?")].append(n)
+        for n in levels:
+            by_bld[n.get("building_id", "?")].append(n)
+
         site_footprint_ref_m2 = 0.0
         for bl, lst in by_bld.items():
             if lst:
-                site_footprint_ref_m2 += max(float(n.get("area_m2",0.0)) for n in lst)
+                site_footprint_ref_m2 += max(float(n.get("area_m2", 0.0)) for n in lst)
 
-        _ensure_dir(path)
-        with open(path, "w") as f:
+        # Write canonical file
+        primary_path = path  # e.g. <repo>/knowledge/massing_graph.json
+        _ensure_dir(primary_path)
+        with open(primary_path, "w") as f:
             json.dump(data, f, indent=2)
 
-        Rhino.RhinoApp.WriteLine("[massing_graph] Saved: " + path)
+        # Also mirror to UI-friendly location (what many UIs expect)
+        ui_path = os.path.join(PROJECT_DIR, "knowledge", "merge", "massing_graph.json")
+        _ensure_dir(ui_path)
+        try:
+            with open(ui_path, "w") as f:
+                json.dump(data, f, indent=2)
+            Rhino.RhinoApp.WriteLine("[massing_graph] UI copy written to: " + ui_path)
+        except Exception as e:
+            Rhino.RhinoApp.WriteLine("[massing_graph] WARNING: could not write UI copy: " + str(e))
+
+        # Console diagnostics
+        Rhino.RhinoApp.WriteLine("[massing_graph] Saved: " + primary_path)
         Rhino.RhinoApp.WriteLine("[massing_graph] Nodes: " + str(len(data["nodes"])) + ", Edges: " + str(len(data["links"])))
         Rhino.RhinoApp.WriteLine("[massing_graph] Level nodes (total): " + str(len(levels)))
         Rhino.RhinoApp.WriteLine("[massing_graph] Total GFA: " + str(round(total_area_m2, 3)) + " m^2")
@@ -873,8 +1020,11 @@ def save_graph(path=KNOWLEDGE_PATH):
         except:
             Rhino.RhinoApp.WriteLine("[massing_graph] (diagnostics skipped)")
 
-        if SHOW_CONTOUR_PREVIEW and res.get("_preview"): _preview_on(res.get("_preview") or {})
-        else: _preview_off()
+        # Preview conduit toggle
+        if SHOW_CONTOUR_PREVIEW and res.get("_preview"):
+            _preview_on(res.get("_preview") or {})
+        else:
+            _preview_off()
 
     except Exception as e:
         Rhino.RhinoApp.WriteLine("[massing_graph] Save error: " + str(e))

@@ -4,7 +4,7 @@ masterplan_graph.py  (IronPython 2.7 compatible) — Option B (no PLOT hub)
 
 Merges:
   - knowledge/merge/empty_plot_graph.json      (outside-only, open boundary)
-  - knowledge/massing_graph.json               (massing + internal streets)
+  - knowledge/enriched_graph.json               (massing + internal streets)
 
 Then, instead of creating/using a synthetic 'PLOT' hub, it:
   - Finds "connector" street nodes: outside nodes that were adjacent to inside
@@ -43,7 +43,7 @@ KNOWLEDGE_DIR = os.path.join(PROJECT_DIR, "knowledge")
 OSM_ROOT = os.path.join(KNOWLEDGE_DIR, "osm")
 MERGE_DIR = os.path.join(KNOWLEDGE_DIR, "merge")
 EMPTY_PLOT_PATH = os.path.join(MERGE_DIR, "empty_plot_graph.json")
-MASSING_PATH = os.path.join(KNOWLEDGE_DIR, "massing_graph.json")
+ENRICHED_PATH = os.path.join(KNOWLEDGE_DIR, "enriched", "enriched_graph.json")
 OUT_PATH = os.path.join(MERGE_DIR, "masterplan_graph.json")
 
 # ---------------- I/O utils ----------------
@@ -350,10 +350,10 @@ def save_graph():
 
     boundary_xy = _load_json_robust(os.path.join(job_dir, "boundary.json"), "boundary.json")
     empty_raw   = _load_json_robust(EMPTY_PLOT_PATH, "empty_plot_graph.json")
-    massing_raw = _load_json_robust(MASSING_PATH, "massing_graph.json")
+    enriched_raw = _load_json_robust(ENRICHED_PATH, "enriched_graph.json")
 
     E = _normalize_graph(empty_raw)   # outside-only, open boundary (no PLOT)
-    M = _normalize_graph(massing_raw)
+    M = _normalize_graph(enriched_raw)
 
     # Seed with empty-plot content
     combined_nodes, combined_edges = [], []
@@ -468,7 +468,7 @@ def save_graph():
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "merge": {
             "empty_plot_graph": EMPTY_PLOT_PATH,
-            "massing_graph": MASSING_PATH,
+            "massing_graph": ENRICHED_PATH,
             "connectors_detected": int(len(connectors)),
             "connectors_attached": int(added_edges),
             "max_connect_dist": float(MAX_CONNECT_DIST),
