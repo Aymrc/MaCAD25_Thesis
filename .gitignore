@@ -7,5 +7,6 @@ llm/__pycache__/*
 # --- Project runtime ---
 knowledge/osm/
 knowledge/merge/
-lib/*
+knowledge/iteration/
 knowledge/briefs/
+lib/*
