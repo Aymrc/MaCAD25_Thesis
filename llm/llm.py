@@ -38,8 +38,8 @@ CONTEXT_DIR = PROJECT_DIR / "context"
 RUNTIME_DIR = CONTEXT_DIR / "runtime"
 KNOWLEDGE_DIR = PROJECT_DIR / "knowledge"
 OSM_DIR = KNOWLEDGE_DIR / "osm"
-BRIEFS_DIR = KNOWLEDGE_DIR / "briefs"       # unified briefs folder
-ENRICHED_DIR = PROJECT_DIR / "enriched_graph" / "iteration"
+BRIEFS_DIR = KNOWLEDGE_DIR / "briefs"
+ENRICHED_FILE = KNOWLEDGE_DIR / "enriched" / "enriched_graph.json" 
 
 for d in (RUNTIME_DIR, OSM_DIR, BRIEFS_DIR):
     os.makedirs(d, exist_ok=True)
@@ -736,31 +736,28 @@ def _massing_context_text(max_nodes: int = 200, max_edges: int = 200, include_st
 
 @app.get("/graph/enriched/latest")
 def get_enriched_latest():
-    if not ENRICHED_DIR.exists():
+    """Serve a single fixed enriched graph file."""
+    if not ENRICHED_FILE.exists():
         return JSONResponse({"nodes": [], "edges": [], "meta": {}}, status_code=404)
 
-    best_n, best_path = -1, None
-    for p in ENRICHED_DIR.glob("it*.json"):
-        m = re.fullmatch(r"it(\d+)\.json", p.name, flags=re.IGNORECASE)
-        if m:
-            n = int(m.group(1))
-            if n > best_n:
-                best_n, best_path = n, p
-
-    if best_path is None:
-        return JSONResponse({"nodes": [], "edges": [], "meta": {}}, status_code=404)
-
-    with open(best_path, "r", encoding="utf-8") as f:
+    with open(ENRICHED_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     links = data.get("links", data.get("edges", []))
-    data = {
+    return {
         "nodes": data.get("nodes", []),
         "links": links,
-        "edges": links,
-        "meta": {**data.get("meta", {}), "iteration_file": best_path.name}
+        "edges": links,  # keep both keys for the frontend adapter
+        "meta": {**data.get("meta", {}), "iteration_file": ENRICHED_FILE.name}
     }
-    return JSONResponse(data)
+
+@app.get("/graph/enriched/mtime")
+def get_enriched_mtime():
+    try:
+        return {"mtime": os.path.getmtime(ENRICHED_FILE)}
+    except:
+        return {"mtime": 0.0}
+
 
 # ---- Quiet Uvicorn access logs for mtime polling ----
 ACCESS_LOG_MUTE_ENDPOINTS = ("/graph/massing/mtime", "/graph/enriched/mtime") # ("/graph/massing/mtime", "...") add whatever we need to clean
