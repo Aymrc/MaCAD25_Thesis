@@ -5,7 +5,7 @@
 # Listen to the opened Rhino window, auto-import finished OSM jobs, export a boundary
 # from the PLOT layer, trigger evaluation, and enable evaluation preview (UI-thread safe).
 
-import os, sys, threading, time, json, imp, re
+import os, sys, threading, time, json, re
 
 import Rhino
 import scriptcontext as sc
@@ -47,7 +47,7 @@ PROJECT_DIR = os.path.dirname(THIS_DIR)
 
 # knowledge directory (all live state goes here)
 KNOWLEDGE_DIR = os.path.join(PROJECT_DIR, "knowledge")
-OSM_DIR = os.path.join(KNOWLEDGE_DIR, "osm")  # OSM jobs root
+OSM_DIR = os.path.join(KNOWLEDGE_DIR, "osm")
 MERGE_DIR = os.path.join(KNOWLEDGE_DIR, "merge")
 MASSING_JSON = os.path.join(KNOWLEDGE_DIR, "massing_graph.json")
 EMPTY_PLOT_JSON = os.path.join(MERGE_DIR, "empty_plot_graph.json")
@@ -56,13 +56,20 @@ EMPTY_PLOT_JSON = os.path.join(MERGE_DIR, "empty_plot_graph.json")
 if PROJECT_DIR not in sys.path:
     sys.path.append(PROJECT_DIR)
 
-from enriched_graph.enriched import (
-    generate_enriched_variants,
-    resolve_default_paths,
-    get_area_from_node,
-    extract_programs_from_brief,
-)
-
+# from enriched_graph.enriched import generate_enriched_variants
+# from enriched_graph.enriched import resolve_default_paths
+# from enriched_graph.enriched import get_area_from_node
+# from enriched_graph.enriched import extract_programs_from_brief
+try:
+    from enriched_graph.enriched import generate_enriched_variants, resolve_default_paths, get_area_from_node, extract_programs_from_brief
+except Exception as e1:
+    try:
+        # Fallback if you actually have a top-level enriched.py instead of the enriched_graph package
+        from enriched import generate_enriched_variants, resolve_default_paths, get_area_from_node, extract_programs_from_brief
+        Rhino.RhinoApp.WriteLine("[rhino_listener] Using top-level 'enriched.py' fallback.")
+    except Exception as e2:
+        Rhino.RhinoApp.WriteLine("[rhino_listener] Enriched import failed: {0} // {1}".format(e1, e2))
+        raise
 
 # Ensure destination exists
 try:

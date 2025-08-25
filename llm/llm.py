@@ -39,7 +39,10 @@ RUNTIME_DIR = CONTEXT_DIR / "runtime"
 KNOWLEDGE_DIR = PROJECT_DIR / "knowledge"
 OSM_DIR = KNOWLEDGE_DIR / "osm"
 BRIEFS_DIR = KNOWLEDGE_DIR / "briefs"
+BRIEF_LATEST_FILE = BRIEFS_DIR / "brief_graph.json"
+BRIEF_LATEST_FILE.parent.mkdir(parents=True, exist_ok=True)
 ENRICHED_FILE = KNOWLEDGE_DIR / "enriched" / "enriched_graph.json" 
+
 
 for d in (RUNTIME_DIR, OSM_DIR, BRIEFS_DIR):
     os.makedirs(d, exist_ok=True)
@@ -331,6 +334,21 @@ async def upload_brief(file: UploadFile = File(None), text: str = Form(None)):
     with open(graph_json_path, "w", encoding="utf-8") as f:
         json.dump(graph, f, indent=2, ensure_ascii=False)
 
+    stable_graph = dict(graph)
+    # 3d-force-graph prefers "links"; keep "edges" for compatibility
+    if "links" not in stable_graph:
+        stable_graph["links"] = stable_graph.get("edges", [])
+    stable_graph.setdefault("nodes", [])
+    stable_graph.setdefault("edges", [])
+    stable_graph.setdefault("meta", {})
+    stable_graph["meta"]["source_path"] = str(graph_json_path)
+
+    # write the stable copy
+    BRIEF_LATEST_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(BRIEF_LATEST_FILE, "w", encoding="utf-8") as f:
+        json.dump(stable_graph, f, indent=2, ensure_ascii=False)
+
+
     # Response
     n = len(graph.get("nodes", []))
     e = len(graph.get("edges", []))
@@ -414,7 +432,7 @@ Brief:
                      {"role": "user", "content": user}],
         "temperature": 0.2,
         "top_p": 0.9,
-        "max_tokens": 1200,
+        "max_tokens": 1000,
         "stream": False,
         "stop": ["User:", "Assistant:", "System:"],
     }
